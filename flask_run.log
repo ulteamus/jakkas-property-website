@@ -1,0 +1,86 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.5:5000
+Press CTRL+C to quit
+MySQL unavailable at runtime; falling back to SQLite for local development.
+[2026-07-28 19:17:26,414] ERROR in app: Exception on / [GET]
+Traceback (most recent call last):
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\routes\public.py", line 38, in home
+    return render_template(
+        "public/home.html",
+        categories=prop_model.categories_summary(),
+        testimonials=reviews_model.list_reviews(limit=6),
+    )
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\templates\public\home.html", line 2, in top-level template code
+    {% from "public/_listing_media.html" import render_listing_media %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\templates\public\base.html", line 61, in top-level template code
+    <main class="page-enter">{% block content %}{% endblock %}</main>
+    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\templates\public\home.html", line 85, in block 'content'
+    <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span>
+    ^^^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\jinja2\environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'home_stats' is undefined
+127.0.0.1 - - [28/Jul/2026 19:17:26] "GET / HTTP/1.1" 500 -
+[2026-07-28 19:18:30,623] ERROR in app: Exception on / [GET]
+Traceback (most recent call last):
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\routes\public.py", line 38, in home
+    return render_template(
+        "public/home.html",
+        categories=prop_model.categories_summary(),
+        testimonials=reviews_model.list_reviews(limit=6),
+    )
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\templates\public\home.html", line 2, in top-level template code
+    {% from "public/_listing_media.html" import render_listing_media %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\templates\public\base.html", line 61, in top-level template code
+    <main class="page-enter">{% block content %}{% endblock %}</main>
+    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\templates\public\home.html", line 85, in block 'content'
+    <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span>
+    ^^^^^^^^^^^^^^^
+  File "C:\Users\jod\Downloads\property-broker-chatbot\property-broker-chatbot\.venv\Lib\site-packages\jinja2\environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'home_stats' is undefined
+127.0.0.1 - - [28/Jul/2026 19:18:30] "GET / HTTP/1.1" 500 -

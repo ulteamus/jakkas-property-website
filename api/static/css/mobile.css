@@ -1,0 +1,289 @@
+/* Dedicated mobile app-style UI (phones & small tablets) */
+
+@media (max-width: 991.98px) {
+  body.jk-jovista {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .jv-footer,
+  .site-footer {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Bottom navigation */
+  .jk-mobile-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1075;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid var(--jv-border, #e8e8e4);
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.08);
+    padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    backdrop-filter: blur(12px);
+  }
+
+  .jk-mobile-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.4rem 0.25rem;
+    min-height: 3.25rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #5c6370;
+    text-decoration: none;
+    border: 0;
+    background: transparent;
+    border-radius: 10px;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .jk-mobile-nav__item i {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .jk-mobile-nav__item.is-active,
+  .jk-mobile-nav__item:hover,
+  .jk-mobile-nav__item:focus-visible {
+    color: var(--jv-accent, #f79433);
+    background: rgba(247, 148, 51, 0.1);
+  }
+
+  .jk-mobile-nav__item--accent i {
+    color: var(--jv-accent, #f79433);
+  }
+
+  /* Hide floating buttons — bottom nav replaces them */
+  .fab-stack,
+  .quick-inquiry-toggle {
+    display: none !important;
+  }
+
+  .quick-inquiry-panel {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Compact top navbar */
+  body.jk-jovista .jv-navbar {
+    padding-block: 0.5rem;
+  }
+
+  body.jk-jovista .jk-logo-mark {
+    height: 38px;
+  }
+
+  /* Hero: cinema-style single panel on phones */
+  .property-hero.is-mobile-cinema .property-hero__grid {
+    display: block;
+    position: relative;
+    min-height: 68vh;
+    overflow: hidden;
+  }
+
+  .property-hero.is-mobile-cinema .property-hero__panel {
+    position: absolute;
+    inset: 0;
+    min-height: 68vh;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+
+  .property-hero.is-mobile-cinema .property-hero__panel.is-visible {
+    opacity: 1;
+    z-index: 1;
+  }
+
+  .property-hero.is-mobile-cinema .property-hero__divider {
+    display: none;
+  }
+
+  .property-hero.is-mobile-cinema .property-hero__mode-toggle {
+    display: none;
+  }
+
+  .property-hero.is-mobile-cinema .property-hero__label {
+    display: none;
+  }
+
+  /* Service & stat cards */
+  .jv-service-card {
+    text-align: center;
+    padding: 1.35rem 1.1rem;
+  }
+
+  .jv-service-icon {
+    margin-inline: auto;
+  }
+
+  .jv-stat-value {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+
+  /* Property cards — full-width tap targets */
+  .property-card .btn,
+  .jv-property-body .btn,
+  .jv-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .property-card .d-flex.gap-2.mt-2 {
+    flex-direction: column;
+  }
+
+  .property-card .d-flex.gap-2.mt-2 .btn {
+    width: 100%;
+  }
+
+  /* Forms — 16px inputs prevent iOS zoom */
+  .form-control,
+  .form-select,
+  textarea.form-control {
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+
+  /* About / content pages */
+  .about-hero-card,
+  .founder-card,
+  .about-info-card {
+    padding: 1.25rem !important;
+  }
+
+  .founder-photo {
+    width: min(220px, 72vw);
+    height: auto;
+  }
+
+  .submission-form,
+  .content-card {
+    padding: 1.1rem !important;
+  }
+
+  /* Detail page */
+  .detail-page .btn,
+  .gallery-main {
+    border-radius: 12px;
+  }
+
+  /* Contact page */
+  .contact-page .row.g-4 > [class*="col-"] {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Sell property form */
+  .sell-page .section-title {
+    font-size: clamp(1.45rem, 6vw, 2rem);
+  }
+
+  .sell-contact-row .form-label {
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  .sell-option-chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .sell-property-type-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sell-option-chip {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .listing-quick-nav__chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .listing-quick-chip {
+    width: 100%;
+    text-align: center;
+  }
+
+  .listings-promo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jv-section {
+    padding-block: 2.5rem;
+  }
+
+  .jv-section-title {
+    font-size: clamp(1.35rem, 5.5vw, 1.85rem);
+  }
+
+  .property-hero__content h1 {
+    font-size: clamp(1.6rem, 7vw, 2.4rem);
+  }
+
+  .property-hero__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .property-hero__btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .sell-option-chips,
+  .sell-property-type-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .listing-quick-nav__chips {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .property-hero.is-mobile-cinema .property-hero__grid,
+  .property-hero.is-mobile-cinema .property-hero__panel {
+    min-height: 62vh;
+  }
+
+  .jv-about-visual {
+    margin-top: 1.25rem;
+  }
+
+  .jv-about-photo {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 16px;
+  }
+
+  .contact-strip {
+    margin-bottom: 0;
+  }
+
+  main.page-enter {
+    overflow-x: hidden;
+  }
+}

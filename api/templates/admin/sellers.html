@@ -1,0 +1,94 @@
+{% extends "admin/base.html" %}
+{% block title %}Sellers Info{% endblock %}
+{% block page_heading %}Sellers Info{% endblock %}
+{% block page_subheading %}Manage seller profiles, metadata tags, and printable profile records.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>{{ 'Edit Seller Profile' if editing else 'Add Seller Profile' }}</h5>
+  </div>
+  <form method="POST" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if editing %}
+    <input type="hidden" name="seller_id" value="{{ editing.id }}">
+    {% endif %}
+    <div class="col-md-4">
+      <label>Full Name *</label>
+      <input class="form-control" name="full_name" required value="{{ editing.full_name if editing else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label>Mobile *</label>
+      <input class="form-control" name="mobile" required value="{{ editing.mobile if editing else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label>Email</label>
+      <input type="email" class="form-control" name="email" value="{{ editing.email if editing else '' }}">
+    </div>
+    <div class="col-md-6">
+      <label>Address</label>
+      <textarea class="form-control" rows="2" name="address">{{ editing.address if editing else '' }}</textarea>
+    </div>
+    <div class="col-md-6">
+      <label>Tags (comma separated)</label>
+      <input class="form-control" name="tags_text" placeholder="vip, urgent_followup, premium" value="{{ editing.tags_text if editing else '' }}">
+    </div>
+    <div class="col-12">
+      <label>Notes</label>
+      <textarea class="form-control" rows="3" name="notes">{{ editing.notes if editing else '' }}</textarea>
+    </div>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-jk-accent">{{ 'Update Seller' if editing else 'Add Seller' }}</button>
+      {% if editing %}
+      <a href="{{ url_for('admin.sellers') }}" class="btn btn-outline-secondary">Cancel Edit</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Seller Profiles</h5>
+    <form method="GET" class="d-flex gap-2">
+      <input class="form-control form-control-sm" name="q" value="{{ query }}" placeholder="Search seller">
+      <button class="btn btn-sm btn-outline-secondary">Search</button>
+    </form>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contact</th>
+          <th>Tags</th>
+          <th>Notes</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for seller in sellers %}
+        <tr>
+          <td class="fw-semibold">{{ seller.full_name }}</td>
+          <td>
+            <div>{{ seller.mobile }}</div>
+            <div class="small text-muted">{{ seller.email or '-' }}</div>
+          </td>
+          <td>{{ ', '.join(seller.tags) if seller.tags else '-' }}</td>
+          <td>{{ seller.notes or '-' }}</td>
+          <td>{{ seller.created_at }}</td>
+          <td class="text-nowrap">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.sellers', edit=seller.id) }}">Edit</a>
+            <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ url_for('admin.print_seller', seller_id=seller.id) }}">Print</a>
+            <a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin.seller_pdf', seller_id=seller.id) }}">PDF</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No seller profiles found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

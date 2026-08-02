@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Home — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <h1>Find Your Dream Property with AI</h1>
+    <p>Search, compare, predict prices, calculate EMI, and chat with our intelligent broker assistant.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('main.search_page') }}" class="btn btn-primary">Search Properties</a>
+      <a href="{{ url_for('main.chat_page') }}" class="btn btn-outline">Talk to AI Broker</a>
+    </div>
+  </div>
+</section>
+
+<section class="container section">
+  <h2>Featured Listings</h2>
+  <div id="recommendations" class="property-grid">
+    {% for p in properties %}
+    <article class="property-card">
+      <div class="card-image">
+        {% if p.image_url %}
+        <img src="/{{ p.image_url }}" alt="{{ p.title }}">
+        {% else %}
+        <div class="placeholder-img">🏢</div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <span class="badge">{{ p.property_type }}</span>
+        <h3><a href="{{ url_for('main.property_detail', property_id=p.id) }}">{{ p.title }}</a></h3>
+        <p class="location">{{ p.locality }}, {{ p.city }}</p>
+        <p class="price">₹{{ "{:,.0f}".format(p.price) }}</p>
+        <p class="meta">{{ p.bedrooms }} BHK · {{ p.area_sqft }} sqft</p>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container section features">
+  <h2>What We Offer</h2>
+  <div class="feature-grid">
+    <div class="feature-card"><h3>🔍 Property Search</h3><p>Filter by city, type, budget, and bedrooms.</p></div>
+    <div class="feature-card"><h3>✨ AI Recommendations</h3><p>Personalized picks based on your preferences.</p></div>
+    <div class="feature-card"><h3>📈 Price Prediction</h3><p>Random Forest ML estimates fair market value.</p></div>
+    <div class="feature-card"><h3>💰 EMI Calculator</h3><p>Plan your home loan with instant EMI breakdown.</p></div>
+    <div class="feature-card"><h3>⚖️ Compare</h3><p>Side-by-side comparison of up to 4 properties.</p></div>
+    <div class="feature-card"><h3>📅 Site Visits</h3><p>Schedule tours with one click.</p></div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+  fetch('/api/recommend').then(r => r.json()).then(d => {
+    if (d.success && d.properties.length) console.log('Recommendations loaded', d.properties.length);
+  });
+</script>
+{% endblock %}

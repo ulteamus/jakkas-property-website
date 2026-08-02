@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% block title %}Leads{% endblock %}
+{% block page_heading %}Lead Management{% endblock %}
+{% block page_subheading %}Prioritize high-intent prospects, monitor status flow, and jump directly into follow-up actions.{% endblock %}
+{% block content %}
+<div class="admin-filter-bar mb-2">
+  <a href="?" class="admin-filter-chip {% if not request.args.get('status') and not request.args.get('tier') %}active{% endif %}">All</a>
+  {% for s in statuses %}
+  <a href="?status={{ s }}" class="admin-filter-chip {% if request.args.get('status') == s %}active{% endif %}">{{ s|title }}</a>
+  {% endfor %}
+  <a href="?tier=hot" class="admin-filter-chip {% if request.args.get('tier') == 'hot' %}active{% endif %}">Hot</a>
+</div>
+
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Mobile</th>
+        {% if current_user.role != 'caller' %}
+        <th>Area</th>
+        <th>Score</th>
+        <th>Tier</th>
+        {% endif %}
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in leads %}
+      <tr class="lead-{{ l.lead_tier }}">
+        <td class="fw-semibold">{{ l.name }}{% if l.is_urgent %} <span class="badge bg-warning text-dark">Urgent</span>{% endif %}</td>
+        <td>{{ l.mobile }}</td>
+        {% if current_user.role != 'caller' %}
+        <td>{{ l.preferred_area or '—' }}</td>
+        <td>{{ l.lead_score }}</td>
+        <td><span class="admin-status-pill status-{{ l.lead_tier }}">{{ l.lead_tier }}</span></td>
+        {% endif %}
+        <td>{{ l.status }}</td>
+        <td><a href="{{ url_for('admin.lead_detail', lid=l.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ 7 if current_user.role != 'caller' else 4 }}" class="text-center text-muted py-4">No leads found for this filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

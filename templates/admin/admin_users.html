@@ -1,0 +1,274 @@
+{% extends "admin/base.html" %}
+{% block title %}Employee Permissions{% endblock %}
+{% block page_heading %}Employee Permission Management{% endblock %}
+{% block page_subheading %}Create employee admins, assign role presets, and control granular access with OTP-secured updates.{% endblock %}
+{% block page_actions %}
+<span class="badge bg-secondary align-self-center">{{ admins|length }} accounts</span>
+{% endblock %}
+{% block content %}
+{% if setup_payload %}
+<section class="admin-section-card mb-3">
+  <div class="admin-section-heading">
+    <h5>Google Authenticator Setup: {{ setup_payload.username }}</h5>
+  </div>
+  <div class="row g-3 align-items-center">
+    <div class="col-md-4 text-center">
+      <img src="{{ setup_payload.qr_url }}" alt="TOTP QR Code" class="img-fluid rounded border" style="max-width: 220px;">
+    </div>
+    <div class="col-md-8">
+      <p class="mb-2"><strong>Secret:</strong> <code>{{ setup_payload.secret }}</code></p>
+      <p class="small text-muted mb-2">Scan this QR in Google Authenticator (or compatible app), then verify at next login.</p>
+      <div class="small text-muted text-break">{{ setup_payload.otpauth_uri }}</div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="admin-section-card mb-3">
+  <div class="admin-section-heading">
+    <h5>Create Employee Admin</h5>
+  </div>
+  <form method="POST" action="{{ url_for('admin.create_admin_user') }}" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-3">
+      <label class="form-label">Username *</label>
+      <input class="form-control" name="username" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Email *</label>
+      <input type="email" class="form-control" name="email" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Full Name</label>
+      <input class="form-control" name="full_name">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Phone</label>
+      <input class="form-control" name="phone" placeholder="+91xxxxxxxxxx">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Password *</label>
+      <input type="password" class="form-control" name="password" minlength="6" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Role Preset *</label>
+      <select class="form-select" name="role" required>
+        {% for role in role_keys %}
+        <option value="{{ role }}">{{ role|replace('_', ' ')|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6 d-flex align-items-end gap-4">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_active" id="newActive" checked value="1">
+        <label class="form-check-label" for="newActive">Active</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="require_otp" id="newRequireOtp" checked value="1">
+        <label class="form-check-label" for="newRequireOtp">Require OTP</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="mobile_otp_enabled" id="newMobileOtp" checked value="1">
+        <label class="form-check-label" for="newMobileOtp">Enable Mobile OTP</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="phone_verified" id="newPhoneVerified" value="1">
+        <label class="form-check-label" for="newPhoneVerified">Phone Verified</label>
+      </div>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Granular Permissions (optional override)</label>
+      <div class="row row-cols-1 row-cols-md-4 g-2">
+        {% for key in permission_keys %}
+        <div class="col">
+          <label class="form-check border rounded p-2 d-flex align-items-center gap-2">
+            <input class="form-check-input mt-0" type="checkbox" name="permissions" value="{{ key }}">
+            <span class="small">{{ key }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="small text-muted mt-2 mb-0">If no permission is checked, default role preset permissions are applied automatically.</p>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-jk-accent">Create Employee Admin</button>
+    </div>
+  </form>
+</section>
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Employee Accounts</h5>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Verification</th>
+          <th>Permissions</th>
+          <th style="min-width: 290px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for admin_row in admins %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ admin_row.full_name or admin_row.username }}</div>
+            <div class="small text-muted">{{ admin_row.username }} • {{ admin_row.email }}</div>
+            <div class="small text-muted">{{ admin_row.phone or "No phone configured" }}</div>
+          </td>
+          <td>
+            <span class="admin-status-pill status-pending">{{ admin_row.role|replace('_', ' ')|title }}</span>
+          </td>
+          <td>
+            {% if admin_row.is_active %}
+            <span class="admin-status-pill status-approved">Active</span>
+            {% else %}
+            <span class="admin-status-pill status-rejected">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ admin_row.verification_summary }}</td>
+          <td class="small">{{ admin_row.permission_summary }}</td>
+          <td class="text-nowrap">
+            <form method="POST" action="{{ url_for('admin.toggle_admin_user', admin_id=admin_row.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="is_active" value="{{ 0 if admin_row.is_active else 1 }}">
+              <button class="btn btn-sm btn-outline-secondary">{{ "Disable" if admin_row.is_active else "Enable" }}</button>
+            </form>
+            <a href="{{ url_for('admin.admin_users', edit=admin_row.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+            {% if not admin_row.is_super_admin or admins|selectattr('is_super_admin')|list|length > 1 %}
+            <form method="POST" action="{{ url_for('admin.delete_admin_user', admin_id=admin_row.id) }}" class="d-inline" onsubmit="return confirm('Deactivate this account?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger">Deactivate</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% if edit_admin_id == admin_row.id %}
+        <tr>
+          <td colspan="6">
+            <div class="border rounded p-3 bg-light-subtle">
+              <h6 class="mb-3">Edit: {{ admin_row.username }}</h6>
+              <form method="POST" action="{{ url_for('admin.update_admin_user', admin_id=admin_row.id) }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" class="form-control" name="email" value="{{ admin_row.email }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Full Name</label>
+                  <input class="form-control" name="full_name" value="{{ admin_row.full_name }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Phone</label>
+                  <input class="form-control" name="phone" value="{{ admin_row.phone or '' }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Reset Password</label>
+                  <input type="password" class="form-control" name="password" minlength="6" placeholder="Leave blank to keep">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Role Preset</label>
+                  <select class="form-select" name="role" required>
+                    {% for role in role_keys %}
+                    <option value="{{ role }}" {% if admin_row.role == role %}selected{% endif %}>{{ role|replace('_', ' ')|title }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-9 d-flex align-items-end gap-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_active" id="active{{ admin_row.id }}" value="1" {% if admin_row.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="active{{ admin_row.id }}">Active</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="require_otp" id="req{{ admin_row.id }}" value="1" {% if admin_row.require_otp %}checked{% endif %}>
+                    <label class="form-check-label" for="req{{ admin_row.id }}">Require OTP</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="mobile_otp_enabled" id="mob{{ admin_row.id }}" value="1" {% if admin_row.mobile_otp_enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="mob{{ admin_row.id }}">Enable Mobile OTP</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="phone_verified" id="pv{{ admin_row.id }}" value="1" {% if admin_row.phone_verified %}checked{% endif %}>
+                    <label class="form-check-label" for="pv{{ admin_row.id }}">Phone Verified</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Permission Matrix</label>
+                  <div class="row row-cols-1 row-cols-md-4 g-2">
+                    {% for key in permission_keys %}
+                    <div class="col">
+                      <label class="form-check border rounded p-2 d-flex align-items-center gap-2">
+                        <input class="form-check-input mt-0" type="checkbox" name="permissions" value="{{ key }}" {% if admin_row.has_permission(key) %}checked{% endif %}>
+                        <span class="small">{{ key }}</span>
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                  <button class="btn btn-jk-accent">Save Employee Access</button>
+                  <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_users') }}">Cancel</a>
+                </div>
+              </form>
+              <hr class="my-3">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <form method="POST" action="{{ url_for('admin.setup_admin_totp', admin_id=admin_row.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-dark">Setup TOTP</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.setup_admin_totp', admin_id=admin_row.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="regenerate" value="1">
+                  <button class="btn btn-sm btn-outline-secondary">Regenerate TOTP Secret</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.disable_admin_totp', admin_id=admin_row.id) }}" onsubmit="return confirm('Disable Google Authenticator for this account?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger">Disable TOTP</button>
+                </form>
+                {% if setup_payload and setup_payload.admin_id == admin_row.id %}
+                <a class="btn btn-sm btn-outline-primary" href="#totp-setup-anchor">View Latest Setup QR</a>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No employee admin accounts found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-section-card mt-3">
+  <div class="admin-section-heading">
+    <h5>Default Role Permission Presets</h5>
+  </div>
+  <div class="row g-3">
+    {% for role in role_keys %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">{{ role|replace('_', ' ')|title }}</h6>
+        <ul class="small mb-0">
+          {% for key in role_presets.get(role, []) %}
+          <li>{{ key }}</li>
+          {% else %}
+          <li>No default permissions</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% if setup_payload %}
+<div id="totp-setup-anchor"></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Login — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container auth-container">
+  <div class="auth-card">
+    <h1>Login</h1>
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Login</button>
+    </form>
+    <p class="auth-footer">No account? <a href="{{ url_for('auth.register') }}">Register</a></p>
+    <p class="text-muted small">Use credentials provisioned by your administrator.</p>
+  </div>
+</div>
+{% endblock %}

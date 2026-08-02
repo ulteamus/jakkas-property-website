@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Compare — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container section">
+  <h1>Property Comparison</h1>
+  <p>Enter up to 4 property IDs (comma-separated) or select from search results.</p>
+  <form id="compareForm" class="card compare-form">
+    <div class="form-group">
+      <label>Property IDs</label>
+      <input type="text" id="compareIds" placeholder="e.g. 1,2,3" value="{{ request.args.get('ids', '') }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Compare</button>
+  </form>
+  <div id="compareTable" class="compare-table-wrap mt-2"></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/compare.js') }}"></script>
+{% endblock %}

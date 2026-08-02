@@ -1,0 +1,121 @@
+{% extends "public/base.html" %}
+{% block title %}{{ property.property_name }} - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}">
+  <div class="row g-4">
+    <div class="col-lg-7 reveal-on-scroll">
+      {% set imgs = media.images %}
+      {% if imgs %}
+      <img id="mainImg" class="gallery-main mb-2" src="{{ url_for('uploads', filename=imgs[0].file_path) }}" alt="">
+      <div class="d-flex gap-2 flex-wrap">
+        {% for img in imgs %}
+        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ url_for('uploads', filename=img.file_path) }}" data-full="{{ url_for('uploads', filename=img.file_path) }}">
+        {% endfor %}
+      </div>
+      {% elif property.primary_image %}
+      <img class="gallery-main" src="{{ url_for('uploads', filename=property.primary_image) }}" alt="">
+      {% else %}
+      <div class="gallery-main bg-secondary d-flex align-items-center justify-content-center"><i class="bi bi-building text-white display-1"></i></div>
+      {% endif %}
+
+      {% if media.videos %}
+      <h5 class="mt-4">Videos</h5>
+      {% for v in media.videos %}
+      <video class="w-100 rounded mb-2" controls src="{{ url_for('uploads', filename=v.file_path) }}"></video>
+      {% endfor %}
+      {% endif %}
+    </div>
+    <div class="col-lg-5 reveal-on-scroll">
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        <span class="badge badge-type">{{ property.display_type or property.property_type }}</span>
+        <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent{% else %}badge-buy{% endif %}">
+          {{ property.listing_intent|upper }}
+        </span>
+      </div>
+      <h1 class="h3 mt-2">{{ property.property_name }}</h1>
+      <p class="text-muted mb-2"><i class="bi bi-geo-alt"></i> {{ property.area_name }}, Surat</p>
+      <p class="price fs-3 fw-bold">₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</p>
+      <ul class="list-unstyled detail-meta-list">
+        <li><strong>Property ID:</strong> #{{ property.id }}</li>
+        <li><strong>Property Name:</strong> {{ property.property_name }}</li>
+        <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
+        <li><strong>Property Status:</strong> {{ property.listing_intent|upper }}</li>
+        {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
+        <li><strong>Bungalow Number:</strong> {{ property.bungalow_number or 'N/A' }}</li>
+        <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
+        <li><strong>Full Address:</strong> {{ property.address or (property.area_name ~ ', Surat') }}</li>
+      </ul>
+      {% if property.amenities %}
+      <div class="mb-3">
+        <h6 class="mb-2">Amenities</h6>
+        {% for a in property.amenities %}
+        <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <p>{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
+      <div class="d-grid gap-2">
+        <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+          <i class="bi bi-whatsapp"></i> WhatsApp Broker
+        </a>
+        <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
+        <button class="btn btn-jk-accent" type="button" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
+          <i class="bi bi-send"></i> Send Inquiry
+        </button>
+        <button class="btn btn-jk-outline" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel">
+          <i class="bi bi-calendar-check"></i> Request Site Visit
+        </button>
+        <button class="btn btn-outline-secondary btn-save" data-id="{{ property.id }}"><i class="bi bi-heart"></i> Save Property</button>
+        <button class="btn btn-outline-secondary btn-share"><i class="bi bi-share"></i> Share</button>
+      </div>
+      {% if media.documents %}
+      <h6 class="mt-4">Documents</h6>
+      {% for d in media.documents %}
+      <a href="{{ url_for('uploads', filename=d.file_path) }}" target="_blank" class="d-block"><i class="bi bi-file-pdf"></i> {{ d.doc_name }}</a>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="mt-4">
+    <h3 class="section-title">Property Location</h3>
+    <div id="detailMap" style="height:300px;border-radius:12px" data-lat="{{ property.latitude }}" data-lng="{{ property.longitude }}"></div>
+    <div class="ratio ratio-16x9 mt-3">
+      <iframe src="{{ gmaps_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </section>
+
+  <section class="mt-5 collapse show" id="inquiryPanel">
+    <h3 class="section-title">Send Inquiry</h3>
+    <form id="inquiryForm" class="row g-3">
+      <input type="hidden" name="property_id" value="{{ property.id }}">
+      <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
+      <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
+      <div class="col-12"><input class="form-control" name="email" placeholder="Email"></div>
+      <div class="col-12"><textarea class="form-control" name="message" rows="3" placeholder="Message"></textarea></div>
+      <div class="col-12"><button class="btn btn-jk-accent">Submit Inquiry</button></div>
+    </form>
+  </section>
+
+  <section class="mt-4 collapse" id="visitPanel">
+    <h3 class="section-title">Request Site Visit</h3>
+    <form id="visitForm" class="row g-3">
+      <input type="hidden" name="property_id" value="{{ property.id }}">
+      <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
+      <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
+      <div class="col-md-6"><input class="form-control" name="email" placeholder="Email"></div>
+      <div class="col-md-6"><input type="date" class="form-control" name="preferred_date" required></div>
+      <div class="col-12"><textarea class="form-control" name="message" rows="3" placeholder="Preferred timing / notes"></textarea></div>
+      <div class="col-12"><button class="btn btn-jk-primary">Request Site Visit</button></div>
+    </form>
+  </section>
+
+  {% if similar %}
+  <section class="mt-5">
+    <h3 class="section-title">You May Also Like</h3>
+    <div class="row g-4">{% for p in similar %}{% include "public/_property_card.html" %}{% endfor %}</div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/detail.js') }}"></script>{% endblock %}

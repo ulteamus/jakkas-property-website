@@ -1,0 +1,109 @@
+{% extends "admin/base.html" %}
+{% block title %}Reviews Management{% endblock %}
+{% block page_heading %}Reviews Management{% endblock %}
+{% block page_subheading %}Curate testimonials, control visibility, and moderate review comments from a single workspace.{% endblock %}
+{% block page_actions %}
+<span class="badge bg-secondary align-self-center">{{ reviews|length }} total</span>
+{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <h5 class="mb-3">Add New Review</h5>
+  <form method="POST" action="{{ url_for('admin.add_review') }}" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-4"><input class="form-control" name="client_name" placeholder="Client Name" required></div>
+    <div class="col-md-3"><input class="form-control" name="client_location" placeholder="Location" value="Surat"></div>
+    <div class="col-md-2">
+      <select class="form-select" name="rating" required>
+        {% for r in [5,4,3,2,1] %}<option value="{{ r }}">{{ r }} Star</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 form-check d-flex align-items-center gap-2 mt-0">
+      <input class="form-check-input" type="checkbox" name="is_active" id="isActiveNew" checked>
+      <label class="form-check-label" for="isActiveNew">Active</label>
+    </div>
+    <div class="col-12">
+      <textarea class="form-control" name="review_text" rows="3" placeholder="Review text" required></textarea>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-jk-accent">Add Review</button>
+    </div>
+  </form>
+</section>
+
+<section class="d-grid gap-3">
+  {% for review in reviews %}
+  <article class="admin-section-card">
+    <form method="POST" action="{{ url_for('admin.edit_review', review_id=review.id) }}" class="row g-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-3"><input class="form-control" name="client_name" value="{{ review.client_name }}" required></div>
+      <div class="col-md-2"><input class="form-control" name="client_location" value="{{ review.client_location }}"></div>
+      <div class="col-md-2">
+        <select class="form-select" name="rating">
+          {% for r in [5,4,3,2,1] %}
+          <option value="{{ r }}" {% if review.rating == r %}selected{% endif %}>{{ r }} Star</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="is_active">
+          <option value="1" {% if review.is_active %}selected{% endif %}>Active</option>
+          <option value="0" {% if not review.is_active %}selected{% endif %}>Hidden</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+      </div>
+      <div class="col-12">
+        <textarea class="form-control" name="review_text" rows="2" required>{{ review.review_text }}</textarea>
+      </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="small text-muted">
+        Review #{{ review.id }} • Created: {{ review.created_at }}
+      </div>
+      <form method="POST" action="{{ url_for('admin.delete_review', review_id=review.id) }}" onsubmit="return confirm('Delete this review and all comments?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-outline-danger">Delete Review</button>
+      </form>
+    </div>
+
+    <hr class="my-3">
+    <h6 class="mb-2">Comments ({{ review.comments|length }})</h6>
+    {% if review.comments %}
+    <div class="admin-table-wrap table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Comment</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comment in review.comments %}
+          <tr>
+            <td>{{ comment.commenter_name }}</td>
+            <td>{{ comment.comment_text }}</td>
+            <td>{{ comment.created_at }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('admin.delete_review_comment', comment_id=comment.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="small text-muted mb-0">No comments yet.</p>
+    {% endif %}
+  </article>
+  {% else %}
+  <p class="text-muted">No reviews available.</p>
+  {% endfor %}
+</section>
+{% endblock %}

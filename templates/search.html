@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Search — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container section">
+  <h1>Property Search</h1>
+  <form id="searchForm" class="search-filters card">
+    <div class="filter-row">
+      <div class="form-group">
+        <label>Keyword</label>
+        <input type="text" name="q" id="q" placeholder="Title, locality...">
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" name="city" id="city" placeholder="Mumbai, Bangalore...">
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select name="type" id="type">
+          <option value="">Any</option>
+          <option value="apartment">Apartment</option>
+          <option value="villa">Villa</option>
+          <option value="house">House</option>
+          <option value="plot">Plot</option>
+          <option value="commercial">Commercial</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Listing</label>
+        <select name="listing_type" id="listing_type">
+          <option value="">Any</option>
+          <option value="sale">Sale</option>
+          <option value="rent">Rent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Min Price (₹)</label>
+        <input type="number" name="min_price" id="min_price">
+      </div>
+      <div class="form-group">
+        <label>Max Price (₹)</label>
+        <input type="number" name="max_price" id="max_price">
+      </div>
+      <div class="form-group">
+        <label>Min Bedrooms</label>
+        <input type="number" name="min_bedrooms" id="min_bedrooms" min="0">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  <div id="searchResults" class="property-grid mt-2"></div>
+</div>
+
+<section class="container section card">
+  <h2>Price Prediction (Random Forest)</h2>
+  <form id="predictForm" class="filter-row">
+    <div class="form-group"><label>Area (sqft)</label><input type="number" id="pred_area" value="1200" required></div>
+    <div class="form-group"><label>Bedrooms</label><input type="number" id="pred_beds" value="2"></div>
+    <div class="form-group"><label>City</label><input type="text" id="pred_city" value="Bangalore"></div>
+    <div class="form-group"><label>Type</label>
+      <select id="pred_type">
+        <option value="apartment">Apartment</option>
+        <option value="villa">Villa</option>
+        <option value="house">House</option>
+        <option value="plot">Plot</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-outline">Predict Price</button>
+  </form>
+  <div id="predictResult" class="predict-result"></div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

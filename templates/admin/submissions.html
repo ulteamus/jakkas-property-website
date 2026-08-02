@@ -1,0 +1,111 @@
+{% extends "admin/base.html" %}
+{% block title %}Owner Submissions{% endblock %}
+{% block page_heading %}Owner Submissions{% endblock %}
+{% block page_subheading %}Review owner-uploaded listings, approve quality submissions, and keep publishing flow moving.{% endblock %}
+{% block content %}
+<div class="admin-filter-bar mb-2">
+  {% for value, label in statuses %}
+  <a href="{{ url_for('admin.submissions', status=value) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Owner</th>
+        <th>Property</th>
+        <th>Price</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th style="min-width: 300px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for submission in submissions %}
+      <tr id="submission-{{ submission.id }}">
+        <td>{{ submission.id }}</td>
+        <td>
+          <div class="fw-semibold">{{ submission.owner_name }}</div>
+          <div class="small">
+            <a href="tel:{{ submission.owner_mobile }}">{{ submission.owner_mobile }}</a>
+          </div>
+          {% if submission.owner_email %}
+          <div class="small">
+            <a href="mailto:{{ submission.owner_email }}">{{ submission.owner_email }}</a>
+          </div>
+          {% endif %}
+        </td>
+        <td>
+          <div class="fw-semibold">{{ submission.property_title }}</div>
+          <div class="small text-muted">
+            {{ submission.property_type|title }}{% if submission.bhk %} • {{ submission.bhk }} BHK{% endif %}
+            {% if submission.area_sq_ft %} • {{ "%.0f"|format(submission.area_sq_ft) }} sq ft{% endif %}
+          </div>
+          <div class="small text-muted mb-1">{{ submission.city }}{% if submission.location_area %}, {{ submission.location_area }}{% endif %}</div>
+          {% if submission.property_id %}
+          <a href="{{ url_for('admin.property_form', pid=submission.property_id) }}" class="btn btn-sm btn-outline-primary">
+            Open Property
+          </a>
+          {% endif %}
+        </td>
+        <td>₹{{ "{:,.0f}".format(submission.price or 0) }}</td>
+        <td>
+          {% if submission.status == "pending" %}
+          <span class="admin-status-pill status-pending">Pending</span>
+          {% elif submission.status == "approved" %}
+          <span class="admin-status-pill status-approved">Approved</span>
+          {% else %}
+          <span class="admin-status-pill status-rejected">Rejected</span>
+          {% endif %}
+          <div class="small text-muted mt-1">
+            {{ submission.images|length }} image(s), {{ submission.videos|length }} video(s)
+          </div>
+        </td>
+        <td class="small">{{ submission.created_at }}</td>
+        <td>
+          {% if submission.status == "pending" %}
+          <form method="POST" action="{{ url_for('admin.approve_submission', sid=submission.id) }}" class="d-grid gap-2 mb-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="redirect_status" value="{{ status_filter }}">
+            <input
+              type="text"
+              name="review_note"
+              class="form-control form-control-sm"
+              maxlength="250"
+              placeholder="Approval note (optional)"
+            >
+            <button class="btn btn-sm btn-success">Approve Submission</button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.reject_submission', sid=submission.id) }}" class="d-grid gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="redirect_status" value="{{ status_filter }}">
+            <input
+              type="text"
+              name="review_note"
+              class="form-control form-control-sm"
+              maxlength="250"
+              placeholder="Rejection reason (optional)"
+            >
+            <button class="btn btn-sm btn-outline-danger">Reject Submission</button>
+          </form>
+          {% else %}
+          <div class="small text-muted mb-1">
+            Reviewed by: {{ submission.reviewed_by or "Admin" }}
+          </div>
+          {% if submission.review_note %}
+          <div class="small">Note: {{ submission.review_note }}</div>
+          {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">No submissions found for this filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

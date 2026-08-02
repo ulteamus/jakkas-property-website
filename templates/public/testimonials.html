@@ -1,0 +1,67 @@
+{% extends "public/base.html" %}
+{% block title %}Testimonials - {{ company_name }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <header class="reveal-on-scroll mb-4">
+    <h1 class="section-title">Testimonials / Reviews</h1>
+    <p class="text-muted mb-0">Visitors and customers can share real experiences and comment on reviews.</p>
+  </header>
+
+  <article class="card p-4 mb-4 content-card reveal-on-scroll">
+    <h5 class="mb-3">Add Your Review</h5>
+    <form id="reviewForm" class="row g-2">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="Your Name *" required></div>
+      <div class="col-md-3"><input class="form-control" name="location" placeholder="Your Location" value="Surat"></div>
+      <div class="col-md-2">
+        <select class="form-select" name="rating" required>
+          {% for r in [5,4,3,2,1] %}
+          <option value="{{ r }}">{{ r }} Star</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-12">
+        <textarea class="form-control" name="review_text" rows="3" placeholder="Write your review..." required></textarea>
+      </div>
+      <div class="col-md-3 d-grid">
+        <button class="btn btn-jk-accent" type="submit">Post Review</button>
+      </div>
+    </form>
+  </article>
+
+  <div class="row g-4 mt-1" id="reviewsList">
+    {% for t in testimonials %}
+    <div class="col-md-6 col-lg-4">
+      <article class="testimonial-card h-100">
+        <div class="text-warning mb-2">{% for _ in range(t.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
+        <p class="mb-3">"{{ t.review_text }}"</p>
+        <h6 class="mb-1">{{ t.client_name }}</h6>
+        <small class="text-muted">{{ t.client_location }}</small>
+
+        <hr>
+        <h6 class="small text-uppercase mb-2">Comments</h6>
+        <div class="review-comments">
+          {% for c in t.comments %}
+          <div class="review-comment-item">
+            <strong>{{ c.commenter_name }}</strong>
+            <p class="mb-1 small">{{ c.comment_text }}</p>
+          </div>
+          {% else %}
+          <p class="small text-muted mb-2">No comments yet.</p>
+          {% endfor %}
+        </div>
+        <form class="reviewCommentForm mt-2" data-review-id="{{ t.id }}">
+          <input class="form-control form-control-sm mb-2" name="name" placeholder="Your name" required>
+          <textarea class="form-control form-control-sm mb-2" name="comment_text" rows="2" placeholder="Write a comment..." required></textarea>
+          <button class="btn btn-sm btn-outline-dark" type="submit">Add Comment</button>
+        </form>
+      </article>
+    </div>
+    {% else %}
+    <p class="text-muted">Testimonials will be published soon.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/reviews.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "admin/base.html" %}
+{% block title %}Sell Properties{% endblock %}
+{% block page_heading %}Sell Properties{% endblock %}
+{% block page_subheading %}Review user-uploaded sell listings, approve for public display, and manage owner submissions.{% endblock %}
+{% block page_actions %}
+<a
+  class="btn btn-outline-secondary btn-sm"
+  target="_blank"
+  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '') }}"
+>
+  <i class="bi bi-printer me-1"></i>Print View
+</a>
+{% endblock %}
+{% block content %}
+<section class="kpi-grid mb-3">
+  {% for value, label in periods %}
+  <article class="admin-kpi-card {% if period_filter == value %}kpi-highlight{% endif %}">
+    <div class="kpi-top">
+      <p class="kpi-label">{{ label }}</p>
+      <span class="kpi-icon"><i class="bi bi-calendar3"></i></span>
+    </div>
+    <h3 class="kpi-value">{{ period_stats.get(value, 0) }}</h3>
+    <p class="kpi-meta mb-2">{{ period_stats.get(value, 0) }} sell propert{{ 'y' if period_stats.get(value, 0) == 1 else 'ies' }} in this {{ label|lower }} period</p>
+    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter) }}" class="btn btn-sm btn-light">View {{ label }}</a>
+  </article>
+  {% endfor %}
+</section>
+
+<div class="admin-filter-bar mb-2">
+  {% for value, label in statuses %}
+  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Owner / Contact</th>
+        <th>Property Details</th>
+        <th>Media</th>
+        <th>Price</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th style="min-width: 300px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for submission in submissions %}
+      <tr id="submission-{{ submission.id }}">
+        <td>{{ submission.id }}</td>
+        <td>
+          <div class="fw-semibold">{{ submission.owner_name }}</div>
+          <div class="small">
+            <a href="tel:{{ submission.owner_mobile }}">{{ submission.owner_mobile }}</a>
+            {% if submission.owner_alt_mobile %}
+            <span class="text-muted"> / {{ submission.owner_alt_mobile }}</span>
+            {% endif %}
+          </div>
+          {% if submission.owner_email %}
+          <div class="small">
+            <a href="mailto:{{ submission.owner_email }}">{{ submission.owner_email }}</a>
+          </div>
+          {% endif %}
+          <div class="small text-muted mt-1">{{ submission.owner_address }}</div>
+        </td>
+        <td>
+          <div class="fw-semibold">{{ submission.property_title }}</div>
+          <div class="small text-muted">
+            {{ submission.property_type|title }}{% if submission.bhk %} • {{ submission.bhk }} BHK{% endif %}
+            {% if submission.area_sq_ft %} • {{ "%.0f"|format(submission.area_sq_ft) }} sq ft{% endif %}
+            {% if submission.bungalow_number %} • #{{ submission.bungalow_number }}{% endif %}
+          </div>
+          <div class="small text-muted">{{ submission.property_address }}</div>
+          <div class="small text-muted mb-1">{{ submission.city }}{% if submission.location_area %}, {{ submission.location_area }}{% endif %}</div>
+          {% if submission.description %}
+          <div class="small">{{ submission.description[:120] }}{% if submission.description|length > 120 %}…{% endif %}</div>
+          {% endif %}
+          {% if submission.amenities %}
+          <div class="small text-muted mt-1">Amenities: {{ submission.amenities|join(', ') }}</div>
+          {% endif %}
+          {% if submission.property_id %}
+          <a href="{{ url_for('admin.property_form', pid=submission.property_id) }}" class="btn btn-sm btn-outline-primary mt-1">
+            Open Property #{{ submission.property_id }}
+          </a>
+          {% endif %}
+        </td>
+        <td>
+          {% if submission.images %}
+          <div class="d-flex flex-wrap gap-1 mb-1">
+            {% for img in submission.images[:3] %}
+            <img src="{{ url_for('static', filename=img) }}" alt="Property image" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div class="small text-muted">
+            {{ submission.images|length }} image(s), {{ submission.videos|length }} video(s)
+          </div>
+        </td>
+        <td>₹{{ "{:,.0f}".format(submission.price or 0) }}</td>
+        <td>
+          {% if submission.status == "pending" %}
+          <span class="admin-status-pill status-pending">Pending</span>
+          {% elif submission.status == "approved" %}
+          <span class="admin-status-pill status-approved">Approved</span>
+          {% else %}
+          <span class="admin-status-pill status-rejected">Rejected</span>
+          {% endif %}
+          {% if submission.reviewed_at %}
+          <div class="small text-muted mt-1">Reviewed: {{ submission.reviewed_at }}</div>
+          {% endif %}
+        </td>
+        <td class="small">{{ submission.created_at }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('admin.update_sell_property', sid=submission.id) }}" class="d-grid gap-2 mb-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="redirect_status" value="{{ status_filter }}">
+            <input type="hidden" name="redirect_period" value="{{ period_filter }}">
+            <select class="form-select form-select-sm" name="status">
+              <option value="pending" {% if submission.status == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="approved" {% if submission.status == 'approved' %}selected{% endif %}>Approved</option>
+              <option value="rejected" {% if submission.status == 'rejected' %}selected{% endif %}>Rejected</option>
+            </select>
+            <input
+              type="text"
+              name="review_note"
+              class="form-control form-control-sm"
+              maxlength="250"
+              placeholder="Review note (optional)"
+              value="{{ submission.review_note or '' }}"
+            >
+            <button class="btn btn-sm btn-jk-accent">Save</button>
+          </form>
+          <div class="d-flex flex-wrap gap-1">
+            <a href="{{ url_for('admin.edit_sell_property', sid=submission.id, status=status_filter, period=period_filter) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+            <form method="POST" action="{{ url_for('admin.delete_sell_property', sid=submission.id) }}" class="d-inline" onsubmit="return confirm('Delete this sell property submission?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="redirect_status" value="{{ status_filter }}">
+              <input type="hidden" name="redirect_period" value="{{ period_filter }}">
+              <button class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">No sell property submissions for this filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "admin/base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_heading %}Demand Analytics{% endblock %}
+{% block page_subheading %}Understand market movement, top areas, and listing performance with clearer visual hierarchy.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="kpi-top">
+    <p class="kpi-label">Conversion Rate</p>
+    <span class="kpi-icon"><i class="bi bi-activity"></i></span>
+  </div>
+  <h3 class="kpi-value">{{ conversion }}%</h3>
+  <p class="kpi-meta">Overall inquiry-to-lead conversion performance.</p>
+</section>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <section class="admin-section-card h-100 p-0 overflow-hidden">
+      <div class="admin-section-heading p-3 pb-0">
+        <h5>Trending Areas</h5>
+      </div>
+      <div class="admin-table-wrap border-0 rounded-0 shadow-none">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr><th>Area</th><th>Demand Score</th><th>Searches</th></tr>
+          </thead>
+          <tbody>
+            {% for a in trending %}
+            <tr><td>{{ a.area_name }}</td><td>{{ a.demand_score }}</td><td>{{ a.search_count }}</td></tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">No trend data available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="col-md-6">
+    <section class="admin-section-card h-100 p-0 overflow-hidden">
+      <div class="admin-section-heading p-3 pb-0">
+        <h5>By Property Type</h5>
+      </div>
+      <div class="admin-table-wrap border-0 rounded-0 shadow-none">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr><th>Type</th><th>Count</th><th>Avg Price</th></tr>
+          </thead>
+          <tbody>
+            {% for t in by_type %}
+            <tr><td>{{ t.property_type }}</td><td>{{ t.cnt }}</td><td>₹{{ "{:,.0f}".format(t.avg_price or 0) }}</td></tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">No type data available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Most Viewed Properties</h5>
+  </div>
+  <ul class="list-group">
+    {% for p in top %}
+    <li class="list-group-item d-flex justify-content-between">{{ p.property_name }} <span class="badge bg-secondary">{{ p.view_count }} views</span></li>
+    {% else %}
+    <li class="list-group-item text-muted">No property view data available.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -1,0 +1,6 @@
+JAKKASH Property Broker Chatbot
+Version: 1.0.0 (June 2026)
+GitHub: https://github.com/swayam-c/property-broker-chatbot
+
+This folder is the single source project. All assets (UI, ML model, videos, images)
+are included under this directory — no external project folders required.

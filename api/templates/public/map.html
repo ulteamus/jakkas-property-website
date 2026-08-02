@@ -1,0 +1,13 @@
+{% extends "public/base.html" %}
+{% block title %}Surat Property Map - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h1 class="section-title">Property Map View</h1>
+  <p class="text-muted">Explore all approved properties on the interactive map. Orange pins indicate active listings.</p>
+  <div class="map-legend mb-3 small">
+    <span><span style="background:#F79433"></span> Primary Listings</span>
+  </div>
+  <div id="propertyMap"></div>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/map.js') }}"></script>{% endblock %}

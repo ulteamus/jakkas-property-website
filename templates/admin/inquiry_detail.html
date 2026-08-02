@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% block title %}Inquiry Detail{% endblock %}
+{% block page_heading %}Inquiry Detail{% endblock %}
+{% block page_subheading %}Sensitive contact detail view with quick status and note updates.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.inquiries') }}" class="btn btn-outline-secondary btn-sm">
+  <i class="bi bi-arrow-left me-1"></i>Back to Inquiries
+</a>
+{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label>Name</label>
+      <div class="form-control bg-light">{{ inquiry.name }}</div>
+    </div>
+    <div class="col-md-3">
+      <label>Mobile</label>
+      <div class="form-control bg-light">{{ inquiry.mobile }}</div>
+    </div>
+    <div class="col-md-3">
+      <label>Email</label>
+      <div class="form-control bg-light">{{ inquiry.email or '-' }}</div>
+    </div>
+    <div class="col-md-6">
+      <label>Property</label>
+      <div class="form-control bg-light">{{ inquiry.property_name or 'General Inquiry' }}</div>
+    </div>
+    <div class="col-md-6">
+      <label>Source</label>
+      <div class="form-control bg-light">{{ inquiry.source or '-' }}</div>
+    </div>
+    <div class="col-12">
+      <label>Message</label>
+      <div class="form-control bg-light" style="min-height: 86px;">{{ inquiry.message or '-' }}</div>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('admin.update_inquiry', inquiry_id=inquiry.id) }}" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-3">
+      <label>Status</label>
+      <select class="form-select" name="status">
+        {% for status in statuses %}
+        <option value="{{ status }}" {% if inquiry.status == status %}selected{% endif %}>{{ status|replace('_', ' ')|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-9">
+      <label>Notes</label>
+      <textarea class="form-control" name="notes" rows="3" placeholder="Internal notes">{{ inquiry.notes or '' }}</textarea>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-jk-accent">Save Inquiry Update</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

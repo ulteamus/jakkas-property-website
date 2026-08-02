@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}AI Chat — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container section chat-page">
+  <h1>Property Broker AI Chat</h1>
+  <p class="subtitle">Ask about search, recommendations, price prediction, EMI, comparisons, or site visits.</p>
+  <div class="chat-container card">
+    <div id="chatMessages" class="chat-messages">
+      <div class="chat-msg assistant">
+        <div class="bubble">Hello! I'm your AI property broker. How can I help you today?</div>
+      </div>
+    </div>
+    <form id="chatForm" class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="e.g. Find 2BHK apartments in Bangalore" autocomplete="off" required>
+      <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+  </div>
+  <div class="chat-suggestions">
+    <button type="button" class="chip" data-msg="Show apartments in Mumbai">Mumbai apartments</button>
+    <button type="button" class="chip" data-msg="Recommend properties under 1 crore">Recommendations</button>
+    <button type="button" class="chip" data-msg="Predict price for 1500 sqft in Bangalore">Price prediction</button>
+    <button type="button" class="chip" data-msg="Calculate EMI for 5000000 at 8.5% for 20 years">EMI calculator</button>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

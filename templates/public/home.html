@@ -1,0 +1,192 @@
+{% extends "public/base.html" %}
+{% from "public/_listing_media.html" import render_listing_media %}
+{% block title %}{{ company_name }} - Premium Properties in Surat{% endblock %}
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/property-hero.css') }}" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<section class="property-hero" id="propertyHero" aria-label="Property showcase hero">
+
+  <div class="property-hero__mode-toggle" role="tablist" aria-label="View mode">
+    <button class="property-hero__mode-btn is-active" data-mode="split" role="tab" aria-selected="true">Split View</button>
+    <button class="property-hero__mode-btn" data-mode="cinema" role="tab" aria-selected="false">Cinema</button>
+  </div>
+
+  <div class="property-hero__grid">
+
+    <div class="property-hero__panel property-hero__panel--exterior is-visible">
+      <div class="property-hero__video-wrap">
+        <video class="property-hero__video" autoplay muted loop playsinline preload="auto">
+          <source src="{{ url_for('static', filename='videos/hero-exterior.mp4') }}" type="video/mp4">
+        </video>
+      </div>
+      <div class="property-hero__shade"></div>
+    </div>
+
+    <div class="property-hero__panel property-hero__panel--interior is-visible">
+      <div class="property-hero__video-wrap">
+        <video class="property-hero__video" autoplay muted loop playsinline preload="auto">
+          <source src="{{ url_for('static', filename='videos/hero-interior.mp4') }}" type="video/mp4">
+        </video>
+      </div>
+      <div class="property-hero__shade"></div>
+    </div>
+
+  </div>
+
+  <div class="property-hero__divider" aria-hidden="true"></div>
+
+  <div class="property-hero__content">
+    <h1>Find Your Dream Home in Surat</h1>
+    <div class="property-hero__actions">
+      <a href="{{ url_for('public.listings') }}" class="property-hero__btn property-hero__btn--primary">View Listings</a>
+      <a href="{{ url_for('public.sell_property') }}" class="property-hero__btn property-hero__btn--secondary">Sell your property</a>
+    </div>
+  </div>
+
+</section>
+
+<section class="jv-section jv-services">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-12 col-md-4 scroll-reveal">
+        <article class="jv-service-card">
+          <div class="jv-service-icon"><i class="bi bi-house-heart"></i></div>
+          <h2 class="jv-service-title">Residential Properties</h2>
+          <p class="jv-service-text">Helping families find their perfect homes — from affordable flats to premium apartments and villas, matched to your lifestyle and budget.</p>
+          <a href="{{ url_for('public.listings') }}?listing_intent=buy" class="jv-link">Explore residential</a>
+        </article>
+      </div>
+      <div class="col-12 col-md-4 scroll-reveal">
+        <article class="jv-service-card">
+          <div class="jv-service-icon"><i class="bi bi-building"></i></div>
+          <h2 class="jv-service-title">Commercial Properties</h2>
+          <p class="jv-service-text">Shops, offices, showrooms, and retail spaces at strategic Surat locations for visibility, footfall, and long-term growth.</p>
+          <a href="{{ url_for('public.listings') }}?type=commercial" class="jv-link">Explore commercial</a>
+        </article>
+      </div>
+      <div class="col-12 col-md-4 scroll-reveal">
+        <article class="jv-service-card">
+          <div class="jv-service-icon"><i class="bi bi-key"></i></div>
+          <h2 class="jv-service-title">Rent &amp; Investment</h2>
+          <p class="jv-service-text">Rent-ready homes and investment-grade listings with verified details, site visits, and end-to-end advisory support.</p>
+          <a href="{{ url_for('public.listings') }}?listing_intent=rent" class="jv-link">Explore rentals</a>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="jv-section jv-stats-band">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-12 col-md-4 scroll-reveal">
+        <div class="jv-stat">
+          <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span>
+          <span class="jv-stat-label">Properties Listed</span>
+        </div>
+      </div>
+      <div class="col-12 col-md-4 scroll-reveal">
+        <div class="jv-stat">
+          <span class="jv-stat-value" data-counter="{{ home_stats.clients }}">{{ home_stats.clients }}</span>
+          <span class="jv-stat-label">Clients Served</span>
+        </div>
+      </div>
+      <div class="col-12 col-md-4 scroll-reveal">
+        <div class="jv-stat">
+          <span class="jv-stat-value" data-counter="{{ home_stats.years }}">{{ home_stats.years }}</span><span class="jv-stat-suffix">+</span>
+          <span class="jv-stat-label">Years of Experience</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="jv-section">
+  <div class="container">
+    <div class="row g-5 align-items-center">
+      <div class="col-12 col-lg-6 scroll-reveal">
+        <p class="jv-eyebrow jv-eyebrow--dark">About</p>
+        <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
+        <p class="jv-body-text">
+          {{ company_name }} delivers transparent, customer-focused real estate services across Surat —
+          whether you are buying, selling, or renting residential and commercial property.
+        </p>
+        <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
+      </div>
+      <div class="col-12 col-lg-6 scroll-reveal">
+        <div class="jv-about-visual">
+          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="jv-section jv-section--muted">
+  <div class="container">
+    <div class="text-center mb-4 scroll-reveal">
+      <p class="jv-eyebrow jv-eyebrow--dark">Discover</p>
+      <h2 class="jv-section-title">Discover JAKKASH Spaces</h2>
+      <p class="jv-body-text mx-auto" style="max-width:640px">
+        Curated residential and commercial listings across Surat's most promising neighbourhoods.
+      </p>
+      <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+        <a href="{{ url_for('public.listings') }}" class="btn btn-jk-accent"><i class="bi bi-grid"></i> View All Listings</a>
+        <a href="{{ url_for('public.listings') }}?listing_intent=buy" class="btn btn-jk-outline">For Sale</a>
+        <a href="{{ url_for('public.listings') }}?listing_intent=rent" class="btn btn-jk-outline">For Rent</a>
+      </div>
+    </div>
+    <div id="jvDiscoverGrid" class="row g-4 jv-discover-grid">
+      {% for p in featured_properties %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <article class="jv-property-card property-card">
+          {{ render_listing_media(p, height=240, badge_text='For ' ~ ('Rent' if p.listing_intent == 'rent' else 'Sale')) }}
+          <div class="jv-property-body">
+            <h3 class="jv-property-title">
+              <a href="{{ url_for('public.property_detail', slug=p.slug) }}">{{ p.property_name }}</a>
+            </h3>
+            <p class="jv-property-meta">{{ p.display_type or p.property_type }} · {{ p.area_name }}, Surat</p>
+            <p class="jv-property-price">From ₹{{ "{:,.0f}".format(p.price) }}{% if p.listing_type == 'rent' %}/mo{% endif %}</p>
+            <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-primary">View Details</a>
+          </div>
+        </article>
+      </div>
+      {% else %}
+      <div class="col-12 text-center text-muted py-2" id="jvDiscoverLoading">Loading properties…</div>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-4 scroll-reveal">
+      <a href="{{ url_for('public.listings') }}" class="btn btn-jk-outline">View all properties</a>
+    </div>
+  </div>
+</section>
+
+<section class="jv-section">
+  <div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 scroll-reveal">
+      <h2 class="jv-section-title mb-0">Testimonials &amp; Reviews</h2>
+      <a href="{{ url_for('public.testimonials') }}" class="btn btn-jk-outline btn-sm">View all</a>
+    </div>
+    <div class="row g-4 scroll-reveal-stagger">
+      {% for t in testimonials %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <article class="testimonial-card jv-testimonial h-100">
+          <div class="text-warning mb-2">{% for _ in range(t.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
+          <p class="mb-3">"{{ t.review_text }}"</p>
+          <strong>{{ t.client_name }}</strong><br><small class="text-muted">{{ t.client_location }}</small>
+        </article>
+      </div>
+      {% else %}
+      <p class="text-muted">No reviews yet. Be the first to share your experience.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/property-hero.js') }}"></script>
+<script src="{{ url_for('static', filename='js/listing-media.js') }}"></script>
+<script src="{{ url_for('static', filename='js/home.js') }}"></script>
+<script>document.addEventListener('DOMContentLoaded', () => initListingMedia(document.getElementById('jvDiscoverGrid')));</script>
+{% endblock %}

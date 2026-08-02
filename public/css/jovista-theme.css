@@ -1,0 +1,711 @@
+/* JAKKASH — Jovista-inspired clean real estate theme (UI only) */
+body.jk-jovista {
+  --jv-dark: #1a1a1a;
+  --jv-muted: #6b7280;
+  --jv-bg: #ffffff;
+  --jv-bg-soft: #f7f7f5;
+  --jv-border: #e8e8e4;
+  --jv-accent: var(--jk-orange, #f79433);
+  --jv-accent-dark: var(--jk-orange-dark, #df7d1f);
+  background: var(--jv-bg);
+  color: var(--jv-dark);
+}
+
+body.jk-jovista h1,
+body.jk-jovista h2,
+body.jk-jovista h3,
+body.jk-jovista .jv-section-title,
+body.jk-jovista .jv-hero-title {
+  font-family: "Playfair Display", "Montserrat", serif;
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .property-hero__content h1 {
+  color: #ffffff;
+}
+
+/* ——— Navigation ——— */
+body.jk-jovista .jv-navbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid transparent;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  padding-block: 0.65rem;
+}
+
+body.jk-jovista .jv-navbar.nav-scrolled {
+  border-bottom-color: var(--jv-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+body.jk-jovista .jv-navbar .navbar-nav .nav-link {
+  color: var(--jv-dark) !important;
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+body.jk-jovista .jv-navbar .navbar-nav .nav-link:hover,
+body.jk-jovista .jv-navbar .navbar-nav .nav-link.active {
+  color: var(--jv-accent) !important;
+}
+
+body.jk-jovista .jk-logo-badge {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  min-width: 0;
+}
+
+body.jk-jovista .jk-logo-mark {
+  height: 44px;
+}
+
+body.jk-jovista .navbar-toggler {
+  border-color: var(--jv-border);
+}
+
+/* ——— Homepage transparent navbar over hero ——— */
+body.jk-jovista.jk-home .jv-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1040;
+  background: transparent !important;
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+body.jk-jovista.jk-home .jv-navbar.nav-scrolled {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom-color: var(--jv-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .navbar-nav .nav-link:hover,
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .navbar-nav .nav-link.active {
+  color: var(--jv-accent) !important;
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .navbar-toggler-icon {
+  filter: brightness(0) invert(1);
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .header-action-btn.btn-jk-outline {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .header-action-btn.btn-jk-outline:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+body.jk-jovista.jk-home .jv-navbar:not(.nav-scrolled) .jk-logo-badge {
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 8px;
+  padding: 4px 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+/* ——— Hero ——— */
+body.jk-jovista .jv-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 78vh;
+  display: flex;
+  align-items: center;
+}
+
+body.jk-jovista .jv-hero-media {
+  position: absolute;
+  inset: 0;
+  background:
+    url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80") center / cover no-repeat;
+}
+
+body.jk-jovista .jv-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+body.jk-jovista .jv-hero-copy {
+  color: #fff;
+  z-index: 1;
+}
+
+body.jk-jovista .jv-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.78rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.9;
+}
+
+body.jk-jovista .jv-eyebrow--dark {
+  color: var(--jv-accent);
+}
+
+body.jk-jovista .jv-hero-title {
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  color: #fff;
+  margin-bottom: 0.75rem;
+  line-height: 1.12;
+}
+
+body.jk-jovista .jv-hero-lead {
+  font-size: 1.15rem;
+  opacity: 0.92;
+  margin-bottom: 1.75rem;
+}
+
+body.jk-jovista .jv-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+body.jk-jovista .jv-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+body.jk-jovista .jv-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+body.jk-jovista .jv-pill--accent {
+  background: var(--jv-accent);
+  border-color: var(--jv-accent);
+}
+
+body.jk-jovista .jv-pill--accent:hover {
+  background: var(--jv-accent-dark);
+  border-color: var(--jv-accent-dark);
+}
+
+body.jk-jovista .min-vh-75 {
+  min-height: 75vh;
+}
+
+/* ——— Sections ——— */
+body.jk-jovista .jv-section {
+  padding: clamp(3.5rem, 7vw, 5.5rem) 0;
+}
+
+body.jk-jovista .jv-section--muted {
+  background: var(--jv-bg-soft);
+}
+
+body.jk-jovista .jv-section-title {
+  font-size: clamp(1.75rem, 3.2vw, 2.35rem);
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+body.jk-jovista .jv-body-text {
+  color: var(--jv-muted);
+  line-height: 1.75;
+  font-size: 1.02rem;
+}
+
+body.jk-jovista .jv-link {
+  color: var(--jv-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body.jk-jovista .jv-link:hover {
+  color: var(--jv-accent-dark);
+  text-decoration: underline;
+}
+
+/* ——— Service cards ——— */
+body.jk-jovista .jv-service-card {
+  height: 100%;
+  padding: 2rem 1.5rem;
+  background: #fff;
+  border: 1px solid var(--jv-border);
+  border-radius: 12px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.jk-jovista .jv-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+body.jk-jovista .jv-service-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(247, 148, 51, 0.12);
+  color: var(--jv-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  margin-bottom: 1rem;
+}
+
+body.jk-jovista .jv-service-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+body.jk-jovista .jv-service-text {
+  color: var(--jv-muted);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+/* ——— Stats ——— */
+body.jk-jovista .jv-stats-band {
+  background: var(--jv-dark);
+  color: #fff;
+}
+
+body.jk-jovista .jv-stat-value {
+  display: block;
+  font-family: "Montserrat", sans-serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+body.jk-jovista .jv-stat-suffix {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-left: 0.15rem;
+}
+
+body.jk-jovista .jv-stat-label {
+  display: block;
+  margin-top: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+/* ——— About visual ——— */
+body.jk-jovista .jv-about-visual {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--jv-border);
+}
+
+body.jk-jovista .jv-about-photo {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  min-height: 320px;
+}
+
+/* ——— Property cards (Jovista style) ——— */
+body.jk-jovista .jv-property-card {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.jk-jovista .jv-property-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
+}
+
+body.jk-jovista .jv-property-media {
+  display: block;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #ececec;
+}
+
+body.jk-jovista .jv-property-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+body.jk-jovista .jv-property-card:hover .jv-property-media img {
+  transform: scale(1.04);
+}
+
+body.jk-jovista .jv-property-media--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 2rem;
+}
+
+body.jk-jovista .jv-property-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  background: #fff;
+  color: var(--jv-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+}
+
+body.jk-jovista .jv-property-body {
+  padding: 1.1rem 1.15rem 1.25rem;
+}
+
+body.jk-jovista .jv-property-title {
+  font-family: "Montserrat", sans-serif;
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}
+
+body.jk-jovista .jv-property-title a {
+  color: var(--jv-dark);
+  text-decoration: none;
+}
+
+body.jk-jovista .jv-property-title a:hover {
+  color: var(--jv-accent);
+}
+
+body.jk-jovista .jv-property-meta {
+  color: var(--jv-muted);
+  font-size: 0.88rem;
+  margin-bottom: 0.35rem;
+}
+
+body.jk-jovista .jv-property-price {
+  font-weight: 700;
+  color: var(--jv-dark);
+  margin-bottom: 0.5rem;
+}
+
+/* ——— Testimonials ——— */
+body.jk-jovista .jv-testimonial,
+body.jk-jovista .testimonial-card {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: var(--jv-dark);
+}
+
+/* ——— Global cards & listings ——— */
+body.jk-jovista .property-card {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+  border-radius: 12px;
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .property-card .text-dark {
+  color: var(--jv-dark) !important;
+}
+
+body.jk-jovista .why-card,
+body.jk-jovista .service-card,
+body.jk-jovista .content-card,
+body.jk-jovista .about-hero-card,
+body.jk-jovista .founder-card,
+body.jk-jovista .about-info-card {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+  border-radius: 12px;
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .listings-toolbar {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+}
+
+body.jk-jovista .filter-drawer {
+  background: #fff;
+}
+
+body.jk-jovista .filter-drawer-header,
+body.jk-jovista .filter-field {
+  background: var(--jv-bg-soft);
+  border-color: var(--jv-border);
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .filter-drawer-form {
+  background: #fff;
+}
+
+body.jk-jovista .form-control,
+body.jk-jovista .form-select {
+  background: #fff;
+  border-color: var(--jv-border);
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .text-muted {
+  color: var(--jv-muted) !important;
+}
+
+body.jk-jovista .section-title {
+  color: var(--jv-dark);
+  font-family: "Playfair Display", serif;
+}
+
+/* ——— Chatbot ——— */
+body.jk-jovista .chatbot-shell {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.06);
+}
+
+body.jk-jovista .chatbot-header {
+  background: var(--jv-bg-soft);
+  border-bottom: 1px solid var(--jv-border);
+}
+
+body.jk-jovista .chatbot-page-title {
+  font-family: "Playfair Display", serif;
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .chat-msg.assistant .bubble {
+  background: var(--jv-bg-soft);
+  border: 1px solid var(--jv-border);
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .chat-msg.user .bubble {
+  background: rgba(247, 148, 51, 0.15);
+  border: 1px solid rgba(247, 148, 51, 0.35);
+}
+
+/* ——— Footer & strips ——— */
+body.jk-jovista .contact-strip {
+  background: var(--jv-bg-soft);
+  border-top: 1px solid var(--jv-border);
+  color: var(--jv-dark);
+}
+
+body.jk-jovista .jv-footer {
+  background: var(--jv-bg);
+  color: var(--jv-muted);
+  border-top: 1px solid var(--jv-border);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.04);
+}
+
+body.jk-jovista .jv-footer-main {
+  padding-block: 3rem 2.25rem;
+}
+
+body.jk-jovista .jv-footer-heading {
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--jv-dark);
+  margin-bottom: 1.1rem;
+}
+
+body.jk-jovista .jv-footer-tagline {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--jv-muted);
+  max-width: 28rem;
+}
+
+body.jk-jovista .jv-footer-brand {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jv-dark);
+  opacity: 0.72;
+}
+
+body.jk-jovista .jv-footer-list li,
+body.jk-jovista .jv-footer-links li {
+  margin-bottom: 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+body.jk-jovista .jv-footer-list li:last-child,
+body.jk-jovista .jv-footer-links li:last-child {
+  margin-bottom: 0;
+}
+
+body.jk-jovista .jv-footer-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  color: var(--jv-muted);
+}
+
+body.jk-jovista .jv-footer-list li i {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--jv-accent);
+  font-size: 0.95rem;
+}
+
+body.jk-jovista .jv-footer a {
+  color: var(--jv-dark);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+body.jk-jovista .jv-footer-list a:hover,
+body.jk-jovista .jv-footer-links a:hover {
+  color: var(--jv-accent);
+}
+
+body.jk-jovista .jv-footer-social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  border: 1px solid var(--jv-border);
+  background: var(--jv-bg-soft);
+  color: var(--jv-dark);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+body.jk-jovista .jv-footer-social-btn:hover {
+  border-color: var(--jv-accent);
+  color: var(--jv-accent);
+  transform: translateY(-2px);
+}
+
+body.jk-jovista .jv-footer-social-wa {
+  background: rgba(37, 211, 102, 0.1);
+  border-color: rgba(37, 211, 102, 0.35);
+  color: #128c41;
+}
+
+body.jk-jovista .jv-footer-social-wa:hover {
+  background: #25d366;
+  border-color: #25d366;
+  color: #fff;
+}
+
+body.jk-jovista .jv-footer-bottom {
+  padding-block: 1.15rem 1.5rem;
+  border-top: 1px solid var(--jv-border);
+  text-align: center;
+}
+
+body.jk-jovista .jv-footer-bottom p {
+  font-size: 0.82rem;
+  color: var(--jv-muted);
+}
+
+body.jk-jovista .quick-inquiry-panel {
+  background: #fff;
+  border: 1px solid var(--jv-border);
+}
+
+body.jk-jovista .btn-jk-accent {
+  border-radius: 6px;
+}
+
+body.jk-jovista .btn-jk-outline {
+  border-radius: 6px;
+}
+
+body.jk-jovista .jv-discover-grid .jv-property-card,
+body.jk-jovista #jvDiscoverGrid .jv-property-card {
+  opacity: 1;
+  transform: none;
+}
+
+body.jk-jovista #jvDiscoverGrid .col-md-6 {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+body.jk-jovista .scroll-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+body.jk-jovista .scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 767.98px) {
+  body.jk-jovista .jv-hero {
+    min-height: 68vh;
+  }
+
+  body.jk-jovista .jv-footer-main {
+    padding-block: 2.25rem 1.75rem;
+    text-align: center;
+  }
+
+  body.jk-jovista .jv-footer-list li {
+    justify-content: center;
+  }
+
+  body.jk-jovista .jv-footer-social {
+    justify-content: center;
+  }
+
+  body.jk-jovista .jv-footer-tagline {
+    margin-inline: auto;
+  }
+}
+
+/* ——— Floating action buttons ——— */
+body.jk-jovista .chatbot-float {
+  border-color: rgba(247, 148, 51, 0.65);
+  box-shadow:
+    0 14px 32px rgba(21, 27, 39, 0.22),
+    0 0 24px rgba(247, 148, 51, 0.12);
+}
+body.jk-jovista .chatbot-float:hover,
+body.jk-jovista .chatbot-float:focus-visible {
+  box-shadow:
+    0 18px 38px rgba(247, 148, 51, 0.28),
+    0 0 28px rgba(247, 148, 51, 0.18);
+}
+body.jk-jovista .whatsapp-float {
+  box-shadow: 0 14px 30px rgba(37, 211, 102, 0.34);
+}

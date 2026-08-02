@@ -1,0 +1,117 @@
+district,state,city,locality,property_type,price_per_sqft_inr,rent_per_sqft_inr,yield_pct,price_change_qoq_pct,source,fetched_at
+Surat,Gujarat,Surat,Adajan,Apartment,6000,,,2.93,https://www.squareyards.com/property-rates/adajan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Adajan,Villa,8100,,,2.93,https://www.squareyards.com/property-rates/adajan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Adajan,Shop,3900,,,2.93,https://www.squareyards.com/property-rates/adajan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Adajan,Office,8100,,,2.93,https://www.squareyards.com/property-rates/adajan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Althan,Apartment,4300,,,-2.56,https://www.squareyards.com/property-rates/althan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Althan,Villa,4400,,,-2.56,https://www.squareyards.com/property-rates/althan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Althan,Shop,4400,,,-2.56,https://www.squareyards.com/property-rates/althan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Amroli,Apartment,1950,,,-23.1,https://www.squareyards.com/property-rates/amroli-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Amroli,Villa,1950,,,-23.1,https://www.squareyards.com/property-rates/amroli-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Amroli,Shop,1950,,,-23.1,https://www.squareyards.com/property-rates/amroli-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bharthana,Apartment,4800,,,,https://www.squareyards.com/property-rates/bharthana-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bharthana,Villa,6800,,,,https://www.squareyards.com/property-rates/bharthana-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bharthana,Shop,6800,,,,https://www.squareyards.com/property-rates/bharthana-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bhestan,Apartment,2750,,,,https://www.squareyards.com/property-rates/bhestan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bhestan,Villa,2750,,,,https://www.squareyards.com/property-rates/bhestan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bhestan,Shop,2750,,,,https://www.squareyards.com/property-rates/bhestan-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bhimrad,Apartment,4250,,,-3.08,https://www.squareyards.com/property-rates/bhimrad-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bhimrad,Villa,4600,,,-3.08,https://www.squareyards.com/property-rates/bhimrad-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Bhimrad,Shop,4600,,,-3.08,https://www.squareyards.com/property-rates/bhimrad-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,City Light,Apartment,4150,,,,https://www.squareyards.com/property-rates/city-light-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,City Light,Villa,5600,,,,https://www.squareyards.com/property-rates/city-light-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dindoli,Apartment,2950,,,3.62,https://www.squareyards.com/property-rates/dindoli-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dindoli,Villa,2700,,,3.62,https://www.squareyards.com/property-rates/dindoli-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dindoli,Shop,2700,,,3.62,https://www.squareyards.com/property-rates/dindoli-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dumas,Apartment,4600,,,,https://www.squareyards.com/property-rates/dumas-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dumas,Villa,4600,,,,https://www.squareyards.com/property-rates/dumas-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dumas,Shop,4600,,,,https://www.squareyards.com/property-rates/dumas-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dumas Road,Apartment,4750,,,,https://www.squareyards.com/property-rates/dumas-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dumas Road,Villa,4750,,,,https://www.squareyards.com/property-rates/dumas-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Dumas Road,Shop,4750,,,,https://www.squareyards.com/property-rates/dumas-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Ghod Dod Road,Apartment,5400,,,,https://www.squareyards.com/property-rates/ghod-dod-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Ghod Dod Road,Villa,5400,,,,https://www.squareyards.com/property-rates/ghod-dod-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Godadara,Apartment,2312,,,,https://www.squareyards.com/property-rates/godadara-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Godadara,Villa,3515,,,,https://www.squareyards.com/property-rates/godadara-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Jahangir Pura,Apartment,3700,,,7.49,https://www.squareyards.com/property-rates/jahangir-pura-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Jahangir Pura,Villa,3700,,,7.49,https://www.squareyards.com/property-rates/jahangir-pura-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Jahangir Pura,Shop,3700,,,7.49,https://www.squareyards.com/property-rates/jahangir-pura-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Jahangirabad,Apartment,3600,,,-2.76,https://www.squareyards.com/property-rates/jahangirabad-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Jahangirabad,Villa,3600,,,-2.76,https://www.squareyards.com/property-rates/jahangirabad-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Jahangirabad,Shop,3600,,,-2.76,https://www.squareyards.com/property-rates/jahangirabad-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kamrej,Apartment,1797,,,,https://www.squareyards.com/property-rates/kamrej-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kamrej,Villa,1797,,,,https://www.squareyards.com/property-rates/kamrej-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Katargam,Apartment,11850,,,,https://www.squareyards.com/property-rates/katargam-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Katargam,Villa,2450,,,,https://www.squareyards.com/property-rates/katargam-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kosamba,Apartment,1750,,,,https://www.squareyards.com/property-rates/kosamba-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kosamba,Villa,1750,,,,https://www.squareyards.com/property-rates/kosamba-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kosamba,Shop,1750,,,,https://www.squareyards.com/property-rates/kosamba-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kumbhariya,Apartment,2700,,,,https://www.squareyards.com/property-rates/kumbhariya-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kumbhariya,Villa,5650,,,,https://www.squareyards.com/property-rates/kumbhariya-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Kumbhariya,Shop,5650,,,,https://www.squareyards.com/property-rates/kumbhariya-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Mota Varachha,Apartment,4700,,,,https://www.squareyards.com/property-rates/mota-varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Mota Varachha,Villa,4100,,,,https://www.squareyards.com/property-rates/mota-varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Mota Varachha,Shop,4100,,,,https://www.squareyards.com/property-rates/mota-varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Nana Varachha,Apartment,3900,,,,https://www.squareyards.com/property-rates/nana-varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Nana Varachha,Villa,3350,,,,https://www.squareyards.com/property-rates/nana-varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Nana Varachha,Shop,3350,,,,https://www.squareyards.com/property-rates/nana-varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Nanpura,Apartment,2550,,,,https://www.squareyards.com/property-rates/nanpura-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Nanpura,Villa,2550,,,,https://www.squareyards.com/property-rates/nanpura-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Nanpura,Shop,2550,,,,https://www.squareyards.com/property-rates/nanpura-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,New City Light,Apartment,5050,,,,https://www.squareyards.com/property-rates/new-city-light-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,New City Light,Villa,5650,,,,https://www.squareyards.com/property-rates/new-city-light-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,New City Light,Shop,5650,,,,https://www.squareyards.com/property-rates/new-city-light-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Pal,Apartment,4450,,11.33,5.32,https://www.squareyards.com/property-rates/pal-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Pal,Villa,4450,,11.33,5.32,https://www.squareyards.com/property-rates/pal-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Pal,Shop,4450,,11.33,5.32,https://www.squareyards.com/property-rates/pal-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Pal,Office,4450,,11.33,5.32,https://www.squareyards.com/property-rates/pal-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Palanpur,Apartment,4000,,,7.03,https://www.squareyards.com/property-rates/palanpur-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Palanpur,Villa,4000,,,7.03,https://www.squareyards.com/property-rates/palanpur-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Palanpur Gam,Apartment,5400,,,,https://www.squareyards.com/property-rates/palanpur-gam-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Palanpur Gam,Villa,3400,,,,https://www.squareyards.com/property-rates/palanpur-gam-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Palanpur Gam,Shop,3400,,,,https://www.squareyards.com/property-rates/palanpur-gam-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Parvat Patiya,Apartment,6600,,,,https://www.squareyards.com/property-rates/parvat-patiya-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Parvat Patiya,Villa,11100,,,,https://www.squareyards.com/property-rates/parvat-patiya-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Parvat Patiya,Shop,6600,,,,https://www.squareyards.com/property-rates/parvat-patiya-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Piplod,Apartment,19200,,12.0,,https://www.squareyards.com/property-rates/piplod-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Piplod,Villa,6000,,12.0,,https://www.squareyards.com/property-rates/piplod-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Rander,Apartment,3300,,,,https://www.squareyards.com/property-rates/rander-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Rander,Villa,3950,,,,https://www.squareyards.com/property-rates/rander-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Rander,Shop,3950,,,,https://www.squareyards.com/property-rates/rander-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Rundh Magdalla,Apartment,5900,,,,https://www.squareyards.com/property-rates/rundh-magdalla-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Rundh Magdalla,Villa,5900,,,,https://www.squareyards.com/property-rates/rundh-magdalla-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Rundh Magdalla,Shop,5900,,,,https://www.squareyards.com/property-rates/rundh-magdalla-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Sachin,Apartment,2000,,,,https://www.squareyards.com/property-rates/sachin-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Sachin,Villa,2000,,,,https://www.squareyards.com/property-rates/sachin-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Sachin,Shop,2000,,,,https://www.squareyards.com/property-rates/sachin-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Singanpor,Apartment,3200,,,,https://www.squareyards.com/property-rates/singanpor-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Singanpor,Villa,3200,,,,https://www.squareyards.com/property-rates/singanpor-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Singanpor,Shop,3200,,,,https://www.squareyards.com/property-rates/singanpor-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat East,Apartment,2700,,,3.62,https://www.squareyards.com/property-rates/surat-east,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat East,Villa,2900,,,3.62,https://www.squareyards.com/property-rates/surat-east,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat East,Shop,2700,,,3.62,https://www.squareyards.com/property-rates/surat-east,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat North,Apartment,7050,,11.25,1.44,https://www.squareyards.com/property-rates/surat-north,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat North,Villa,4150,,11.25,1.44,https://www.squareyards.com/property-rates/surat-north,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat North,Shop,16700,,11.25,1.44,https://www.squareyards.com/property-rates/surat-north,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat North,Office,7050,,11.25,1.44,https://www.squareyards.com/property-rates/surat-north,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat South,Apartment,4500,,,-2.39,https://www.squareyards.com/property-rates/surat-south,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat South,Villa,4500,,,-2.39,https://www.squareyards.com/property-rates/surat-south,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat West,Apartment,3950,,,0.86,https://www.squareyards.com/property-rates/surat-west,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat West,Villa,3900,,,0.86,https://www.squareyards.com/property-rates/surat-west,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Surat West,Office,8100,,,0.86,https://www.squareyards.com/property-rates/surat-west,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Udhana,Apartment,2700,,,,https://www.squareyards.com/property-rates/udhana-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Udhana,Villa,2700,,,,https://www.squareyards.com/property-rates/udhana-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Udhana,Shop,2700,,,,https://www.squareyards.com/property-rates/udhana-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Varachha,Apartment,2950,,,,https://www.squareyards.com/property-rates/varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Varachha,Villa,2950,,,,https://www.squareyards.com/property-rates/varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Varachha,Shop,2950,,,,https://www.squareyards.com/property-rates/varachha-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vesu,Apartment,5400,,4.89,-1.49,https://www.squareyards.com/property-rates/vesu-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vesu,Villa,5400,,4.89,-1.49,https://www.squareyards.com/property-rates/vesu-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vesu,Shop,22550,,4.89,-1.49,https://www.squareyards.com/property-rates/vesu-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vesu,Office,5400,,4.89,-1.49,https://www.squareyards.com/property-rates/vesu-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vip Road,Apartment,5400,,,,https://www.squareyards.com/property-rates/vip-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vip Road,Villa,5400,,,,https://www.squareyards.com/property-rates/vip-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vip Road,Shop,5400,,,,https://www.squareyards.com/property-rates/vip-road-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vip Road Vesu,Apartment,5800,,,,https://www.squareyards.com/property-rates/vip-road-vesu-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vip Road Vesu,Villa,6100,,,,https://www.squareyards.com/property-rates/vip-road-vesu-surat,2026-06-25T12:57:25.140609+00:00
+Surat,Gujarat,Surat,Vip Road Vesu,Shop,6100,,,,https://www.squareyards.com/property-rates/vip-road-vesu-surat,2026-06-25T12:57:25.140609+00:00

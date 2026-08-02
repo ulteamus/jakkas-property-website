@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin{% endblock %} - {{ company_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+</head>
+<body class="admin-theme">
+{% set endpoint = request.endpoint or '' %}
+<div class="admin-shell">
+  <aside class="admin-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="adminSidebar" aria-labelledby="adminSidebarLabel">
+    <div class="offcanvas-header d-lg-none">
+      <h5 class="offcanvas-title text-white" id="adminSidebarLabel">Navigation</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="admin-brand-wrap">
+        <span class="admin-logo-badge">
+          <img src="{{ url_for('static', filename='img/company-logo-mark.webp') }}" class="jk-logo jk-logo-mark" alt="{{ company_name }}">
+        </span>
+        <div class="admin-brand-copy">
+          <p class="admin-brand-title">{{ company_name }}</p>
+          <small>Admin Command Center</small>
+        </div>
+      </div>
+      <nav class="admin-nav">
+        <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link {% if endpoint == 'admin.dashboard' %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+        {% if current_user.has_permission('manage_properties') %}
+        <a href="{{ url_for('admin.properties') }}" class="admin-nav-link {% if endpoint == 'admin.properties' %}active{% endif %}">
+          <i class="bi bi-building"></i>
+          <span>Properties</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_submissions') %}
+        <a href="{{ url_for('admin.sell_properties') }}" class="admin-nav-link {% if endpoint in ['admin.sell_properties', 'admin.edit_sell_property', 'admin.print_sell_properties', 'admin.submissions_redirect'] %}active{% endif %}">
+          <i class="bi bi-house-add"></i>
+          <span>Sell Properties</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_inquiries') %}
+        <a href="{{ url_for('admin.inquiries') }}" class="admin-nav-link {% if endpoint in ['admin.inquiries', 'admin.inquiry_detail', 'admin.update_inquiry', 'admin.print_inquiries'] %}active{% endif %}">
+          <i class="bi bi-envelope"></i>
+          <span>Inquiries</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_customer_visits') %}
+        <a href="{{ url_for('admin.customer_visits') }}" class="admin-nav-link {% if endpoint in ['admin.customer_visits', 'admin.print_customer_visit', 'admin.customer_visit_pdf'] %}active{% endif %}">
+          <i class="bi bi-clipboard2-check"></i>
+          <span>Customer Visits</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_reviews') %}
+        <a href="{{ url_for('admin.reviews') }}" class="admin-nav-link {% if endpoint == 'admin.reviews' %}active{% endif %}">
+          <i class="bi bi-chat-left-text"></i>
+          <span>Reviews</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('view_analytics') %}
+        <a href="{{ url_for('admin.analytics') }}" class="admin-nav-link {% if endpoint == 'admin.analytics' %}active{% endif %}">
+          <i class="bi bi-graph-up"></i>
+          <span>Analytics</span>
+        </a>
+        {% endif %}
+        {% if current_user.is_super_admin %}
+        <a href="{{ url_for('admin.activity_logs_dashboard') }}" class="admin-nav-link {% if endpoint == 'admin.activity_logs_dashboard' %}active{% endif %}">
+          <i class="bi bi-clock-history"></i>
+          <span>Activity Logs</span>
+        </a>
+        <a href="{{ url_for('admin.admin_utilities') }}" class="admin-nav-link {% if endpoint in ['admin.admin_utilities', 'admin.flush_mock_data'] %}active{% endif %}">
+          <i class="bi bi-sliders"></i>
+          <span>Utilities</span>
+        </a>
+        <a href="{{ url_for('admin.admin_users') }}" class="admin-nav-link {% if endpoint in ['admin.admin_users', 'admin.create_admin_user', 'admin.update_admin_user', 'admin.toggle_admin_user', 'admin.delete_admin_user', 'admin.setup_admin_totp', 'admin.disable_admin_totp'] %}active{% endif %}">
+          <i class="bi bi-person-gear"></i>
+          <span>Employees</span>
+        </a>
+        {% endif %}
+      </nav>
+      <div class="admin-sidebar-footer">
+        {% if current_user.has_permission('manage_properties') %}
+        <a href="{{ url_for('admin.property_form') }}" class="admin-nav-link {% if endpoint == 'admin.property_form' %}active{% endif %}">
+          <i class="bi bi-plus-circle"></i>
+          <span>Add Property</span>
+        </a>
+        {% endif %}
+        <a href="{{ url_for('public.home') }}" target="_blank" class="admin-nav-link">
+          <i class="bi bi-globe"></i>
+          <span>View Website</span>
+        </a>
+        <a href="{{ url_for('auth.admin_logout') }}" class="admin-nav-link">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Logout</span>
+        </a>
+      </div>
+    </div>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-page-header">
+      <div class="d-flex align-items-start gap-2">
+        <button class="btn admin-mobile-toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar" aria-controls="adminSidebar" aria-label="Open navigation">
+          <i class="bi bi-list"></i>
+        </button>
+        <div>
+          <span class="admin-page-kicker">Admin Workspace</span>
+          <h1 class="admin-page-title">{% block page_heading %}Control Center{% endblock %}</h1>
+          <p class="admin-page-subtitle">{% block page_subheading %}Manage operations, listings, and lead pipeline from one premium dashboard.{% endblock %}</p>
+        </div>
+      </div>
+      <div class="admin-header-actions">
+        {% block page_actions %}{% endblock %}
+      </div>
+    </header>
+
+    <section class="admin-flash-stack">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+      {% endwith %}
+    </section>
+
+    <section class="admin-content">
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

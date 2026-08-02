@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block title %}Price Predictor{% endblock %}
+{% block page_heading %}AI Price Predictor{% endblock %}
+{% block page_subheading %}Estimate property market value quickly with cleaner input controls and result presentation.{% endblock %}
+{% block content %}
+<section class="admin-section-card col-xl-6 col-lg-8">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-2"><label>Area</label><input class="form-control" name="area_name" value="{{ request.form.area_name or 'Vesu' }}" required></div>
+    <div class="mb-2"><label>BHK</label><input type="number" class="form-control" name="bhk" value="{{ request.form.bhk or 2 }}"></div>
+    <div class="mb-2"><label>Sq Ft</label><input type="number" class="form-control" name="sq_ft" value="{{ request.form.sq_ft or 1200 }}" required></div>
+    <div class="mb-2"><label>Type</label>
+      <select class="form-select" name="property_type">{% for t in types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}</select>
+    </div>
+    <button class="btn btn-jk-accent">Predict Value</button>
+  </form>
+</section>
+{% if result %}
+<div class="alert alert-success mt-2 col-xl-6 col-lg-8">
+  <h5>Estimated Market Value: ₹{{ "{:,.0f}".format(result.estimated_value) }}</h5>
+  <p>Range: ₹{{ "{:,.0f}".format(result.price_range_low) }} — ₹{{ "{:,.0f}".format(result.price_range_high) }}</p>
+  <p>Per sq.ft: ₹{{ "{:,.0f}".format(result.per_sqft) }} ({{ result.method }})</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block title %}Lead {{ lead.name }}{% endblock %}
+{% block page_heading %}Lead: {{ lead.name }}{% endblock %}
+{% block page_subheading %}Update lead status, schedule follow-ups, and keep a clean communication timeline.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.leads') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Leads</a>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="admin-section-card h-100">
+      <p><strong>Mobile:</strong> <a href="tel:{{ lead.mobile }}">{{ lead.mobile }}</a></p>
+      {% if current_user.role != 'caller' %}
+      <p><strong>Email:</strong> {{ lead.email or '—' }}</p>
+      <p><strong>Budget:</strong> {% if lead.budget %}₹{{ "{:,.0f}".format(lead.budget) }}{% else %}—{% endif %}</p>
+      <p><strong>Preferred Area:</strong> {{ lead.preferred_area or '—' }}</p>
+      <p><strong>Property:</strong> {{ lead.property_name or '—' }}</p>
+      <p><strong>Score:</strong> {{ lead.lead_score }} ({{ lead.lead_tier }})</p>
+      <p><strong>Inquiry:</strong> {{ lead.inquiry_date }}</p>
+      {% else %}
+      <p class="text-muted small mb-0">Caller role has phone-first access with limited follow-up actions.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <form method="POST" action="{{ url_for('admin.update_lead', lid=lead.id) }}" class="admin-section-card h-100">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Status</label>
+      <select class="form-select mb-2" name="status">
+        {% for s in statuses %}<option value="{{ s }}" {% if lead.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+      <label>Follow-up Date</label>
+      <input type="date" class="form-control mb-2" name="follow_up_date">
+      <label>Note</label>
+      <textarea class="form-control mb-2" name="note" rows="3"></textarea>
+      <button class="btn btn-jk-accent">Update Lead</button>
+    </form>
+  </div>
+</div>
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Notes</h5>
+  </div>
+  <ul class="list-group">
+    {% for n in notes %}
+    <li class="list-group-item">{{ n.note }} <small class="text-muted">— {{ n.created_at }}</small></li>
+    {% else %}
+    <li class="list-group-item text-muted">No notes yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

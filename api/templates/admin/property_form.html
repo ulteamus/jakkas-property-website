@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if property else 'Add' }} Property{% endblock %}
+{% block page_heading %}{{ 'Edit' if property else 'Add' }} Property{% endblock %}
+{% block page_subheading %}Capture complete listing information with polished form controls and better visual grouping.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Properties</a>
+{% endblock %}
+{% block content %}
+<form method="POST" enctype="multipart/form-data" class="admin-section-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row g-3">
+    <div class="col-md-8"><label>Property Name *</label><input class="form-control" name="property_name" value="{{ property.property_name if property else '' }}" required></div>
+    <div class="col-md-4"><label>Type *</label>
+      <select class="form-select" name="property_type" required>
+        {% for t in types %}<option value="{{ t }}" {% if property and property.property_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4"><label>Area *</label><input class="form-control" name="area_name" list="areas" value="{{ property.area_name if property else '' }}" required>
+      <datalist id="areas">{% for a in areas %}<option value="{{ a }}">{% endfor %}</datalist>
+    </div>
+    <div class="col-md-4"><label>Price ₹ *</label><input type="number" class="form-control" name="price" value="{{ property.price if property else '' }}" required></div>
+    <div class="col-md-4"><label>Status</label>
+      <select class="form-select" name="status">
+        {% for s in ['available','reserved','sold','rented'] %}
+        <option value="{{ s }}" {% if property and property.status==s %}selected{% endif %}>
+          {% if s == 'reserved' %}pending_approval{% else %}{{ s }}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3"><label>BHK</label><input type="number" class="form-control" name="bhk" value="{{ property.bhk if property else 0 }}"></div>
+    <div class="col-md-3"><label>Sq Ft *</label><input type="number" class="form-control" name="sq_ft" value="{{ property.sq_ft if property else '' }}" required></div>
+    <div class="col-md-3"><label>Latitude</label><input class="form-control" name="latitude" value="{{ property.latitude if property else '21.1702' }}"></div>
+    <div class="col-md-3"><label>Longitude</label><input class="form-control" name="longitude" value="{{ property.longitude if property else '72.8311' }}"></div>
+    <div class="col-12"><label>Address</label><input class="form-control" name="address" value="{{ property.address if property else '' }}"></div>
+    <div class="col-12"><label>Description</label><textarea class="form-control" name="description" rows="4">{{ property.description if property else '' }}</textarea></div>
+    <div class="col-12"><label>Amenities (comma-separated)</label>
+      <input class="form-control" name="amenities" value="{% if property and property.amenities %}{{ property.amenities|join(', ') }}{% endif %}">
+    </div>
+    <div class="col-md-4"><label>Listing</label>
+      <select class="form-select" name="listing_type">
+        <option value="buy" {% if not property or property.listing_type!='rent' %}selected{% endif %}>Buy</option>
+        <option value="sell">Sell</option>
+        <option value="rent" {% if property and property.listing_type=='rent' %}selected{% endif %}>Rent</option>
+      </select>
+    </div>
+    <div class="col-md-4"><label>Creation Source</label>
+      <select class="form-select" name="creation_source">
+        <option value="admin" {% if not property or property.creation_source == 'admin' %}selected{% endif %}>Admin</option>
+        <option value="user_submission" {% if property and property.creation_source == 'user_submission' %}selected{% endif %}>User Submission</option>
+      </select>
+    </div>
+    <div class="col-md-4 form-check mt-4">
+      <input type="checkbox" class="form-check-input" name="is_featured" id="feat" {% if property and property.is_featured %}checked{% endif %}>
+      <label class="form-check-label" for="feat">Featured</label>
+    </div>
+    <div class="col-md-4"><label>Images</label><input type="file" class="form-control" name="images" multiple accept="image/*"></div>
+    <div class="col-md-4"><label>Videos</label><input type="file" class="form-control" name="videos" multiple accept="video/*"></div>
+    <div class="col-md-4"><label>Documents (PDF)</label><input type="file" class="form-control" name="documents" multiple accept=".pdf"></div>
+  </div>
+  <button class="btn btn-jk-accent mt-3">Save Property</button>
+</form>
+<p class="small text-muted mt-2">Map marker is created automatically from latitude/longitude.</p>
+{% endblock %}

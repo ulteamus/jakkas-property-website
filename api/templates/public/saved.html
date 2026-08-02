@@ -1,0 +1,23 @@
+{% extends "public/base.html" %}
+{% block title %}Saved Properties{% endblock %}
+{% block content %}
+<div class="container py-5 jk-flow">
+  <h1 class="section-title">Saved Properties</h1>
+  <div id="savedList" class="row g-4"></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(async () => {
+  const r = await fetch('/api/saved');
+  const d = await r.json();
+  const el = document.getElementById('savedList');
+  if (!d.properties?.length) { el.innerHTML = '<p class="text-muted">No saved properties yet.</p>'; return; }
+  el.innerHTML = d.properties.map(p => `
+    <div class="col-md-4"><div class="card property-card"><div class="card-body">
+      <h5><a href="/property/${p.slug}">${p.property_name}</a></h5>
+      <p>${p.area_name} — ₹${p.price.toLocaleString('en-IN')}</p>
+    </div></div></div>`).join('');
+})();
+</script>
+{% endblock %}

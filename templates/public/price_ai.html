@@ -1,0 +1,51 @@
+{% extends "public/base.html" %}
+{% block title %}Price AI - {{ company_name }}{% endblock %}
+{% block content %}
+<section class="container py-5 jk-flow">
+  <div class="row justify-content-center g-4">
+    <div class="col-lg-7">
+      <h1 class="section-title mb-2">Price AI Estimator</h1>
+      <p class="text-muted mb-4">Estimate approximate market value from area, configuration, and size.</p>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <form method="POST" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-6">
+              <label class="form-label">Area</label>
+              <input class="form-control" name="area_name" value="{{ request.form.area_name or 'Vesu' }}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">BHK</label>
+              <input type="number" class="form-control" name="bhk" value="{{ request.form.bhk or 2 }}" min="0">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Sq Ft</label>
+              <input type="number" class="form-control" name="sq_ft" value="{{ request.form.sq_ft or 1200 }}" min="100" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Property Type</label>
+              <select class="form-select" name="property_type">
+                {% for t in types %}
+                <option value="{{ t }}" {% if request.form.property_type == t %}selected{% endif %}>{{ t|replace('_', ' ')|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <button class="btn btn-jk-accent w-100">Predict Price</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {% if result %}
+      <div class="alert alert-success mt-4 mb-0">
+        <h5 class="mb-2">Estimated Value: ₹{{ "{:,.0f}".format(result.estimated_value) }}</h5>
+        <div>Range: ₹{{ "{:,.0f}".format(result.price_range_low) }} - ₹{{ "{:,.0f}".format(result.price_range_high) }}</div>
+        <div>Per sq.ft: ₹{{ "{:,.0f}".format(result.per_sqft) }} ({{ result.method }})</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

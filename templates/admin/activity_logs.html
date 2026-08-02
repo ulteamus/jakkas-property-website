@@ -1,0 +1,75 @@
+{% extends "admin/base.html" %}
+{% block title %}Activity Logs{% endblock %}
+{% block page_heading %}Activity Logs{% endblock %}
+{% block page_subheading %}Chronological audit trail of employee actions across admin workflows.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label>Start Date</label>
+      <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+    </div>
+    <div class="col-md-3">
+      <label>End Date</label>
+      <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+    </div>
+    <div class="col-md-3">
+      <label>Admin</label>
+      <select class="form-select" name="admin_id">
+        <option value="">All Admins</option>
+        {% for admin in admins %}
+        <option value="{{ admin.id }}" {% if selected_admin_id == admin.id %}selected{% endif %}>
+          {{ admin.full_name or admin.username }} ({{ admin.role|replace('_', ' ')|title }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label>Action Key</label>
+      <input class="form-control" name="action_key" value="{{ selected_action }}" placeholder="property_added">
+    </div>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-jk-accent">Apply Filters</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('admin.activity_logs_dashboard') }}">Reset</a>
+    </div>
+  </form>
+</section>
+
+<section class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Admin</th>
+        <th>Action</th>
+        <th>Entity</th>
+        <th>Metadata</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at }}</td>
+        <td>{{ log.admin_display }}</td>
+        <td>
+          <div class="fw-semibold">{{ log.action_label }}</div>
+          <div class="small text-muted">{{ log.action_key }}</div>
+        </td>
+        <td>
+          {% if log.entity_type %}
+          {{ log.entity_type }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}
+          {% else %}
+          -
+          {% endif %}
+        </td>
+        <td><code class="small">{{ log.meta }}</code></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="text-center text-muted py-4">No activity logs found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-inner">
+      <a href="{{ url_for('main.index') }}" class="logo">🏠 {{ app_name }}</a>
+      <ul class="nav-links">
+        <li><a href="{{ url_for('main.index') }}">Home</a></li>
+        <li><a href="{{ url_for('main.search_page') }}">Search</a></li>
+        <li><a href="{{ url_for('main.compare_page') }}">Compare</a></li>
+        <li><a href="{{ url_for('main.emi_page') }}">EMI</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}">AI Chat</a></li>
+        {% if current_user.is_authenticated %}
+          <li><a href="{{ url_for('main.schedule_visit_page') }}">Visits</a></li>
+          {% if current_user.is_admin %}
+            <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+          {% endif %}
+          <li><span class="user-badge">{{ current_user.username }}</span></li>
+          <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+        {% else %}
+          <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+          <li><a href="{{ url_for('auth.register') }}" class="btn btn-sm">Register</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container flash-container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 {{ app_name }} — Smart property search powered by AI</p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

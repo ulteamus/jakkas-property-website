@@ -1,0 +1,7 @@
+venv/
+.venv/
+.env
+*.zip
+.mysql-data/
+.mysql84-*/
+__pycache__/

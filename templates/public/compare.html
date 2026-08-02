@@ -1,0 +1,22 @@
+{% extends "public/base.html" %}
+{% block title %}Compare Properties{% endblock %}
+{% block content %}
+<div class="container py-5 jk-flow">
+  <h1 class="section-title">Compare Properties</h1>
+  <p class="text-muted">Save properties from listings, then compare them here.</p>
+  <div id="compareTable" class="table-responsive"></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(async () => {
+  const r = await fetch('/api/saved');
+  const d = await r.json();
+  const el = document.getElementById('compareTable');
+  if (!d.properties?.length) { el.innerHTML = '<p>No saved properties. <a href="/properties">Browse listings</a></p>'; return; }
+  const props = d.properties.slice(0, 4);
+  const rows = [['Name',...props.map(p=>p.property_name)],['Area',...props.map(p=>p.area_name)],['Price',...props.map(p=>'₹'+p.price.toLocaleString('en-IN')]],['BHK',...props.map(p=>p.bhk)],['Sq Ft',...props.map(p=>p.sq_ft)],['Type',...props.map(p=>p.property_type)]];
+  el.innerHTML = '<table class="table table-bordered"><tbody>'+rows.map(r=>'<tr>'+r.map((c,i)=>'<'+(i?'td':'th')+'>'+c+'</'+(i?'td':'th')+'>').join('')+'</tr>').join('')+'</tbody></table>';
+})();
+</script>
+{% endblock %}

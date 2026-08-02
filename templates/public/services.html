@@ -1,0 +1,18 @@
+{% extends "public/base.html" %}
+{% block title %}Services - {{ company_name }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <h1 class="section-title">Our Services</h1>
+  <p class="text-muted">End-to-end property services for residential and commercial needs.</p>
+  <div class="row g-4 mt-1">
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-house-check"></i><h6>Buy Property</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-house-add"></i><h6>Sell Property</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-key"></i><h6>Rent Property</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-building"></i><h6>Residential Consultancy</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-briefcase"></i><h6>Commercial Consultancy</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-graph-up-arrow"></i><h6>Investment Consultancy</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-file-earmark-text"></i><h6>Documentation Assistance</h6></article></div>
+    <div class="col-md-6 col-lg-3"><article class="service-card"><i class="bi bi-currency-rupee"></i><h6>Property Valuation</h6></article></div>
+  </div>
+</section>
+{% endblock %}

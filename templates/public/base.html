@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="{{ company_name }} - Premium real estate consultancy in Surat for Buy, Sell and Rent properties.">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}{{ company_name }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jovista-theme.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="jk-jovista{% if request.endpoint == 'public.home' %} jk-home{% endif %}">
+  <nav class="navbar navbar-expand-lg navbar-light jv-navbar sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('public.home') }}">
+        <span class="jk-logo-badge">
+          <img src="{{ url_for('static', filename='img/company-logo-mark.png') }}" alt="{{ company_name }}" class="jk-logo jk-logo-mark">
+        </span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNavbar" aria-controls="publicNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="publicNavbar">
+        <ul class="navbar-nav public-main-nav mx-lg-auto mb-2 mb-lg-0 align-items-lg-center">
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.home' %}active{% endif %}" href="{{ url_for('public.home') }}">Home</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.listings' %}active{% endif %}" href="{{ url_for('public.listings') }}">Properties</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.services' %}active{% endif %}" href="{{ url_for('public.services') }}">Services</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.about' %}active{% endif %}" href="{{ url_for('public.about') }}">About Us</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.testimonials' %}active{% endif %}" href="{{ url_for('public.testimonials') }}">Testimonials</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.contact' %}active{% endif %}" href="{{ url_for('public.contact') }}">Contact Us</a></li>
+        </ul>
+
+        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-lg-center gap-2 mt-3 mt-lg-0 ms-lg-auto header-actions">
+          <a class="btn btn-jk-outline btn-sm header-action-btn" href="tel:{{ company_phone_raw }}">
+            <i class="bi bi-telephone"></i> Call
+          </a>
+          <a class="btn btn-jk-accent btn-sm header-action-btn" href="{{ url_for('public.sell_property') }}">
+            <i class="bi bi-plus-circle"></i> Sell Property
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="container mt-3">{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}</div>
+  {% endif %}{% endwith %}
+
+  <main class="page-enter">{% block content %}{% endblock %}</main>
+
+  {% block page_overlays %}{% endblock %}
+
+  <section class="contact-strip py-3">
+    <div class="container d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-telephone-fill"></i>
+        <span>Speak to our property experts: <strong>{{ company_phone }}</strong></span>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-sm"><i class="bi bi-telephone"></i> Call Now</a>
+        <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy.%20I%20need%20help%20with%20a%20property." target="_blank" class="btn btn-success btn-sm"><i class="bi bi-whatsapp"></i> WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="jk-footer jv-footer">
+    <div class="container">
+      <div class="row g-4 g-lg-5 jv-footer-main">
+        <div class="col-md-6 col-lg-4">
+          <span class="jk-logo-footer-wrap mb-3 d-inline-flex">
+            <img src="{{ url_for('static', filename='img/company-logo-full.png') }}" alt="{{ company_name }}" class="jk-logo-footer">
+          </span>
+          <p class="jv-footer-tagline mb-2">
+            Premium real estate consultancy for buy, sell, and rent opportunities across Surat.
+          </p>
+          <p class="jv-footer-brand mb-0">JAKKASH PROPERTY CONSULTANCY</p>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+          <h6 class="jv-footer-heading">Contact</h6>
+          <ul class="jv-footer-list list-unstyled mb-0">
+            <li><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ company_address }}</li>
+            <li><i class="bi bi-telephone" aria-hidden="true"></i> <a href="tel:{{ company_phone_raw }}">{{ company_phone }}</a></li>
+            <li><i class="bi bi-envelope" aria-hidden="true"></i> <a href="mailto:{{ company_email }}">{{ company_email }}</a></li>
+          </ul>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+          <h6 class="jv-footer-heading">Quick Links</h6>
+          <ul class="jv-footer-links list-unstyled mb-0">
+            <li><a href="{{ url_for('public.about') }}">About Us</a></li>
+            <li><a href="{{ url_for('public.services') }}">Services</a></li>
+            <li><a href="{{ url_for('public.listings') }}">Browse Properties</a></li>
+            <li><a href="{{ url_for('public.chatbot') }}">Chatbot</a></li>
+            <li><a href="{{ url_for('public.property_map') }}">Surat Map</a></li>
+            <li><a href="{{ url_for('public.sell_property') }}">Sell Your Property</a></li>
+          </ul>
+          <div class="jv-footer-social d-flex gap-2 mt-3">
+            <a href="https://wa.me/{{ company_whatsapp }}" target="_blank" rel="noopener noreferrer" class="jv-footer-social-btn jv-footer-social-wa" aria-label="WhatsApp"><i class="bi bi-whatsapp" aria-hidden="true"></i></a>
+            <a href="tel:{{ company_phone_raw }}" class="jv-footer-social-btn" aria-label="Call us"><i class="bi bi-telephone" aria-hidden="true"></i></a>
+            <a href="mailto:{{ company_email }}" class="jv-footer-social-btn" aria-label="Email us"><i class="bi bi-envelope" aria-hidden="true"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="jv-footer-bottom">
+        <p class="mb-0">&copy; 2026 {{ company_name }}. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="fab-stack" role="group" aria-label="Quick contact actions">
+    <a href="{{ url_for('public.chatbot') }}" class="chatbot-float" aria-label="Open AI property assistant">
+      <i class="bi bi-robot" aria-hidden="true"></i>
+      <span class="visually-hidden">Property Assistant</span>
+    </a>
+    <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy.%20I%20want%20property%20details." class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp us">
+      <i class="bi bi-whatsapp" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  <button id="quickInquiryToggle" class="quick-inquiry-toggle" type="button">
+    <i class="bi bi-chat-dots-fill"></i> Quick Inquiry
+  </button>
+  <aside id="quickInquiryPanel" class="quick-inquiry-panel" aria-hidden="true">
+    <div class="quick-inquiry-header">
+      <h6 class="mb-0">Quick Inquiry</h6>
+      <button type="button" id="quickInquiryClose" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <p class="small text-muted mb-3">Share your requirement and our team will contact you shortly.</p>
+    <form id="quickInquiryForm" class="d-grid gap-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="text" class="form-control" name="name" placeholder="Name *" required>
+      <input type="text" class="form-control" name="mobile" placeholder="Mobile *" required>
+      <input type="email" class="form-control" name="email" placeholder="Email">
+      <textarea class="form-control" name="message" rows="3" placeholder="Property requirement"></textarea>
+      <button class="btn btn-jk-accent" type="submit">Submit Inquiry</button>
+    </form>
+  </aside>
+
+  <nav class="jk-mobile-nav d-lg-none" aria-label="Mobile quick navigation">
+    <a href="{{ url_for('public.home') }}" class="jk-mobile-nav__item" data-nav="/">
+      <i class="bi bi-house-door" aria-hidden="true"></i>
+      <span>Home</span>
+    </a>
+    <a href="{{ url_for('public.listings') }}" class="jk-mobile-nav__item" data-nav="/properties">
+      <i class="bi bi-buildings" aria-hidden="true"></i>
+      <span>Properties</span>
+    </a>
+    <a href="{{ url_for('public.chatbot') }}" class="jk-mobile-nav__item jk-mobile-nav__item--accent" data-nav="/chatbot">
+      <i class="bi bi-robot" aria-hidden="true"></i>
+      <span>Assistant</span>
+    </a>
+    <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy." class="jk-mobile-nav__item" target="_blank" rel="noopener noreferrer">
+      <i class="bi bi-whatsapp" aria-hidden="true"></i>
+      <span>WhatsApp</span>
+    </a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/mobile.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

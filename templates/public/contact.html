@@ -1,0 +1,47 @@
+{% extends "public/base.html" %}
+{% block title %}Contact - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="container py-5 jk-flow">
+  <div class="row g-5">
+    <div class="col-lg-6 reveal-on-scroll">
+      <h1 class="section-title">Contact Us</h1>
+      <p class="mb-1"><strong>{{ company_name }}</strong></p>
+      <p class="mb-1"><i class="bi bi-geo-alt text-warning"></i> {{ company_address }}</p>
+      <p class="mb-1"><i class="bi bi-telephone"></i> Mobile: <a href="tel:{{ company_phone_raw }}">{{ company_phone }}</a></p>
+      <p class="mb-1"><i class="bi bi-whatsapp text-success"></i> WhatsApp: <a href="https://wa.me/{{ company_whatsapp }}" target="_blank">{{ company_phone }}</a></p>
+      <p class="mb-3"><i class="bi bi-envelope"></i> Email: <a href="mailto:{{ company_email }}">{{ company_email }}</a></p>
+
+      <form id="contactForm" class="mt-4 content-card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3"><input class="form-control" name="name" placeholder="Name *" required></div>
+        <div class="mb-3"><input class="form-control" name="mobile" placeholder="Mobile *" required></div>
+        <div class="mb-3"><input class="form-control" name="email" type="email" placeholder="Email *" required></div>
+        <div class="mb-3"><textarea class="form-control" name="message" rows="4" placeholder="Your message"></textarea></div>
+        <button class="btn btn-jk-accent">Send Message</button>
+      </form>
+    </div>
+    <div class="col-lg-6 reveal-on-scroll">
+      <div class="ratio ratio-4x3 rounded overflow-hidden shadow-sm content-card p-0">
+        <iframe
+          src="https://www.google.com/maps?q={{ (company_address if company_address else (company_lat ~ ',' ~ company_lng))|replace(' ', '+') }}&output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('contactForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = Object.fromEntries(fd);
+  body.source = 'contact_form';
+  const r = await apiFetch('/api/inquiry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const d = await r.json();
+  alert(d.message || d.error);
+  if(d.success) e.target.reset();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,297 @@
+/* Property Hero Animation — embed on any website */
+.property-hero {
+  position: relative;
+  width: 100%;
+  min-height: 92vh;
+  overflow: hidden;
+  background: #111;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #fff;
+}
+
+.property-hero__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 92vh;
+}
+
+@media (max-width: 767.98px) {
+  .property-hero__grid {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .property-hero__panel {
+    min-height: 40vh;
+  }
+}
+
+.property-hero__panel {
+  position: relative;
+  overflow: hidden;
+  min-height: 92vh;
+}
+
+.property-hero__video-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.property-hero__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1) translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.property-hero__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.12) 50%,
+    rgba(0, 0, 0, 0.22) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.property-hero__panel + .property-hero__panel {
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 767.98px) {
+  .property-hero__panel + .property-hero__panel {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+.property-hero__divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  z-index: 5;
+  pointer-events: none;
+}
+
+@media (max-width: 767.98px) {
+  .property-hero__divider {
+    top: 50%;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 2px;
+    transform: translateY(-50%);
+  }
+}
+
+.property-hero__label {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 3;
+  padding: 7px 14px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+}
+
+.property-hero__panel-caption {
+  position: absolute;
+  left: 28px;
+  bottom: 28px;
+  z-index: 3;
+  max-width: 280px;
+}
+
+.property-hero__panel-caption h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.property-hero__panel-caption p {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.property-hero__content {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  z-index: 10;
+  text-align: center;
+  width: min(720px, 90vw);
+  animation: property-hero-fade-up 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes property-hero-fade-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(24px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.property-hero__badge {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 6px 14px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a8c8e8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.property-hero__content h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 0 0 14px;
+  color: #ffffff;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.property-hero__content > p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 28px;
+  line-height: 1.55;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.property-hero__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.property-hero__btn {
+  padding: 14px 28px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.property-hero__btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.property-hero__btn--primary {
+  background: #fff;
+  color: #111;
+}
+
+.property-hero__btn--secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(6px);
+}
+
+.property-hero__mode-toggle {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  z-index: 12;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.property-hero__mode-btn {
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.property-hero__mode-btn.is-active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.property-hero.is-cinema .property-hero__grid {
+  display: block;
+  min-height: 92vh;
+}
+
+.property-hero.is-cinema .property-hero__panel {
+  position: absolute;
+  inset: 0;
+  min-height: 92vh;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+}
+
+.property-hero.is-cinema .property-hero__panel.is-visible {
+  opacity: 1;
+  z-index: 1;
+}
+
+.property-hero.is-cinema .property-hero__divider {
+  display: none;
+}
+
+.property-hero.is-cinema .property-hero__panel-caption {
+  display: none;
+}
+
+/* JAKKASH homepage — clear fixed transparent navbar */
+body.jk-home {
+  --jk-nav-offset: 76px;
+}
+
+body.jk-home .property-hero {
+  margin-top: 0;
+}
+
+body.jk-home .property-hero__mode-toggle {
+  top: calc(28px + var(--jk-nav-offset));
+}
+
+body.jk-home .property-hero__label {
+  top: calc(28px + var(--jk-nav-offset));
+}
+
+@media (max-width: 991.98px) {
+  body.jk-home {
+    --jk-nav-offset: 68px;
+  }
+}

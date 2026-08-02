@@ -1,0 +1,94 @@
+{% extends "admin/base.html" %}
+{% block title %}Properties{% endblock %}
+{% block page_heading %}Property Inventory{% endblock %}
+{% block page_subheading %}Manage listings, monitor inventory status, and jump into edits or submission reviews quickly.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.property_form') }}" class="btn btn-jk-accent btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Property</a>
+{% endblock %}
+{% block content %}
+<div class="admin-filter-bar mb-2" role="group" aria-label="Property status filter">
+  <a href="{{ url_for('admin.properties') }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
+  {% for status in statuses %}
+  <a href="{{ url_for('admin.properties', status=status) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|replace('_', ' ')|title }}</a>
+  {% endfor %}
+</div>
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Area</th>
+        <th>Type</th>
+        <th>Price</th>
+        <th>Source</th>
+        <th>Status</th>
+        <th>Views</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in properties %}
+      {% set status_label = 'pending approval' if p.status == 'reserved' else p.status %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td class="fw-semibold">{{ p.property_name }}</td>
+        <td>{{ p.area_name }}</td>
+        <td>{{ p.property_type }}</td>
+        <td>₹{{ "{:,.0f}".format(p.price) }}</td>
+        <td>
+          <span class="admin-status-pill status-{{ 'available' if p.creation_source == 'admin' else 'pending' }}">
+            {{ 'Admin' if p.creation_source == 'admin' else 'User Submission' }}
+          </span>
+        </td>
+        <td><span class="admin-status-pill status-{{ p.status }}">{{ status_label|title }}</span></td>
+        <td>{{ p.view_count }}</td>
+        <td class="text-nowrap">
+          <a href="{{ url_for('admin.property_form', pid=p.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+          {% if p.status == 'reserved' and submission_map.get(p.id) %}
+          <a href="{{ url_for('admin.sell_properties', status='pending') }}#submission-{{ submission_map.get(p.id).id }}" class="btn btn-sm btn-outline-secondary">Review</a>
+          {% endif %}
+          <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ p.id }}">
+            Delete
+          </button>
+          <div class="modal fade" id="deletePropertyModal{{ p.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <form method="POST" action="{{ url_for('admin.delete_property', pid=p.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="confirm_property_id" value="{{ p.id }}">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Confirm Property Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="mb-2">This action permanently deletes <strong>{{ p.property_name }}</strong>.</p>
+                    <p class="small text-muted">Type <strong>DELETE</strong> to confirm.</p>
+                    <input
+                      class="form-control"
+                      name="confirm_text"
+                      placeholder="Type DELETE"
+                      autocomplete="off"
+                      required
+                      pattern="DELETE"
+                    >
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-outline-danger">Delete Property</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">No properties found for this filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

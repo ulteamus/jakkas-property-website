@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}EMI Calculator — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container section">
+  <h1>Home Loan EMI Calculator</h1>
+  <div class="emi-layout">
+    <form id="emiForm" class="card emi-form">
+      <div class="form-group">
+        <label>Loan Amount (₹)</label>
+        <input type="number" id="principal" value="5000000" min="100000" step="100000" required>
+      </div>
+      <div class="form-group">
+        <label>Annual Interest Rate (%)</label>
+        <input type="number" id="annual_rate" value="8.5" min="1" max="30" step="0.1" required>
+      </div>
+      <div class="form-group">
+        <label>Tenure (years)</label>
+        <input type="number" id="tenure_years" value="20" min="1" max="30" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Calculate EMI</button>
+    </form>
+    <div id="emiResult" class="card emi-result">
+      <h3>Results</h3>
+      <p class="emi-highlight">Monthly EMI: <span id="emiValue">—</span></p>
+      <ul id="emiBreakdown" class="emi-breakdown"></ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/emi.js') }}"></script>
+{% endblock %}

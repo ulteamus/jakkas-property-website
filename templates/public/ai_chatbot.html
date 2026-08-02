@@ -1,0 +1,34 @@
+{% extends "public/base.html" %}
+{% block title %}AI Real Estate Chatbot - {{ company_name }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <h1 class="section-title">Real Estate Chatbot</h1>
+  <p class="text-muted">
+    Ask about property availability, buy/sell/rent options, location insights, broker contact, and site visit appointments.
+  </p>
+
+  <div class="chatbot-shell">
+    <div id="chatMessages" class="chat-messages">
+      <div class="chat-msg assistant">
+        <div class="bubble">
+          Welcome to JAKKASH AI Assistant. Try: "I need a 2 BHK in Surat under 60 lakh".
+        </div>
+      </div>
+    </div>
+    <form id="chatForm" class="chat-form">
+      <input id="chatInput" type="text" class="form-control form-control-lg" placeholder="Type your property requirement..." required>
+      <button class="btn btn-jk-accent btn-lg" type="submit">Send</button>
+    </form>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="2 BHK under 60 lakh in Surat">2 BHK under 60 lakh</button>
+      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="Bungalow for sale near Vesu">Bungalow near Vesu</button>
+      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="Commercial office near Ring Road">Commercial near Ring Road</button>
+      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="Book a site visit for a property">Book site visit</button>
+    </div>
+    <div id="chatPropertyResults" class="row g-4 mt-2"></div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+{% endblock %}

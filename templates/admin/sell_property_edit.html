@@ -1,0 +1,87 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit Sell Property{% endblock %}
+{% block page_heading %}Edit Sell Property #{{ submission.id }}{% endblock %}
+{% block page_subheading %}Update owner contact details and property information for this user submission.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <form method="POST" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12"><h5 class="mb-0">Owner Information</h5></div>
+    <div class="col-md-6">
+      <label class="form-label">Owner Name *</label>
+      <input class="form-control" name="owner_name" value="{{ submission.owner_name }}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Mobile *</label>
+      <input class="form-control" name="owner_mobile" value="{{ submission.owner_mobile }}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Alt Mobile</label>
+      <input class="form-control" name="owner_alt_mobile" value="{{ submission.owner_alt_mobile or '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" name="owner_email" value="{{ submission.owner_email or '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Owner Address *</label>
+      <input class="form-control" name="owner_address" value="{{ submission.owner_address }}" required>
+    </div>
+
+    <div class="col-12 mt-2"><h5 class="mb-0">Property Details</h5></div>
+    <div class="col-md-8">
+      <label class="form-label">Property Title *</label>
+      <input class="form-control" name="property_title" value="{{ submission.property_title }}" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Property Type *</label>
+      <select class="form-select" name="property_type" required>
+        {% for t in ['flat', 'apartment', 'bungalow', 'villa', 'plot', 'commercial', 'shop', 'office'] %}
+        <option value="{{ t }}" {% if submission.property_type == t %}selected{% endif %}>{{ t|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">BHK</label>
+      <input type="number" class="form-control" name="bhk" value="{{ submission.bhk or 0 }}" min="0">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Area (sq ft)</label>
+      <input class="form-control" name="area_sq_ft" value="{{ submission.area_sq_ft or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Price (₹)</label>
+      <input class="form-control" name="price" value="{{ submission.price or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Bungalow #</label>
+      <input class="form-control" name="bungalow_number" value="{{ submission.bungalow_number or '' }}">
+    </div>
+    <div class="col-md-8">
+      <label class="form-label">Property Address *</label>
+      <input class="form-control" name="property_address" value="{{ submission.property_address }}" required>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">City</label>
+      <input class="form-control" name="city" value="{{ submission.city or 'Surat' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Area</label>
+      <input class="form-control" name="location_area" value="{{ submission.location_area or '' }}">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" name="description" rows="3">{{ submission.description or '' }}</textarea>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Review Note</label>
+      <input class="form-control" name="review_note" value="{{ submission.review_note or '' }}" maxlength="250">
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-jk-accent">Save Changes</button>
+      <a href="{{ url_for('admin.sell_properties') }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

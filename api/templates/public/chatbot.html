@@ -1,0 +1,78 @@
+{% extends "public/base.html" %}
+{% block title %}Property Assistant - {{ company_name }}{% endblock %}
+{% block content %}
+<section class="chatbot-page py-4 py-lg-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-xl-10 col-xxl-9">
+        <header class="chatbot-page-header text-center mb-4 scroll-reveal">
+          <span class="chatbot-kicker">Jakkash Property Consultancy</span>
+          <h1 class="chatbot-page-title">Property Assistant</h1>
+          <p class="chatbot-page-lead text-muted mb-0">
+            Ask about availability, budgets, locations, site visits, or speak with our advisory team.
+          </p>
+        </header>
+
+        <div class="chatbot-shell scroll-reveal">
+          <div class="chatbot-header">
+            <div class="chatbot-header-avatar" aria-hidden="true">
+              <i class="bi bi-building"></i>
+            </div>
+            <div class="chatbot-header-copy">
+              <h2 class="chatbot-header-title mb-0">Jakkash Assistant</h2>
+              <p class="chatbot-header-status mb-0">
+                <span class="chatbot-status-dot"></span> Online · Surat property specialist
+              </p>
+            </div>
+          </div>
+
+          <div id="chatMessages" class="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
+            <div class="chat-msg assistant chat-msg--visible">
+              <span class="chat-avatar chat-avatar--bot" aria-hidden="true"><i class="bi bi-building"></i></span>
+              <div class="bubble">
+                Good day, and welcome to <strong>Jakkash Property Consultancy</strong>.<br><br>
+                I can help you find residential and commercial properties across Surat — buy, sell, or rent.<br><br>
+                Try: <em>"2 BHK under 60 lakh in Vesu"</em> or <em>"Book a site visit"</em>.
+              </div>
+            </div>
+          </div>
+
+          <form id="chatForm" class="chat-form">
+            <div class="chat-input-wrap">
+              <input
+                id="chatInput"
+                type="text"
+                class="form-control chat-input"
+                placeholder="Describe your property requirement…"
+                autocomplete="off"
+                required
+                aria-label="Your message"
+              >
+            </div>
+            <button id="chatSendBtn" class="btn btn-jk-accent chat-send-btn" type="submit" aria-label="Send message">
+              <span class="chat-send-label">Send</span>
+              <i class="bi bi-send-fill chat-send-icon" aria-hidden="true"></i>
+              <span class="chat-send-spinner spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            </button>
+          </form>
+
+          <div class="chat-suggestions">
+            <span class="chat-suggestions-label">Quick prompts</span>
+            <div class="chat-suggestions-list">
+              <button type="button" class="chat-chip" data-msg="2 BHK under 60 lakh in Surat">2 BHK under 60 lakh</button>
+              <button type="button" class="chat-chip" data-msg="Bungalow for sale near Vesu">Bungalow near Vesu</button>
+              <button type="button" class="chat-chip" data-msg="Commercial office near Ring Road">Commercial near Ring Road</button>
+              <button type="button" class="chat-chip" data-msg="Book a site visit for a property">Book site visit</button>
+            </div>
+          </div>
+
+          <div id="chatPropertyResults" class="chat-property-results row g-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% block title %}Utilities{% endblock %}
+{% block page_heading %}Admin Utilities{% endblock %}
+{% block page_subheading %}Super-admin utility controls for safe cleanup of mock/test data only.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="alert alert-warning mb-3">
+    This utility removes <strong>mock/demo/test</strong> rows from selected operational tables.
+    It does <strong>not</strong> drop tables or reset schema.
+  </div>
+  <div class="admin-table-wrap table-responsive mb-3">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Table</th>
+          <th>Detected Mock Rows</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for table, count in counts.items() %}
+        <tr>
+          <td class="fw-semibold">{{ table }}</td>
+          <td>{{ count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('admin.flush_mock_data') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-danger" onclick="return confirm('Run mock-data flush now?')">
+      <i class="bi bi-trash3 me-1"></i>Flush Mock Data
+    </button>
+  </form>
+</section>
+{% endblock %}

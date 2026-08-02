@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Site Visits — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container section">
+  <h1>My Site Visits</h1>
+  {% if not current_user.is_authenticated %}
+  <p>Please <a href="{{ url_for('auth.login') }}">login</a> to view and schedule visits.</p>
+  {% else %}
+  <div id="visitsList" class="visits-list"></div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+{% if current_user.is_authenticated %}
+(async () => {
+  const res = await fetch('/api/visits');
+  const d = await res.json();
+  const el = document.getElementById('visitsList');
+  if (!d.visits?.length) {
+    el.innerHTML = '<p class="text-muted">No visits scheduled yet. Browse properties and schedule a tour.</p>';
+    return;
+  }
+  el.innerHTML = d.visits.map(v => `
+    <article class="card visit-card">
+      <h3>${v.property_title}</h3>
+      <p>${v.city} — ${v.visit_date} at ${v.visit_time}</p>
+      <span class="badge status-${v.status}">${v.status}</span>
+      ${v.notes ? '<p>' + v.notes + '</p>' : ''}
+    </article>
+  `).join('');
+})();
+{% endif %}
+</script>
+{% endblock %}

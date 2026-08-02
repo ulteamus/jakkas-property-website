@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ property.title }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container section property-detail">
+  <div class="detail-grid">
+    <div class="detail-gallery">
+      {% if images %}
+        {% for img in images %}
+        <img src="/{{ img.image_path }}" alt="{{ property.title }}">
+        {% endfor %}
+      {% elif property.image_url %}
+        <img src="/{{ property.image_url }}" alt="{{ property.title }}" class="main-img">
+      {% else %}
+        <div class="placeholder-img large">🏢</div>
+      {% endif %}
+    </div>
+    <div class="detail-info card">
+      <span class="badge">{{ property.property_type }}</span>
+      <span class="badge badge-rent">{{ property.listing_type }}</span>
+      <h1>{{ property.title }}</h1>
+      <p class="location">{{ property.locality }}, {{ property.city }}</p>
+      <p class="price large">₹{{ "{:,.0f}".format(property.price) }}</p>
+      <ul class="specs">
+        <li>{{ property.bedrooms }} Bedrooms</li>
+        <li>{{ property.bathrooms }} Bathrooms</li>
+        <li>{{ property.area_sqft }} sqft</li>
+        {% if property.year_built %}<li>Built {{ property.year_built }}</li>{% endif %}
+      </ul>
+      {% if property.amenities %}
+      <div class="amenities">
+        <h3>Amenities</h3>
+        {% for a in property.amenities %}
+        <span class="tag">{{ a }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <p>{{ property.description }}</p>
+      <div class="detail-actions">
+        <a href="{{ url_for('main.compare_page') }}?ids={{ property.id }}" class="btn btn-outline">Add to Compare</a>
+        {% if current_user.is_authenticated %}
+        <button class="btn btn-primary" onclick="openVisitModal({{ property.id }}, '{{ property.title|e }}')">Schedule Visit</button>
+        {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Login to Schedule Visit</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="visitModal" class="modal hidden">
+  <div class="modal-content card">
+    <h3>Schedule Site Visit</h3>
+    <p id="visitPropertyTitle"></p>
+    <form id="visitForm">
+      <input type="hidden" id="visit_property_id">
+      <div class="form-group"><label>Date</label><input type="date" id="visit_date" required></div>
+      <div class="form-group"><label>Time</label><input type="time" id="visit_time" required></div>
+      <div class="form-group"><label>Notes</label><textarea id="visit_notes"></textarea></div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+      <button type="button" class="btn btn-outline" onclick="closeVisitModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function openVisitModal(id, title) {
+  document.getElementById('visit_property_id').value = id;
+  document.getElementById('visitPropertyTitle').textContent = title;
+  document.getElementById('visitModal').classList.remove('hidden');
+}
+function closeVisitModal() {
+  document.getElementById('visitModal').classList.add('hidden');
+}
+document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const res = await fetch('/api/visits', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      property_id: document.getElementById('visit_property_id').value,
+      visit_date: document.getElementById('visit_date').value,
+      visit_time: document.getElementById('visit_time').value,
+      notes: document.getElementById('visit_notes').value
+    })
+  });
+  const d = await res.json();
+  alert(d.message || d.error);
+  if (d.success) closeVisitModal();
+});
+</script>
+{% endblock %}

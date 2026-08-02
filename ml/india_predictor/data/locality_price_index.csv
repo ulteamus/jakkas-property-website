@@ -1,0 +1,553 @@
+city,locality,property_type,price_per_sqft_inr
+Surat,Adajan,Apartment,6000.0
+Surat,Adajan,Bungalow,8748.0
+Surat,Adajan,Commercial,4095.0
+Surat,Adajan,Flat,6000.0
+Surat,Adajan,House,7938.0
+Surat,Adajan,Office,8100.0
+Surat,Adajan,Penthouse,8100.0
+Surat,Adajan,Plot,3300.0
+Surat,Adajan,Retail,3900.0
+Surat,Adajan,Shop,3900.0
+Surat,Adajan,Showroom,4368.0
+Surat,Adajan,Studio,5520.0
+Surat,Adajan,Villa,8100.0
+Surat,Adajan,Warehouse,2808.0
+Surat,Althan,Apartment,4300.0
+Surat,Althan,Bungalow,4752.0
+Surat,Althan,Commercial,4620.0
+Surat,Althan,Flat,4300.0
+Surat,Althan,House,4312.0
+Surat,Althan,Office,4400.0
+Surat,Althan,Penthouse,5805.0
+Surat,Althan,Plot,2365.0
+Surat,Althan,Retail,4400.0
+Surat,Althan,Shop,4400.0
+Surat,Althan,Showroom,4928.0
+Surat,Althan,Studio,3956.0
+Surat,Althan,Villa,4400.0
+Surat,Althan,Warehouse,3168.0
+Surat,Amroli,Apartment,1950.0
+Surat,Amroli,Bungalow,2106.0
+Surat,Amroli,Commercial,2047.5
+Surat,Amroli,Flat,1950.0
+Surat,Amroli,House,1911.0
+Surat,Amroli,Office,1950.0
+Surat,Amroli,Penthouse,2632.5
+Surat,Amroli,Plot,1072.5
+Surat,Amroli,Retail,1950.0
+Surat,Amroli,Shop,1950.0
+Surat,Amroli,Showroom,2184.0
+Surat,Amroli,Studio,1794.0
+Surat,Amroli,Villa,1950.0
+Surat,Amroli,Warehouse,1404.0
+Surat,Bharthana,Apartment,4800.0
+Surat,Bharthana,Bungalow,7344.0
+Surat,Bharthana,Commercial,7140.0
+Surat,Bharthana,Flat,4800.0
+Surat,Bharthana,House,6664.0
+Surat,Bharthana,Office,6800.0
+Surat,Bharthana,Penthouse,6480.0
+Surat,Bharthana,Plot,2640.0
+Surat,Bharthana,Retail,6800.0
+Surat,Bharthana,Shop,6800.0
+Surat,Bharthana,Showroom,7616.0
+Surat,Bharthana,Studio,4416.0
+Surat,Bharthana,Villa,6800.0
+Surat,Bharthana,Warehouse,4896.0
+Surat,Bhestan,Apartment,2750.0
+Surat,Bhestan,Bungalow,2970.0
+Surat,Bhestan,Commercial,2887.5
+Surat,Bhestan,Flat,2750.0
+Surat,Bhestan,House,2695.0
+Surat,Bhestan,Office,2750.0
+Surat,Bhestan,Penthouse,3712.5
+Surat,Bhestan,Plot,1512.5
+Surat,Bhestan,Retail,2750.0
+Surat,Bhestan,Shop,2750.0
+Surat,Bhestan,Showroom,3080.0
+Surat,Bhestan,Studio,2530.0
+Surat,Bhestan,Villa,2750.0
+Surat,Bhestan,Warehouse,1980.0
+Surat,Bhimrad,Apartment,4250.0
+Surat,Bhimrad,Bungalow,4968.0
+Surat,Bhimrad,Commercial,4830.0
+Surat,Bhimrad,Flat,4250.0
+Surat,Bhimrad,House,4508.0
+Surat,Bhimrad,Office,4600.0
+Surat,Bhimrad,Penthouse,5737.5
+Surat,Bhimrad,Plot,2337.5
+Surat,Bhimrad,Retail,4600.0
+Surat,Bhimrad,Shop,4600.0
+Surat,Bhimrad,Showroom,5152.0
+Surat,Bhimrad,Studio,3910.0
+Surat,Bhimrad,Villa,4600.0
+Surat,Bhimrad,Warehouse,3312.0
+Surat,City Light,Apartment,4150.0
+Surat,City Light,Bungalow,6048.0
+Surat,City Light,Commercial,4357.5
+Surat,City Light,Flat,4150.0
+Surat,City Light,House,5488.0
+Surat,City Light,Penthouse,5602.5
+Surat,City Light,Plot,2282.5
+Surat,City Light,Retail,4150.0
+Surat,City Light,Shop,4150.0
+Surat,City Light,Showroom,4648.0
+Surat,City Light,Studio,3818.0
+Surat,City Light,Villa,5600.0
+Surat,City Light,Warehouse,2988.0
+Surat,Dindoli,Apartment,2950.0
+Surat,Dindoli,Bungalow,2916.0
+Surat,Dindoli,Commercial,2835.0
+Surat,Dindoli,Flat,2950.0
+Surat,Dindoli,House,2646.0
+Surat,Dindoli,Office,2700.0
+Surat,Dindoli,Penthouse,3982.5
+Surat,Dindoli,Plot,1622.5
+Surat,Dindoli,Retail,2700.0
+Surat,Dindoli,Shop,2700.0
+Surat,Dindoli,Showroom,3024.0
+Surat,Dindoli,Studio,2714.0
+Surat,Dindoli,Villa,2700.0
+Surat,Dindoli,Warehouse,1944.0
+Surat,Dumas,Apartment,4600.0
+Surat,Dumas,Bungalow,4968.0
+Surat,Dumas,Commercial,4830.0
+Surat,Dumas,Flat,4600.0
+Surat,Dumas,House,4508.0
+Surat,Dumas,Office,4600.0
+Surat,Dumas,Penthouse,6210.0
+Surat,Dumas,Plot,2530.0
+Surat,Dumas,Retail,4600.0
+Surat,Dumas,Shop,4600.0
+Surat,Dumas,Showroom,5152.0
+Surat,Dumas,Studio,4232.0
+Surat,Dumas,Villa,4600.0
+Surat,Dumas,Warehouse,3312.0
+Surat,Dumas Road,Apartment,4750.0
+Surat,Dumas Road,Bungalow,5130.0
+Surat,Dumas Road,Commercial,4987.5
+Surat,Dumas Road,Flat,4750.0
+Surat,Dumas Road,House,4655.0
+Surat,Dumas Road,Office,4750.0
+Surat,Dumas Road,Penthouse,6412.5
+Surat,Dumas Road,Plot,2612.5
+Surat,Dumas Road,Retail,4750.0
+Surat,Dumas Road,Shop,4750.0
+Surat,Dumas Road,Showroom,5320.0
+Surat,Dumas Road,Studio,4370.0
+Surat,Dumas Road,Villa,4750.0
+Surat,Dumas Road,Warehouse,3420.0
+Surat,Ghod Dod Road,Apartment,5400.0
+Surat,Ghod Dod Road,Bungalow,5832.0
+Surat,Ghod Dod Road,Commercial,5670.0
+Surat,Ghod Dod Road,Flat,5400.0
+Surat,Ghod Dod Road,House,5292.0
+Surat,Ghod Dod Road,Penthouse,7290.0
+Surat,Ghod Dod Road,Plot,2970.0
+Surat,Ghod Dod Road,Retail,5400.0
+Surat,Ghod Dod Road,Shop,5400.0
+Surat,Ghod Dod Road,Showroom,6048.0
+Surat,Ghod Dod Road,Studio,4968.0
+Surat,Ghod Dod Road,Villa,5400.0
+Surat,Ghod Dod Road,Warehouse,3888.0
+Surat,Godadara,Apartment,2312.0
+Surat,Godadara,Bungalow,3796.2
+Surat,Godadara,Commercial,2427.6
+Surat,Godadara,Flat,2312.0
+Surat,Godadara,House,3444.7
+Surat,Godadara,Penthouse,3121.2
+Surat,Godadara,Plot,1271.6
+Surat,Godadara,Retail,2312.0
+Surat,Godadara,Shop,2312.0
+Surat,Godadara,Showroom,2589.44
+Surat,Godadara,Studio,2127.04
+Surat,Godadara,Villa,3515.0
+Surat,Godadara,Warehouse,1664.64
+Surat,Jahangir Pura,Apartment,3700.0
+Surat,Jahangir Pura,Bungalow,3996.0
+Surat,Jahangir Pura,Commercial,3885.0
+Surat,Jahangir Pura,Flat,3700.0
+Surat,Jahangir Pura,House,3626.0
+Surat,Jahangir Pura,Office,3700.0
+Surat,Jahangir Pura,Penthouse,4995.0
+Surat,Jahangir Pura,Plot,2035.0
+Surat,Jahangir Pura,Retail,3700.0
+Surat,Jahangir Pura,Shop,3700.0
+Surat,Jahangir Pura,Showroom,4144.0
+Surat,Jahangir Pura,Studio,3404.0
+Surat,Jahangir Pura,Villa,3700.0
+Surat,Jahangir Pura,Warehouse,2664.0
+Surat,Jahangirabad,Apartment,3600.0
+Surat,Jahangirabad,Bungalow,3888.0
+Surat,Jahangirabad,Commercial,3780.0
+Surat,Jahangirabad,Flat,3600.0
+Surat,Jahangirabad,House,3528.0
+Surat,Jahangirabad,Office,3600.0
+Surat,Jahangirabad,Penthouse,4860.0
+Surat,Jahangirabad,Plot,1980.0
+Surat,Jahangirabad,Retail,3600.0
+Surat,Jahangirabad,Shop,3600.0
+Surat,Jahangirabad,Showroom,4032.0
+Surat,Jahangirabad,Studio,3312.0
+Surat,Jahangirabad,Villa,3600.0
+Surat,Jahangirabad,Warehouse,2592.0
+Surat,Kamrej,Apartment,1797.0
+Surat,Kamrej,Bungalow,1940.76
+Surat,Kamrej,Commercial,1886.85
+Surat,Kamrej,Flat,1797.0
+Surat,Kamrej,House,1761.06
+Surat,Kamrej,Penthouse,2425.95
+Surat,Kamrej,Plot,988.35
+Surat,Kamrej,Retail,1797.0
+Surat,Kamrej,Shop,1797.0
+Surat,Kamrej,Showroom,2012.64
+Surat,Kamrej,Studio,1653.24
+Surat,Kamrej,Villa,1797.0
+Surat,Kamrej,Warehouse,1293.84
+Surat,Katargam,Apartment,11850.0
+Surat,Katargam,Bungalow,2646.0
+Surat,Katargam,Commercial,12442.5
+Surat,Katargam,Flat,11850.0
+Surat,Katargam,House,2401.0
+Surat,Katargam,Penthouse,15997.5
+Surat,Katargam,Plot,6517.5
+Surat,Katargam,Retail,11850.0
+Surat,Katargam,Shop,11850.0
+Surat,Katargam,Showroom,13272.0
+Surat,Katargam,Studio,10902.0
+Surat,Katargam,Villa,2450.0
+Surat,Katargam,Warehouse,8532.0
+Surat,Kosamba,Apartment,1750.0
+Surat,Kosamba,Bungalow,1890.0
+Surat,Kosamba,Commercial,1837.5
+Surat,Kosamba,Flat,1750.0
+Surat,Kosamba,House,1715.0
+Surat,Kosamba,Office,1750.0
+Surat,Kosamba,Penthouse,2362.5
+Surat,Kosamba,Plot,962.5
+Surat,Kosamba,Retail,1750.0
+Surat,Kosamba,Shop,1750.0
+Surat,Kosamba,Showroom,1960.0
+Surat,Kosamba,Studio,1610.0
+Surat,Kosamba,Villa,1750.0
+Surat,Kosamba,Warehouse,1260.0
+Surat,Kumbhariya,Apartment,2700.0
+Surat,Kumbhariya,Bungalow,6102.0
+Surat,Kumbhariya,Commercial,5932.5
+Surat,Kumbhariya,Flat,2700.0
+Surat,Kumbhariya,House,5537.0
+Surat,Kumbhariya,Office,5650.0
+Surat,Kumbhariya,Penthouse,3645.0
+Surat,Kumbhariya,Plot,1485.0
+Surat,Kumbhariya,Retail,5650.0
+Surat,Kumbhariya,Shop,5650.0
+Surat,Kumbhariya,Showroom,6328.0
+Surat,Kumbhariya,Studio,2484.0
+Surat,Kumbhariya,Villa,5650.0
+Surat,Kumbhariya,Warehouse,4068.0
+Surat,Mota Varachha,Apartment,4700.0
+Surat,Mota Varachha,Bungalow,4428.0
+Surat,Mota Varachha,Commercial,4305.0
+Surat,Mota Varachha,Flat,4700.0
+Surat,Mota Varachha,House,4018.0
+Surat,Mota Varachha,Office,4100.0
+Surat,Mota Varachha,Penthouse,6345.0
+Surat,Mota Varachha,Plot,2585.0
+Surat,Mota Varachha,Retail,4100.0
+Surat,Mota Varachha,Shop,4100.0
+Surat,Mota Varachha,Showroom,4592.0
+Surat,Mota Varachha,Studio,4324.0
+Surat,Mota Varachha,Villa,4100.0
+Surat,Mota Varachha,Warehouse,2952.0
+Surat,Nana Varachha,Apartment,3900.0
+Surat,Nana Varachha,Bungalow,3618.0
+Surat,Nana Varachha,Commercial,3517.5
+Surat,Nana Varachha,Flat,3900.0
+Surat,Nana Varachha,House,3283.0
+Surat,Nana Varachha,Office,3350.0
+Surat,Nana Varachha,Penthouse,5265.0
+Surat,Nana Varachha,Plot,2145.0
+Surat,Nana Varachha,Retail,3350.0
+Surat,Nana Varachha,Shop,3350.0
+Surat,Nana Varachha,Showroom,3752.0
+Surat,Nana Varachha,Studio,3588.0
+Surat,Nana Varachha,Villa,3350.0
+Surat,Nana Varachha,Warehouse,2412.0
+Surat,Nanpura,Apartment,2550.0
+Surat,Nanpura,Bungalow,2754.0
+Surat,Nanpura,Commercial,2677.5
+Surat,Nanpura,Flat,2550.0
+Surat,Nanpura,House,2499.0
+Surat,Nanpura,Office,2550.0
+Surat,Nanpura,Penthouse,3442.5
+Surat,Nanpura,Plot,1402.5
+Surat,Nanpura,Retail,2550.0
+Surat,Nanpura,Shop,2550.0
+Surat,Nanpura,Showroom,2856.0
+Surat,Nanpura,Studio,2346.0
+Surat,Nanpura,Villa,2550.0
+Surat,Nanpura,Warehouse,1836.0
+Surat,New City Light,Apartment,5050.0
+Surat,New City Light,Bungalow,6102.0
+Surat,New City Light,Commercial,5932.5
+Surat,New City Light,Flat,5050.0
+Surat,New City Light,House,5537.0
+Surat,New City Light,Office,5650.0
+Surat,New City Light,Penthouse,6817.5
+Surat,New City Light,Plot,2777.5
+Surat,New City Light,Retail,5650.0
+Surat,New City Light,Shop,5650.0
+Surat,New City Light,Showroom,6328.0
+Surat,New City Light,Studio,4646.0
+Surat,New City Light,Villa,5650.0
+Surat,New City Light,Warehouse,4068.0
+Surat,Pal,Apartment,4450.0
+Surat,Pal,Bungalow,4806.0
+Surat,Pal,Commercial,4672.5
+Surat,Pal,Flat,4450.0
+Surat,Pal,House,4361.0
+Surat,Pal,Office,4450.0
+Surat,Pal,Penthouse,6007.5
+Surat,Pal,Plot,2447.5
+Surat,Pal,Retail,4450.0
+Surat,Pal,Shop,4450.0
+Surat,Pal,Showroom,4984.0
+Surat,Pal,Studio,4094.0
+Surat,Pal,Villa,4450.0
+Surat,Pal,Warehouse,3204.0
+Surat,Palanpur,Apartment,4000.0
+Surat,Palanpur,Bungalow,4320.0
+Surat,Palanpur,Commercial,4200.0
+Surat,Palanpur,Flat,4000.0
+Surat,Palanpur,House,3920.0
+Surat,Palanpur,Penthouse,5400.0
+Surat,Palanpur,Plot,2200.0
+Surat,Palanpur,Retail,4000.0
+Surat,Palanpur,Shop,4000.0
+Surat,Palanpur,Showroom,4480.0
+Surat,Palanpur,Studio,3680.0
+Surat,Palanpur,Villa,4000.0
+Surat,Palanpur,Warehouse,2880.0
+Surat,Palanpur Gam,Apartment,5400.0
+Surat,Palanpur Gam,Bungalow,3672.0
+Surat,Palanpur Gam,Commercial,3570.0
+Surat,Palanpur Gam,Flat,5400.0
+Surat,Palanpur Gam,House,3332.0
+Surat,Palanpur Gam,Office,3400.0
+Surat,Palanpur Gam,Penthouse,7290.0
+Surat,Palanpur Gam,Plot,2970.0
+Surat,Palanpur Gam,Retail,3400.0
+Surat,Palanpur Gam,Shop,3400.0
+Surat,Palanpur Gam,Showroom,3808.0
+Surat,Palanpur Gam,Studio,4968.0
+Surat,Palanpur Gam,Villa,3400.0
+Surat,Palanpur Gam,Warehouse,2448.0
+Surat,Parvat Patiya,Apartment,6600.0
+Surat,Parvat Patiya,Bungalow,11988.0
+Surat,Parvat Patiya,Commercial,6930.0
+Surat,Parvat Patiya,Flat,6600.0
+Surat,Parvat Patiya,House,10878.0
+Surat,Parvat Patiya,Office,6600.0
+Surat,Parvat Patiya,Penthouse,8910.0
+Surat,Parvat Patiya,Plot,3630.0
+Surat,Parvat Patiya,Retail,6600.0
+Surat,Parvat Patiya,Shop,6600.0
+Surat,Parvat Patiya,Showroom,7392.0
+Surat,Parvat Patiya,Studio,6072.0
+Surat,Parvat Patiya,Villa,11100.0
+Surat,Parvat Patiya,Warehouse,4752.0
+Surat,Piplod,Apartment,19200.0
+Surat,Piplod,Bungalow,6480.0
+Surat,Piplod,Commercial,20160.0
+Surat,Piplod,Flat,19200.0
+Surat,Piplod,House,5880.0
+Surat,Piplod,Penthouse,25920.0
+Surat,Piplod,Plot,10560.0
+Surat,Piplod,Retail,19200.0
+Surat,Piplod,Shop,19200.0
+Surat,Piplod,Showroom,21504.0
+Surat,Piplod,Studio,17664.0
+Surat,Piplod,Villa,6000.0
+Surat,Piplod,Warehouse,13824.0
+Surat,Rander,Apartment,3300.0
+Surat,Rander,Bungalow,4266.0
+Surat,Rander,Commercial,4147.5
+Surat,Rander,Flat,3300.0
+Surat,Rander,House,3871.0
+Surat,Rander,Office,3950.0
+Surat,Rander,Penthouse,4455.0
+Surat,Rander,Plot,1815.0
+Surat,Rander,Retail,3950.0
+Surat,Rander,Shop,3950.0
+Surat,Rander,Showroom,4424.0
+Surat,Rander,Studio,3036.0
+Surat,Rander,Villa,3950.0
+Surat,Rander,Warehouse,2844.0
+Surat,Rundh Magdalla,Apartment,5900.0
+Surat,Rundh Magdalla,Bungalow,6372.0
+Surat,Rundh Magdalla,Commercial,6195.0
+Surat,Rundh Magdalla,Flat,5900.0
+Surat,Rundh Magdalla,House,5782.0
+Surat,Rundh Magdalla,Office,5900.0
+Surat,Rundh Magdalla,Penthouse,7965.0
+Surat,Rundh Magdalla,Plot,3245.0
+Surat,Rundh Magdalla,Retail,5900.0
+Surat,Rundh Magdalla,Shop,5900.0
+Surat,Rundh Magdalla,Showroom,6608.0
+Surat,Rundh Magdalla,Studio,5428.0
+Surat,Rundh Magdalla,Villa,5900.0
+Surat,Rundh Magdalla,Warehouse,4248.0
+Surat,Sachin,Apartment,2000.0
+Surat,Sachin,Bungalow,2160.0
+Surat,Sachin,Commercial,2100.0
+Surat,Sachin,Flat,2000.0
+Surat,Sachin,House,1960.0
+Surat,Sachin,Office,2000.0
+Surat,Sachin,Penthouse,2700.0
+Surat,Sachin,Plot,1100.0
+Surat,Sachin,Retail,2000.0
+Surat,Sachin,Shop,2000.0
+Surat,Sachin,Showroom,2240.0
+Surat,Sachin,Studio,1840.0
+Surat,Sachin,Villa,2000.0
+Surat,Sachin,Warehouse,1440.0
+Surat,Singanpor,Apartment,3200.0
+Surat,Singanpor,Bungalow,3456.0
+Surat,Singanpor,Commercial,3360.0
+Surat,Singanpor,Flat,3200.0
+Surat,Singanpor,House,3136.0
+Surat,Singanpor,Office,3200.0
+Surat,Singanpor,Penthouse,4320.0
+Surat,Singanpor,Plot,1760.0
+Surat,Singanpor,Retail,3200.0
+Surat,Singanpor,Shop,3200.0
+Surat,Singanpor,Showroom,3584.0
+Surat,Singanpor,Studio,2944.0
+Surat,Singanpor,Villa,3200.0
+Surat,Singanpor,Warehouse,2304.0
+Surat,Surat East,Apartment,2700.0
+Surat,Surat East,Bungalow,3132.0
+Surat,Surat East,Commercial,2835.0
+Surat,Surat East,Flat,2700.0
+Surat,Surat East,House,2842.0
+Surat,Surat East,Office,2700.0
+Surat,Surat East,Penthouse,3645.0
+Surat,Surat East,Plot,1485.0
+Surat,Surat East,Retail,2700.0
+Surat,Surat East,Shop,2700.0
+Surat,Surat East,Showroom,3024.0
+Surat,Surat East,Studio,2484.0
+Surat,Surat East,Villa,2900.0
+Surat,Surat East,Warehouse,1944.0
+Surat,Surat North,Apartment,7050.0
+Surat,Surat North,Bungalow,4482.0
+Surat,Surat North,Commercial,17535.0
+Surat,Surat North,Flat,7050.0
+Surat,Surat North,House,4067.0
+Surat,Surat North,Office,7050.0
+Surat,Surat North,Penthouse,9517.5
+Surat,Surat North,Plot,3877.5
+Surat,Surat North,Retail,16700.0
+Surat,Surat North,Shop,16700.0
+Surat,Surat North,Showroom,18704.0
+Surat,Surat North,Studio,6486.0
+Surat,Surat North,Villa,4150.0
+Surat,Surat North,Warehouse,12024.0
+Surat,Surat South,Apartment,4500.0
+Surat,Surat South,Bungalow,4860.0
+Surat,Surat South,Commercial,4725.0
+Surat,Surat South,Flat,4500.0
+Surat,Surat South,House,4410.0
+Surat,Surat South,Penthouse,6075.0
+Surat,Surat South,Plot,2475.0
+Surat,Surat South,Retail,4500.0
+Surat,Surat South,Shop,4500.0
+Surat,Surat South,Showroom,5040.0
+Surat,Surat South,Studio,4140.0
+Surat,Surat South,Villa,4500.0
+Surat,Surat South,Warehouse,3240.0
+Surat,Surat West,Apartment,3950.0
+Surat,Surat West,Bungalow,4212.0
+Surat,Surat West,Commercial,4147.5
+Surat,Surat West,Flat,3950.0
+Surat,Surat West,House,3822.0
+Surat,Surat West,Office,8100.0
+Surat,Surat West,Penthouse,5332.5
+Surat,Surat West,Plot,2172.5
+Surat,Surat West,Retail,3950.0
+Surat,Surat West,Shop,3950.0
+Surat,Surat West,Showroom,4424.0
+Surat,Surat West,Studio,3634.0
+Surat,Surat West,Villa,3900.0
+Surat,Surat West,Warehouse,2844.0
+Surat,Udhana,Apartment,2700.0
+Surat,Udhana,Bungalow,2916.0
+Surat,Udhana,Commercial,2835.0
+Surat,Udhana,Flat,2700.0
+Surat,Udhana,House,2646.0
+Surat,Udhana,Office,2700.0
+Surat,Udhana,Penthouse,3645.0
+Surat,Udhana,Plot,1485.0
+Surat,Udhana,Retail,2700.0
+Surat,Udhana,Shop,2700.0
+Surat,Udhana,Showroom,3024.0
+Surat,Udhana,Studio,2484.0
+Surat,Udhana,Villa,2700.0
+Surat,Udhana,Warehouse,1944.0
+Surat,Varachha,Apartment,2950.0
+Surat,Varachha,Bungalow,3186.0
+Surat,Varachha,Commercial,3097.5
+Surat,Varachha,Flat,2950.0
+Surat,Varachha,House,2891.0
+Surat,Varachha,Office,2950.0
+Surat,Varachha,Penthouse,3982.5
+Surat,Varachha,Plot,1622.5
+Surat,Varachha,Retail,2950.0
+Surat,Varachha,Shop,2950.0
+Surat,Varachha,Showroom,3304.0
+Surat,Varachha,Studio,2714.0
+Surat,Varachha,Villa,2950.0
+Surat,Varachha,Warehouse,2124.0
+Surat,Vesu,Apartment,5400.0
+Surat,Vesu,Bungalow,5832.0
+Surat,Vesu,Commercial,23677.5
+Surat,Vesu,Flat,5400.0
+Surat,Vesu,House,5292.0
+Surat,Vesu,Office,5400.0
+Surat,Vesu,Penthouse,7290.0
+Surat,Vesu,Plot,2970.0
+Surat,Vesu,Retail,22550.0
+Surat,Vesu,Shop,22550.0
+Surat,Vesu,Showroom,25256.0
+Surat,Vesu,Studio,4968.0
+Surat,Vesu,Villa,5400.0
+Surat,Vesu,Warehouse,16236.0
+Surat,Vip Road,Apartment,5400.0
+Surat,Vip Road,Bungalow,5832.0
+Surat,Vip Road,Commercial,5670.0
+Surat,Vip Road,Flat,5400.0
+Surat,Vip Road,House,5292.0
+Surat,Vip Road,Office,5400.0
+Surat,Vip Road,Penthouse,7290.0
+Surat,Vip Road,Plot,2970.0
+Surat,Vip Road,Retail,5400.0
+Surat,Vip Road,Shop,5400.0
+Surat,Vip Road,Showroom,6048.0
+Surat,Vip Road,Studio,4968.0
+Surat,Vip Road,Villa,5400.0
+Surat,Vip Road,Warehouse,3888.0
+Surat,Vip Road Vesu,Apartment,5800.0
+Surat,Vip Road Vesu,Bungalow,6588.0
+Surat,Vip Road Vesu,Commercial,6405.0
+Surat,Vip Road Vesu,Flat,5800.0
+Surat,Vip Road Vesu,House,5978.0
+Surat,Vip Road Vesu,Office,6100.0
+Surat,Vip Road Vesu,Penthouse,7830.0
+Surat,Vip Road Vesu,Plot,3190.0
+Surat,Vip Road Vesu,Retail,6100.0
+Surat,Vip Road Vesu,Shop,6100.0
+Surat,Vip Road Vesu,Showroom,6832.0
+Surat,Vip Road Vesu,Studio,5336.0
+Surat,Vip Road Vesu,Villa,6100.0
+Surat,Vip Road Vesu,Warehouse,4392.0
