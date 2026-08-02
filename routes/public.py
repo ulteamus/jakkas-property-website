@@ -1,6 +1,4 @@
 import uuid
-from urllib.parse import quote_plus
-
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 
 from config import ALLOWED_IMAGE, ALLOWED_VIDEO
@@ -17,14 +15,17 @@ def _attach_listing_media(properties):
     if not properties:
         return properties
     media_map = prop_model.get_media_bulk([p["id"] for p in properties])
+    masked = []
     for p in properties:
-        media = media_map.get(p["id"], {"images": [], "videos": []})
+        row = prop_model.to_dict(p, public=True)
+        media = media_map.get(row["id"], {"images": [], "videos": []})
         image_paths = [i["file_path"] for i in media.get("images", []) if i.get("file_path")]
-        if p.get("primary_image") and p["primary_image"] not in image_paths:
-            image_paths.insert(0, p["primary_image"])
-        p["listing_images"] = image_paths
-        p["listing_videos"] = [v["file_path"] for v in media.get("videos", []) if v.get("file_path")]
-    return properties
+        if row.get("primary_image") and row["primary_image"] not in image_paths:
+            image_paths.insert(0, row["primary_image"])
+        row["listing_images"] = image_paths
+        row["listing_videos"] = [v["file_path"] for v in media.get("videos", []) if v.get("file_path")]
+        masked.append(row)
+    return masked
 
 
 public_bp = Blueprint("public", __name__)
@@ -112,18 +113,16 @@ def property_detail(slug):
     except Exception:
         pass
     media = prop_model.get_media(prop["id"])
-    similar = prop_model.similar(prop["id"])
+    similar = prop_model.to_dict_list(prop_model.similar(prop["id"]), public=True)
     from services.whatsapp import interest_message
     wa_link = interest_message(prop["property_name"], prop["area_name"], prop["price"])
-    address_or_area = prop.get("address") or f"{prop.get('area_name', 'Surat')}, Surat"
-    gmaps_embed_url = f"https://www.google.com/maps?q={quote_plus(address_or_area)}&output=embed"
+    public_prop = prop_model.to_dict(prop, public=True)
     return render_template(
         "public/detail.html",
-        property=prop,
+        property=public_prop,
         media=media,
         similar=similar,
         wa_link=wa_link,
-        gmaps_embed_url=gmaps_embed_url,
     )
 
 

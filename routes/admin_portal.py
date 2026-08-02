@@ -230,11 +230,14 @@ def dashboard():
 @permission_required("manage_properties")
 def properties():
     status = request.args.get("status") or None
-    props = prop_model.search(
-        status=status or "available",
-        limit=500,
-        all_statuses=(status is None),
-        owner_admin_id=_owner_scope_admin_id(),
+    props = prop_model.to_dict_list(
+        prop_model.search(
+            status=status or "available",
+            limit=500,
+            all_statuses=(status is None),
+            owner_admin_id=_owner_scope_admin_id(),
+        ),
+        public=False,
     )
     submission_map = submission_model.latest_for_property_ids(
         [prop.get("id") for prop in props if prop.get("status") == "reserved"],
@@ -256,6 +259,7 @@ def property_form(pid=None):
     prop = prop_model.get_by_id(pid) if pid else None
     if prop:
         _ensure_property_owner(prop)
+        prop = prop_model.to_dict(prop, public=False)
 
     if request.method == "POST":
         try:

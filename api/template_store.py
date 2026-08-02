@@ -3388,9 +3388,8 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
         <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
         <li><strong>Property Status:</strong> {{ property.listing_intent|upper }}</li>
         {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
-        <li><strong>Bungalow Number:</strong> {{ property.bungalow_number or 'N/A' }}</li>
         <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
-        <li><strong>Full Address:</strong> {{ property.address or (property.area_name ~ ', Surat') }}</li>
+        <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
       </ul>
       {% if property.amenities %}
       <div class="mb-3">
@@ -3423,14 +3422,6 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
       {% endif %}
     </div>
   </div>
-
-  <section class="mt-4">
-    <h3 class="section-title">Property Location</h3>
-    <div id="detailMap" style="height:300px;border-radius:12px" data-lat="{{ property.latitude }}" data-lng="{{ property.longitude }}"></div>
-    <div class="ratio ratio-16x9 mt-3">
-      <iframe src="{{ gmaps_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    </div>
-  </section>
 
   <section class="mt-5 collapse show" id="inquiryPanel">
     <h3 class="section-title">Send Inquiry</h3>
@@ -3836,9 +3827,9 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 {% block content %}
 <div class="container py-5">
   <h1 class="section-title">Property Map View</h1>
-  <p class="text-muted">Explore all approved properties on the interactive map. Orange pins indicate active listings.</p>
+  <p class="text-muted">Explore approved listings by approximate locality. Orange circles show general areas across Surat — exact building locations are not shown publicly.</p>
   <div class="map-legend mb-3 small">
-    <span><span style="background:#F79433"></span> Primary Listings</span>
+    <span><span style="background:#e67e22"></span> Approximate Locality</span>
   </div>
   <div id="propertyMap"></div>
 </div>

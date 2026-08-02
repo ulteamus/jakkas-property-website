@@ -43,6 +43,19 @@ def _ensure_schema():
         execute("ALTER TABLE properties ADD COLUMN creation_source VARCHAR(40) DEFAULT 'admin'")
 
 
+OWNER_PUBLIC_STRIP_KEYS = (
+    "owner_name",
+    "owner_phone",
+    "owner_email",
+    "owner_contact",
+    "owner_mobile",
+    "owner_alt_mobile",
+    "owner_address",
+    "bungalow_number",
+    "owner_admin_id",
+)
+
+
 def _parse(row):
     if not row:
         return None
@@ -61,6 +74,59 @@ def _parse(row):
     row["display_type"] = _display_type(row.get("property_type"))
     row["creation_source"] = _normalize_creation_source(row.get("creation_source"))
     return row
+
+
+def _public_locality_address(area_name):
+    """General locality only — never street, building, or unit detail."""
+    area = (area_name or "").strip()
+    if not area:
+        return "Surat"
+    if area.lower() == "surat":
+        return "Surat"
+    return f"{area}, Surat"
+
+
+def _mask_coordinate(value):
+    """Round to 2 decimal places (~1.1km) for public map markers."""
+    if value is None or value == "":
+        return None
+    try:
+        return round(float(value), 2)
+    except (TypeError, ValueError):
+        return None
+
+
+def to_dict(row, public=True):
+    """
+    Serialize a property row for API/templates.
+
+    public=True (default): locality-only address, rounded coords, owner fields omitted.
+    public=False: full CRM record for admin routes.
+    """
+    if not row:
+        return None
+    data = dict(row)
+    if data.get("amenities") and isinstance(data["amenities"], str):
+        try:
+            data["amenities"] = json.loads(data["amenities"])
+        except json.JSONDecodeError:
+            data["amenities"] = []
+    if "listing_intent" not in data or "display_type" not in data:
+        parsed = _parse(dict(data))
+        if parsed:
+            data = parsed
+    if not public:
+        return data
+    data["address"] = _public_locality_address(data.get("area_name"))
+    data["latitude"] = _mask_coordinate(data.get("latitude"))
+    data["longitude"] = _mask_coordinate(data.get("longitude"))
+    for key in OWNER_PUBLIC_STRIP_KEYS:
+        data.pop(key, None)
+    return data
+
+
+def to_dict_list(rows, public=True):
+    return [to_dict(row, public=public) for row in (rows or [])]
 
 
 def _display_type(property_type):
@@ -244,14 +310,14 @@ def latest(limit=8):
     return search(limit=limit)
 
 
-def map_markers():
+def map_markers(public=True):
     _ensure_schema()
     rows = query_all(
         """SELECT id, property_name, area_name, price, property_type,
                   latitude, longitude, primary_image, slug, bhk, sq_ft
            FROM properties WHERE status='available' AND latitude IS NOT NULL"""
     )
-    return rows
+    return to_dict_list(rows, public=public)
 
 
 def create(data, created_by_admin_id=None):

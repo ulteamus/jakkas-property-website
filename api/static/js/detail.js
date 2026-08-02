@@ -6,14 +6,6 @@ document.querySelectorAll('.gallery-thumb').forEach(th => {
   });
 });
 
-const lat = parseFloat(document.getElementById('detailMap')?.dataset.lat);
-const lng = parseFloat(document.getElementById('detailMap')?.dataset.lng);
-if (lat && lng && typeof L !== 'undefined') {
-  const m = L.map('detailMap').setView([lat, lng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(m);
-  L.marker([lat, lng]).addTo(m);
-}
-
 document.querySelector('.btn-call')?.addEventListener('click', () => {
   const pid = document.querySelector('[data-property-id]')?.dataset.propertyId;
   apiFetch('/api/event/call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ property_id: pid }) });

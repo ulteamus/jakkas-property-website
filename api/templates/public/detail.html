@@ -41,9 +41,8 @@
         <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
         <li><strong>Property Status:</strong> {{ property.listing_intent|upper }}</li>
         {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
-        <li><strong>Bungalow Number:</strong> {{ property.bungalow_number or 'N/A' }}</li>
         <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
-        <li><strong>Full Address:</strong> {{ property.address or (property.area_name ~ ', Surat') }}</li>
+        <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
       </ul>
       {% if property.amenities %}
       <div class="mb-3">
@@ -76,14 +75,6 @@
       {% endif %}
     </div>
   </div>
-
-  <section class="mt-4">
-    <h3 class="section-title">Property Location</h3>
-    <div id="detailMap" style="height:300px;border-radius:12px" data-lat="{{ property.latitude }}" data-lng="{{ property.longitude }}"></div>
-    <div class="ratio ratio-16x9 mt-3">
-      <iframe src="{{ gmaps_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    </div>
-  </section>
 
   <section class="mt-5 collapse show" id="inquiryPanel">
     <h3 class="section-title">Send Inquiry</h3>

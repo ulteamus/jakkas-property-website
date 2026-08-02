@@ -19,9 +19,10 @@ from config import COMPANY_NAME, COMPANY_PHONE, COMPANY_WHATSAPP
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 
-def _serialize_property(p, media=None):
+def _serialize_property(p, media=None, public=True):
     if not p:
         return None
+    p = prop_model.to_dict(p, public=public)
     images = []
     videos = []
     if media:
@@ -38,8 +39,8 @@ def _serialize_property(p, media=None):
         "property_type": p["property_type"], "area_name": p["area_name"],
         "price": float(p["price"]), "bhk": p["bhk"], "sq_ft": float(p["sq_ft"]),
         "description": p.get("description"), "amenities": p.get("amenities") or [],
-        "latitude": float(p["latitude"]) if p.get("latitude") else None,
-        "longitude": float(p["longitude"]) if p.get("longitude") else None,
+        "latitude": float(p["latitude"]) if p.get("latitude") is not None else None,
+        "longitude": float(p["longitude"]) if p.get("longitude") is not None else None,
         "status": p["status"], "is_featured": bool(p.get("is_featured")),
         "primary_image": p.get("primary_image"), "view_count": p.get("view_count", 0),
         "listing_type": p.get("listing_type"),
@@ -51,9 +52,9 @@ def _serialize_property(p, media=None):
     }
 
 
-def _serialize_properties(props):
+def _serialize_properties(props, public=True):
     media_map = prop_model.get_media_bulk([p["id"] for p in props])
-    return [_serialize_property(p, media_map.get(p["id"])) for p in props]
+    return [_serialize_property(p, media_map.get(p["id"]), public=public) for p in props]
 
 
 def _extract_budget(query):
