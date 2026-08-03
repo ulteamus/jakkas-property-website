@@ -1,5 +1,12 @@
 /* Dedicated mobile app-style UI (phones & small tablets) */
 
+/* Tablet only: hide float stack — bottom nav is enough; phones keep stacked FABs */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .fab-stack {
+    display: none !important;
+  }
+}
+
 @media (max-width: 991.98px) {
   body.jk-jovista {
     padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
@@ -62,8 +69,7 @@
     color: var(--jv-accent, #f79433);
   }
 
-  /* Hide floating buttons — bottom nav replaces them */
-  .fab-stack,
+  /* Hide Quick Inquiry FAB on compact viewports (bottom nav covers chat/WA entry) */
   .quick-inquiry-toggle {
     display: none !important;
   }

@@ -1660,6 +1660,12 @@ body.drawer-open {
   color: #454b58;
   transition: all var(--jk-transition);
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+a.chat-chip:hover {
+  text-decoration: none;
 }
 .chat-chip:hover {
   background: #fff6ee;
@@ -1843,5 +1849,155 @@ body.drawer-open {
   .quick-inquiry-panel {
     right: 14px;
     bottom: calc(16px + var(--fab-size) * 2 + var(--fab-gap) + 72px);
+  }
+}
+
+/* ——— Mobile-only layout fixes (phones ≤767.98px; do not affect tablet/desktop) ——— */
+@media (max-width: 767.98px) {
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  main.page-enter,
+  .container,
+  .chatbot-page,
+  .listings-page {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Navbar: keep logo + toggler on one row without wrapping / clipping */
+  .jv-navbar .container,
+  .jk-navbar .container {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .jv-navbar .navbar-brand,
+  .jk-navbar .navbar-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 3.25rem);
+    margin-right: 0.35rem;
+  }
+
+  .jk-logo-badge {
+    max-width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 0.22rem 0.35rem;
+  }
+
+  .jk-logo-mark {
+    height: 28px;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .navbar-toggler {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .navbar-collapse {
+    width: 100%;
+  }
+
+  /* Stack cards / heroes / forms to a single column */
+  .property-card,
+  .jv-property-card,
+  .hero-home,
+  .hero-home-inner,
+  .smart-search-card,
+  .smart-search-form,
+  .smart-search-btn,
+  .chat-form,
+  .chat-form .form-control,
+  .form-control,
+  .form-select,
+  .btn.w-100-mobile {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .row > [class*="col-"] {
+    min-width: 0;
+  }
+
+  .property-card .card-img-top,
+  .listing-media,
+  .listing-media img {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Floating widgets: stacked bottoms, clear of each other + bottom nav */
+  .fab-stack {
+    display: block !important;
+    position: fixed;
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    left: auto;
+    bottom: 0;
+    top: auto;
+    width: var(--fab-size, 50px);
+    height: 0;
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    z-index: 1060;
+    pointer-events: none;
+  }
+
+  .fab-stack .chatbot-float,
+  .fab-stack .whatsapp-float {
+    position: absolute;
+    right: 0;
+    left: auto;
+    pointer-events: auto;
+    width: var(--fab-size, 50px);
+    height: var(--fab-size, 50px);
+    font-size: 1.35rem;
+  }
+
+  .fab-stack .whatsapp-float {
+    bottom: calc(15px + 4.25rem + env(safe-area-inset-bottom, 0px));
+    z-index: 1061;
+  }
+
+  .fab-stack .chatbot-float {
+    bottom: calc(75px + 4.25rem + env(safe-area-inset-bottom, 0px));
+    z-index: 1062;
+  }
+
+  /* Chatbot card: touch-friendly viewport sizing */
+  .chatbot-page .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .chatbot-shell {
+    width: 92vw;
+    max-width: 92vw;
+    max-height: 80vh;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chatbot-shell .chat-messages {
+    flex: 1 1 auto;
+    min-height: 200px;
+    max-height: min(48vh, 360px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chatbot-shell .chat-form,
+  .chatbot-shell .chat-suggestions {
+    flex: 0 0 auto;
   }
 }

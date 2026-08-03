@@ -307,7 +307,7 @@ body.drawer-open .jv-navbar {
     justify-content: center;
   }
 
-  /* Floating widgets — less clutter on phones */
+  /* Floating widgets — stacked above bottom nav (see jakkash.css mobile block) */
   .quick-inquiry-toggle {
     display: none;
   }
@@ -315,23 +315,46 @@ body.drawer-open .jv-navbar {
   .fab-stack {
     --fab-size: 50px;
     --fab-gap: 10px;
-    --fab-stack-offset: 14px;
+    --fab-stack-offset: 15px;
+    display: block;
     right: calc(12px + env(safe-area-inset-right, 0px));
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    bottom: 0;
+    width: var(--fab-size);
+    height: 0;
+    pointer-events: none;
   }
 
-  .chatbot-float,
-  .whatsapp-float {
-    font-size: 1.4rem;
+  .fab-stack .whatsapp-float,
+  .fab-stack .chatbot-float {
+    position: absolute;
+    right: 0;
+    pointer-events: auto;
+    font-size: 1.35rem;
+  }
+
+  .fab-stack .whatsapp-float {
+    bottom: calc(15px + 4.25rem + env(safe-area-inset-bottom, 0px));
+    z-index: 1061;
+  }
+
+  .fab-stack .chatbot-float {
+    bottom: calc(75px + 4.25rem + env(safe-area-inset-bottom, 0px));
+    z-index: 1062;
   }
 
   .quick-inquiry-panel {
     left: 12px;
     right: 12px;
     width: auto;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px) + var(--fab-size) * 2 + var(--fab-gap) + 10px);
+    bottom: calc(14px + 4.25rem + env(safe-area-inset-bottom, 0px) + var(--fab-size) * 2 + var(--fab-gap) + 10px);
     max-height: min(70vh, 520px);
     overflow-y: auto;
+  }
+
+  .chatbot-shell {
+    width: 92vw;
+    max-width: 92vw;
+    max-height: 80vh;
   }
 
   /* Filter drawer full screen */

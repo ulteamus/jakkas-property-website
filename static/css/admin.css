@@ -825,8 +825,16 @@ body.admin-login-page {
 }
 
 @media (max-width: 767.98px) {
+  html,
+  body.admin-theme {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   body.admin-theme .admin-main {
     padding: 0.78rem 0.7rem 1.2rem;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .admin-page-header {
@@ -853,6 +861,40 @@ body.admin-login-page {
   .admin-login-intro {
     border-right: 0;
     border-bottom: 1px solid rgba(247, 148, 51, 0.22);
+  }
+
+  /* Wide tables scroll inside their container — never widen the viewport */
+  .admin-table-wrap,
+  .admin-table-wrap.table-responsive,
+  body.admin-theme .table-responsive {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.admin-theme .admin-table-wrap .table,
+  body.admin-theme .table-responsive .table {
+    margin-bottom: 0;
+    min-width: 560px;
+  }
+
+  .admin-section-card,
+  .admin-filter-bar,
+  .admin-header-actions,
+  .admin-header-actions .btn {
+    max-width: 100%;
+  }
+
+  .admin-header-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .admin-header-actions .btn {
+    width: auto;
   }
 }
 

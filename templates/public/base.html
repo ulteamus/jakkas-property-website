@@ -101,7 +101,7 @@
             <li><a href="{{ url_for('public.about') }}">About Us</a></li>
             <li><a href="{{ url_for('public.services') }}">Services</a></li>
             <li><a href="{{ url_for('public.listings') }}">Browse Properties</a></li>
-            <li><a href="{{ url_for('public.chatbot') }}">Chatbot</a></li>
+            <li><a href="{{ url_for('public.chatbot') }}">Property Assistant</a></li>
             <li><a href="{{ url_for('public.property_map') }}">Surat Map</a></li>
             <li><a href="{{ url_for('public.sell_property') }}">Sell Your Property</a></li>
           </ul>
@@ -119,8 +119,8 @@
   </footer>
 
   <div class="fab-stack" role="group" aria-label="Quick contact actions">
-    <a href="{{ url_for('public.chatbot') }}" class="chatbot-float" aria-label="Open AI property assistant">
-      <i class="bi bi-robot" aria-hidden="true"></i>
+    <a href="{{ url_for('public.chatbot') }}" class="chatbot-float" aria-label="Open Property Assistant">
+      <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
       <span class="visually-hidden">Property Assistant</span>
     </a>
     <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy.%20I%20want%20property%20details." class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp us">
@@ -157,8 +157,8 @@
       <span>Properties</span>
     </a>
     <a href="{{ url_for('public.chatbot') }}" class="jk-mobile-nav__item jk-mobile-nav__item--accent" data-nav="/chatbot">
-      <i class="bi bi-robot" aria-hidden="true"></i>
-      <span>Assistant</span>
+      <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+      <span>Help</span>
     </a>
     <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy." class="jk-mobile-nav__item" target="_blank" rel="noopener noreferrer">
       <i class="bi bi-whatsapp" aria-hidden="true"></i>

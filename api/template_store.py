@@ -2523,7 +2523,7 @@ TEMPLATES = {
         <li><a href="{{ url_for('main.search_page') }}">Search</a></li>
         <li><a href="{{ url_for('main.compare_page') }}">Compare</a></li>
         <li><a href="{{ url_for('main.emi_page') }}">EMI</a></li>
-        <li><a href="{{ url_for('main.chat_page') }}">AI Chat</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}">Property Assistant</a></li>
         {% if current_user.is_authenticated %}
           <li><a href="{{ url_for('main.schedule_visit_page') }}">Visits</a></li>
           {% if current_user.is_admin %}
@@ -2565,15 +2565,15 @@ TEMPLATES = {
 </html>
 """,
     "chat.html": """{% extends "base.html" %}
-{% block title %}AI Chat — {{ app_name }}{% endblock %}
+{% block title %}Property Assistant — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="container section chat-page">
-  <h1>Property Broker AI Chat</h1>
-  <p class="subtitle">Ask about search, recommendations, price prediction, EMI, comparisons, or site visits.</p>
+  <h1>JAKKASH Property Assistant</h1>
+  <p class="subtitle">Menu-guided help for search, listings, broker contact, and FAQs.</p>
   <div class="chat-container card">
     <div id="chatMessages" class="chat-messages">
       <div class="chat-msg assistant">
-        <div class="bubble">Hello! I'm your AI property broker. How can I help you today?</div>
+        <div class="bubble">Welcome to JAKKASH Property Assistant. Use the options below or open the full assistant.</div>
       </div>
     </div>
     <form id="chatForm" class="chat-input-row">
@@ -2651,11 +2651,11 @@ TEMPLATES = {
 {% block content %}
 <section class="hero">
   <div class="container">
-    <h1>Find Your Dream Property with AI</h1>
-    <p>Search, compare, predict prices, calculate EMI, and chat with our intelligent broker assistant.</p>
+    <h1>Find Your Dream Property</h1>
+    <p>Search, compare, predict prices, calculate EMI, and use our Property Assistant for guided help.</p>
     <div class="hero-actions">
       <a href="{{ url_for('main.search_page') }}" class="btn btn-primary">Search Properties</a>
-      <a href="{{ url_for('main.chat_page') }}" class="btn btn-outline">Talk to AI Broker</a>
+      <a href="{{ url_for('main.chat_page') }}" class="btn btn-outline">Property Assistant</a>
     </div>
   </div>
 </section>
@@ -3028,38 +3028,15 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% endblock %}
 """,
     "public/ai_chatbot.html": """{% extends "public/base.html" %}
-{% block title %}AI Real Estate Chatbot - {{ company_name }}{% endblock %}
+{% block title %}JAKKASH Property Assistant - {{ company_name }}{% endblock %}
 {% block content %}
 <section class="container py-5">
-  <h1 class="section-title">Real Estate Chatbot</h1>
+  <h1 class="section-title">JAKKASH Property Assistant</h1>
   <p class="text-muted">
-    Ask about property availability, buy/sell/rent options, location insights, broker contact, and site visit appointments.
+    Menu-guided help for browsing listings, selling a property, contacting a broker, and FAQs.
   </p>
-
-  <div class="chatbot-shell">
-    <div id="chatMessages" class="chat-messages">
-      <div class="chat-msg assistant">
-        <div class="bubble">
-          Welcome to JAKKASH AI Assistant. Try: "I need a 2 BHK in Surat under 60 lakh".
-        </div>
-      </div>
-    </div>
-    <form id="chatForm" class="chat-form">
-      <input id="chatInput" type="text" class="form-control form-control-lg" placeholder="Type your property requirement..." required>
-      <button class="btn btn-jk-accent btn-lg" type="submit">Send</button>
-    </form>
-    <div class="d-flex flex-wrap gap-2 mt-3">
-      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="2 BHK under 60 lakh in Surat">2 BHK under 60 lakh</button>
-      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="Bungalow for sale near Vesu">Bungalow near Vesu</button>
-      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="Commercial office near Ring Road">Commercial near Ring Road</button>
-      <button class="btn btn-outline-secondary btn-sm chat-chip" data-msg="Book a site visit for a property">Book site visit</button>
-    </div>
-    <div id="chatPropertyResults" class="row g-4 mt-2"></div>
-  </div>
+  <p><a class="btn btn-jk-accent" href="{{ url_for('public.chatbot') }}">Open Property Assistant</a></p>
 </section>
-{% endblock %}
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
 {% endblock %}
 """,
     "public/base.html": """<!DOCTYPE html>
@@ -3165,7 +3142,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
             <li><a href="{{ url_for('public.about') }}">About Us</a></li>
             <li><a href="{{ url_for('public.services') }}">Services</a></li>
             <li><a href="{{ url_for('public.listings') }}">Browse Properties</a></li>
-            <li><a href="{{ url_for('public.chatbot') }}">Chatbot</a></li>
+            <li><a href="{{ url_for('public.chatbot') }}">Property Assistant</a></li>
             <li><a href="{{ url_for('public.property_map') }}">Surat Map</a></li>
             <li><a href="{{ url_for('public.sell_property') }}">Sell Your Property</a></li>
           </ul>
@@ -3183,8 +3160,8 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   </footer>
 
   <div class="fab-stack" role="group" aria-label="Quick contact actions">
-    <a href="{{ url_for('public.chatbot') }}" class="chatbot-float" aria-label="Open AI property assistant">
-      <i class="bi bi-robot" aria-hidden="true"></i>
+    <a href="{{ url_for('public.chatbot') }}" class="chatbot-float" aria-label="Open Property Assistant">
+      <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
       <span class="visually-hidden">Property Assistant</span>
     </a>
     <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy.%20I%20want%20property%20details." class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp us">
@@ -3221,8 +3198,8 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <span>Properties</span>
     </a>
     <a href="{{ url_for('public.chatbot') }}" class="jk-mobile-nav__item jk-mobile-nav__item--accent" data-nav="/chatbot">
-      <i class="bi bi-robot" aria-hidden="true"></i>
-      <span>Assistant</span>
+      <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+      <span>Help</span>
     </a>
     <a href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy." class="jk-mobile-nav__item" target="_blank" rel="noopener noreferrer">
       <i class="bi bi-whatsapp" aria-hidden="true"></i>
@@ -3240,7 +3217,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 </html>
 """,
     "public/chatbot.html": """{% extends "public/base.html" %}
-{% block title %}Property Assistant - {{ company_name }}{% endblock %}
+{% block title %}JAKKASH Property Assistant - {{ company_name }}{% endblock %}
 {% block content %}
 <section class="chatbot-page py-4 py-lg-5">
   <div class="container">
@@ -3248,21 +3225,26 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <div class="col-xl-10 col-xxl-9">
         <header class="chatbot-page-header text-center mb-4 scroll-reveal">
           <span class="chatbot-kicker">Jakkash Property Consultancy</span>
-          <h1 class="chatbot-page-title">Property Assistant</h1>
+          <h1 class="chatbot-page-title">JAKKASH Property Assistant</h1>
           <p class="chatbot-page-lead text-muted mb-0">
-            Ask about availability, budgets, locations, site visits, or speak with our advisory team.
+            Guided help for browsing listings, selling your property, contacting a broker, or reading FAQs. Tap an option to continue.
           </p>
         </header>
 
-        <div class="chatbot-shell scroll-reveal">
+        <div
+          class="chatbot-shell scroll-reveal"
+          data-phone="{{ company_phone_raw }}"
+          data-whatsapp="{{ company_whatsapp }}"
+          data-address="{{ company_address }}"
+        >
           <div class="chatbot-header">
             <div class="chatbot-header-avatar" aria-hidden="true">
               <i class="bi bi-building"></i>
             </div>
             <div class="chatbot-header-copy">
-              <h2 class="chatbot-header-title mb-0">Jakkash Assistant</h2>
+              <h2 class="chatbot-header-title mb-0">JAKKASH Property Assistant</h2>
               <p class="chatbot-header-status mb-0">
-                <span class="chatbot-status-dot"></span> Online · Surat property specialist
+                <span class="chatbot-status-dot"></span> Online · Menu-guided Surat property help
               </p>
             </div>
           </div>
@@ -3271,9 +3253,8 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
             <div class="chat-msg assistant chat-msg--visible">
               <span class="chat-avatar chat-avatar--bot" aria-hidden="true"><i class="bi bi-building"></i></span>
               <div class="bubble">
-                Good day, and welcome to <strong>Jakkash Property Consultancy</strong>.<br><br>
-                I can help you find residential and commercial properties across Surat — buy, sell, or rent.<br><br>
-                Try: <em>"2 BHK under 60 lakh in Vesu"</em> or <em>"Book a site visit"</em>.
+                Welcome to <strong>JAKKASH Property Consultancy</strong>.<br><br>
+                Use the quick-select buttons below to browse properties, list a property for sale, speak with a broker, or read FAQs.
               </div>
             </div>
           </div>
@@ -3284,26 +3265,24 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
                 id="chatInput"
                 type="text"
                 class="form-control chat-input"
-                placeholder="Describe your property requirement…"
+                placeholder="Optional: type hello, contact, or address…"
                 autocomplete="off"
-                required
-                aria-label="Your message"
+                aria-label="Optional short keyword"
               >
             </div>
-            <button id="chatSendBtn" class="btn btn-jk-accent chat-send-btn" type="submit" aria-label="Send message">
+            <button id="chatSendBtn" class="btn btn-jk-accent chat-send-btn" type="submit" aria-label="Send keyword">
               <span class="chat-send-label">Send</span>
               <i class="bi bi-send-fill chat-send-icon" aria-hidden="true"></i>
-              <span class="chat-send-spinner spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
             </button>
           </form>
 
           <div class="chat-suggestions">
-            <span class="chat-suggestions-label">Quick prompts</span>
-            <div class="chat-suggestions-list">
-              <button type="button" class="chat-chip" data-msg="2 BHK under 60 lakh in Surat">2 BHK under 60 lakh</button>
-              <button type="button" class="chat-chip" data-msg="Bungalow for sale near Vesu">Bungalow near Vesu</button>
-              <button type="button" class="chat-chip" data-msg="Commercial office near Ring Road">Commercial near Ring Road</button>
-              <button type="button" class="chat-chip" data-msg="Book a site visit for a property">Book site visit</button>
+            <span class="chat-suggestions-label">Quick select</span>
+            <div id="chatMenu" class="chat-suggestions-list" role="group" aria-label="Assistant options">
+              <button type="button" class="chat-chip" data-action="browse">Browse Properties</button>
+              <button type="button" class="chat-chip" data-action="sell">Sell My Property</button>
+              <button type="button" class="chat-chip" data-action="broker">Speak to a Broker</button>
+              <button type="button" class="chat-chip" data-action="faq">Frequently Asked Questions</button>
             </div>
           </div>
 

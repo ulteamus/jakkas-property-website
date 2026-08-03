@@ -5,3 +5,5 @@ venv/
 .mysql-data/
 .mysql84-*/
 __pycache__/
+
+.vercel

@@ -14,7 +14,7 @@ from services import recommendation, price_prediction, whatsapp as wa_service
 from services import india_property_predictor
 from services.lead_scoring import increment_lead_signal
 from utils.helpers import format_inr
-from config import COMPANY_NAME, COMPANY_PHONE, COMPANY_WHATSAPP
+from config import COMPANY_ADDRESS, COMPANY_NAME, COMPANY_PHONE, COMPANY_WHATSAPP
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -181,148 +181,6 @@ def _match_percentage(prop, prefs):
         if lower <= float(prop["price"]) <= upper:
             score += 12
     return max(52, min(98, int(score)))
-
-
-def _format_property_line(prop):
-    bhk = f"{prop['bhk']} BHK · " if prop.get("bhk") else ""
-    rent_suffix = "/mo" if prop.get("listing_type") == "rent" else ""
-    area = prop.get("area_name") or "Surat"
-    return f"• {prop['property_name']} — {area}, {bhk}{format_inr(prop['price'])}{rent_suffix}"
-
-
-def _describe_search_criteria(parsed):
-    parts = []
-    if parsed.get("bhk"):
-        parts.append(f"{parsed['bhk']} BHK")
-    if parsed.get("property_type"):
-        parts.append(parsed["property_type"].title())
-    if parsed.get("location"):
-        parts.append(f"in {parsed['location']}")
-    if parsed.get("max_price"):
-        parts.append(f"under {format_inr(parsed['max_price'])}")
-    elif parsed.get("min_price"):
-        parts.append(f"from {format_inr(parsed['min_price'])}")
-    if parsed.get("listing_intent"):
-        parts.append(f"for {parsed['listing_intent']}")
-    return ", ".join(parts) if parts else "your requirements"
-
-
-def _find_similar_properties(parsed, limit=4):
-    similar = []
-    if parsed.get("max_price") or parsed.get("min_price"):
-        similar = prop_model.search(
-            property_type=parsed.get("property_type"),
-            area=parsed.get("location"),
-            listing_intent=parsed.get("listing_intent"),
-            bhk=parsed.get("bhk"),
-            limit=limit,
-        )
-    if not similar and parsed.get("location"):
-        similar = prop_model.search(
-            area=parsed.get("location"),
-            listing_intent=parsed.get("listing_intent"),
-            limit=limit,
-        )
-    if not similar and parsed.get("property_type"):
-        similar = prop_model.search(
-            property_type=parsed.get("property_type"),
-            listing_intent=parsed.get("listing_intent"),
-            limit=limit,
-        )
-    if not similar and parsed.get("bhk"):
-        similar = prop_model.search(bhk=parsed.get("bhk"), limit=limit)
-    if not similar:
-        similar = prop_model.search(limit=limit, sort="views")
-    return similar
-
-
-def _build_chat_reply(message, parsed, properties):
-    q_lower = message.lower()
-    whatsapp_number = str(COMPANY_WHATSAPP).lstrip("+")
-    criteria = _describe_search_criteria(parsed)
-
-    if any(token in q_lower for token in ["hello", "hi", "hey", "good morning", "good evening", "namaste"]):
-        return (
-            "Good day, and welcome to Jakkash Property Consultancy.\n\n"
-            "I'm here to help you discover residential and commercial properties across Surat — "
-            "whether you're buying, selling, or renting.\n\n"
-            "Share your preference (area, budget, or property type), and I'll shortlist suitable options for you."
-        )
-
-    if any(token in q_lower for token in ["contact", "phone", "broker", "whatsapp"]):
-        return (
-            f"Certainly. You may reach {COMPANY_NAME} directly:\n"
-            f"• Phone: {COMPANY_PHONE}\n"
-            f"• WhatsApp: +{whatsapp_number}\n\n"
-            "Our property advisors are available to guide you through viewings, documentation, and negotiations."
-        )
-
-    if re.search(r"\bcall\b", q_lower):
-        return (
-            f"Certainly. You may reach {COMPANY_NAME} directly:\n"
-            f"• Phone: {COMPANY_PHONE}\n"
-            f"• WhatsApp: +{whatsapp_number}\n\n"
-            "Our property advisors are available to guide you through viewings, documentation, and negotiations."
-        )
-
-    if any(token in q_lower for token in ["visit", "appointment", "site tour", "viewing"]):
-        return (
-            "Site visits can be arranged in a few simple steps:\n"
-            "• Browse our listings and open a property you like\n"
-            "• Use the schedule visit option on the property page\n"
-            "• Share your name, mobile number, and preferred date\n\n"
-            "Our team will confirm your appointment shortly. You may also message us on WhatsApp for a quicker response."
-        )
-
-    if properties:
-        count = len(properties)
-        noun = "option" if count == 1 else "options"
-        lines = [
-            f"Thank you for your enquiry. Based on {criteria}, I've shortlisted {count} suitable {noun}:",
-            "",
-        ]
-        for prop in properties[:5]:
-            lines.append(_format_property_line(prop))
-        if count > 5:
-            lines.append(f"\n…and {count - 5} more matching listings shown below.")
-        lines.append("\nOpen any listing for full details, photos, or to request a site visit.")
-        return "\n".join(lines)
-
-    if any(
-        token in q_lower
-        for token in ["availability", "available", "property", "rent", "buy", "sell", "bhk", "flat", "villa", "plot", "commercial"]
-    ):
-        similar = _find_similar_properties(parsed)
-        if similar:
-            lines = [
-                f"I couldn't find an exact match for {criteria} at the moment.",
-                "Here are some closely related options you may wish to consider:",
-                "",
-            ]
-            for prop in similar[:4]:
-                lines.append(_format_property_line(prop))
-            lines.append(
-                "\nYou might also try adjusting your budget or exploring a nearby locality. "
-                "Our team is happy to assist on WhatsApp or call."
-            )
-            return {"reply": "\n".join(lines), "properties": similar}
-
-        return (
-            f"I couldn't locate listings matching {criteria} right now.\n\n"
-            "You may try a nearby area (e.g. Vesu, Adajan, Piplod), broaden your budget, "
-            "or browse all properties on our listings page. Our advisors can also suggest off-market options — "
-            f"reach us at {COMPANY_PHONE}."
-        )
-
-    return (
-        "I'm your property assistant at Jakkash Property Consultancy, Surat.\n\n"
-        "You can ask me about:\n"
-        "• Available properties (e.g. \"2 BHK under 60 lakh in Vesu\")\n"
-        "• Commercial or rental options\n"
-        "• Booking a site visit\n"
-        "• Speaking with our advisory team\n\n"
-        "How may I assist you today?"
-    )
 
 
 @api_bp.route("/properties")
@@ -675,63 +533,129 @@ def api_trending():
     })
 
 
+def _static_chat_payload(action=None, message=None):
+    """Deterministic menu / FAQ replies for the Property Assistant."""
+    whatsapp_number = str(COMPANY_WHATSAPP).lstrip("+")
+    action_key = (action or "").strip().lower()
+    msg = (message or "").strip().lower()
+
+    if not action_key and msg:
+        if any(tok in msg for tok in ("hello", "hi", "hey", "namaste")):
+            action_key = "main"
+        elif any(tok in msg for tok in ("contact", "phone", "call", "whatsapp", "broker")):
+            action_key = "broker"
+        elif any(tok in msg for tok in ("address", "location", "office", "where")):
+            action_key = "faq_location"
+        elif any(tok in msg for tok in ("hour", "timing", "open")):
+            action_key = "faq_hours"
+        elif any(tok in msg for tok in ("brokerage", "commission", "fee")):
+            action_key = "faq_brokerage"
+        elif any(tok in msg for tok in ("sell", "list my", "owner")):
+            action_key = "sell"
+        elif any(tok in msg for tok in ("buy", "rent", "flat", "bhk", "bungalow", "plot", "browse", "propert")):
+            action_key = "browse"
+        elif any(tok in msg for tok in ("faq", "question", "help")):
+            action_key = "faq"
+
+    catalog = {
+        "main": {
+            "reply": (
+                "How can we help you today? Choose an option — Browse Properties, "
+                "Sell My Property, Speak to a Broker, or Frequently Asked Questions."
+            ),
+            "buttons": ["browse", "sell", "broker", "faq"],
+        },
+        "browse": {
+            "reply": (
+                "Browse Surat listings by category:\n"
+                "• 3BHK Flats → /properties?type=flat&bhk=3\n"
+                "• Bungalows → /properties?type=bungalow\n"
+                "• Commercial → /properties?type=commercial\n"
+                "• Plots → /properties?type=plot"
+            ),
+            "buttons": ["browse_flat", "browse_bungalow", "browse_commercial", "browse_plot", "main"],
+            "links": [
+                {"label": "3BHK Flats", "href": "/properties?type=flat&bhk=3"},
+                {"label": "Bungalows", "href": "/properties?type=bungalow"},
+                {"label": "Commercial", "href": "/properties?type=commercial"},
+                {"label": "Plots", "href": "/properties?type=plot"},
+            ],
+        },
+        "sell": {
+            "reply": (
+                "Listing with JAKKASH:\n"
+                "1) Share owner and property details\n"
+                "2) We verify documents and pricing\n"
+                "3) We market to active Surat buyers\n\n"
+                "Start here: /sell-property"
+            ),
+            "buttons": ["main"],
+            "links": [{"label": "Sell Property", "href": "/sell-property"}],
+        },
+        "broker": {
+            "reply": (
+                f"Speak with a JAKKASH broker:\n"
+                f"• Phone: {COMPANY_PHONE}\n"
+                f"• WhatsApp: +{whatsapp_number}\n"
+                "Hours: Mon–Sat 10:00 AM – 7:00 PM (IST)."
+            ),
+            "buttons": ["main"],
+            "links": [
+                {"label": "WhatsApp", "href": f"https://wa.me/{whatsapp_number}"},
+                {"label": "Call Now", "href": f"tel:{whatsapp_number}"},
+            ],
+        },
+        "faq": {
+            "reply": "FAQ topics: brokerage terms, office location, working hours.",
+            "buttons": ["faq_brokerage", "faq_location", "faq_hours", "main"],
+        },
+        "faq_brokerage": {
+            "reply": (
+                "Brokerage: Terms are shared before site visits or deals. "
+                "Fees depend on buy / sell / rent. Ask your broker for the exact schedule."
+            ),
+            "buttons": ["faq", "broker", "main"],
+        },
+        "faq_location": {
+            "reply": f"Office (Surat):\n{COMPANY_ADDRESS}",
+            "buttons": ["faq", "main"],
+            "links": [{"label": "Contact page", "href": "/contact"}],
+        },
+        "faq_hours": {
+            "reply": (
+                "Working hours: Monday–Saturday, 10:00 AM – 7:00 PM (IST). "
+                "Sunday by appointment. WhatsApp is monitored through the day."
+            ),
+            "buttons": ["faq", "broker", "main"],
+        },
+    }
+
+    payload = catalog.get(action_key) or catalog["main"]
+    return {
+        "success": True,
+        "action": action_key or "main",
+        "reply": payload["reply"],
+        "buttons": payload.get("buttons") or [],
+        "links": payload.get("links") or [],
+        "properties": [],
+    }
+
+
 @api_bp.route("/chat", methods=["POST"])
 def api_chat():
     data = request.get_json() or {}
+    action = (data.get("action") or "").strip()
     message = (data.get("message") or "").strip()
-    if not message:
-        return jsonify({"success": False, "error": "Message required"}), 400
+    if not action and not message:
+        return jsonify({"success": False, "error": "action or message required"}), 400
 
-    parsed = _parse_smart_query(message)
-    q_lower = message.lower()
-    properties = []
-
-    if any(
-        token in q_lower
-        for token in ["bhk", "property", "rent", "buy", "sell", "flat", "villa", "plot", "commercial", "bungalow", "office", "apartment"]
-    ):
-        has_structured_filters = any(
-            [
-                parsed.get("property_type"),
-                parsed.get("location"),
-                parsed.get("listing_intent"),
-                parsed.get("min_price"),
-                parsed.get("max_price"),
-                parsed.get("bhk"),
-            ]
-        )
-        properties = prop_model.search(
-            keyword=None if has_structured_filters else parsed.get("query"),
-            property_type=parsed.get("property_type"),
-            area=parsed.get("location"),
-            listing_intent=parsed.get("listing_intent"),
-            min_price=parsed.get("min_price"),
-            max_price=parsed.get("max_price"),
-            bhk=parsed.get("bhk"),
-            limit=6,
-        )
-
-    reply_result = _build_chat_reply(message, parsed, properties)
-    if isinstance(reply_result, dict):
-        reply = reply_result["reply"]
-        properties = reply_result.get("properties", properties)
-    else:
-        reply = reply_result
-
+    payload = _static_chat_payload(action=action, message=message)
     try:
         analytics_model.record_event(
             session.get("visitor_id"),
             "search",
-            meta={"query": message, "intent": parsed.get("listing_intent")},
+            meta={"query": message or action, "intent": "static_assistant", "action": payload.get("action")},
         )
     except Exception:
         pass
-
-    return jsonify(
-        {
-            "success": True,
-            "reply": reply,
-            "properties": _serialize_properties(properties),
-            "parsed": parsed,
-        }
-    )
+    return jsonify(payload)

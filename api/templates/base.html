@@ -16,7 +16,7 @@
         <li><a href="{{ url_for('main.search_page') }}">Search</a></li>
         <li><a href="{{ url_for('main.compare_page') }}">Compare</a></li>
         <li><a href="{{ url_for('main.emi_page') }}">EMI</a></li>
-        <li><a href="{{ url_for('main.chat_page') }}">AI Chat</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}">Property Assistant</a></li>
         {% if current_user.is_authenticated %}
           <li><a href="{{ url_for('main.schedule_visit_page') }}">Visits</a></li>
           {% if current_user.is_admin %}
