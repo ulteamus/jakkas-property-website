@@ -16,20 +16,39 @@ from models import reviews as reviews_model
 from models import submission as submission_model
 from models.admin import (
     PERMISSION_KEYS,
+    ROLE_BROKER,
     ROLE_CALLER,
     ROLE_KEYS,
+    ROLE_MANAGER,
     ROLE_PRESETS,
     Admin,
+    role_options_for_ui,
 )
 from services import follow_up
-from utils.pdf_export import build_simple_pdf
+from utils.pdf_export import (
+    build_simple_pdf,
+    generate_leads_list_pdf,
+    generate_single_lead_pdf,
+)
 from utils.helpers import save_upload
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 def _owner_scope_admin_id():
-    return None if current_user.is_super_admin else current_user.id
+    """Brokers (and other non-manager employees) only see their own listings.
+
+    super_admin / main_admin / manager see all properties.
+    """
+    if getattr(current_user, "is_super_admin", False):
+        return None
+    role = getattr(current_user, "role", None)
+    if role == ROLE_MANAGER:
+        return None
+    if role == ROLE_BROKER:
+        return current_user.id
+    # Keep existing isolation for executives/callers creating listings.
+    return current_user.id
 
 
 def admin_required(f):
@@ -78,9 +97,48 @@ def super_admin_required(f):
 def _ensure_property_owner(prop):
     if not prop:
         abort(404)
-    if current_user.is_super_admin:
+    if getattr(current_user, "is_super_admin", False):
         return
+    if getattr(current_user, "role", None) == ROLE_MANAGER:
+        return
+    if getattr(current_user, "role", None) == ROLE_BROKER:
+        if int(prop.get("owner_admin_id") or 0) != int(current_user.id):
+            abort(403)
+        return
+    # Non-broker employees remain scoped to own listings.
     if int(prop.get("owner_admin_id") or 0) != int(current_user.id):
+        abort(403)
+
+
+def _inquiry_owner_scope():
+    if getattr(current_user, "role", None) == ROLE_BROKER:
+        return current_user.id
+    return None
+
+
+def _ensure_inquiry_owner(inquiry):
+    if not inquiry:
+        abort(404)
+    if getattr(current_user, "role", None) != ROLE_BROKER:
+        return
+    owner_id = inquiry.get("property_owner_admin_id")
+    if owner_id is None and inquiry.get("property_id"):
+        prop = prop_model.get_by_id(inquiry.get("property_id"))
+        owner_id = (prop or {}).get("owner_admin_id")
+    if int(owner_id or 0) != int(current_user.id):
+        abort(403)
+
+
+def _ensure_lead_owner(lead):
+    if not lead:
+        abort(404)
+    if getattr(current_user, "role", None) != ROLE_BROKER:
+        return
+    owner_id = lead.get("property_owner_admin_id")
+    if owner_id is None and lead.get("property_id"):
+        prop = prop_model.get_by_id(lead.get("property_id"))
+        owner_id = (prop or {}).get("owner_admin_id")
+    if int(owner_id or 0) != int(current_user.id):
         abort(403)
 
 
@@ -139,6 +197,10 @@ def _resolve_inquiry_window(range_filter, start_date_raw=None, end_date_raw=None
 
 def _pdf_download(filename, title, lines):
     payload = build_simple_pdf(title, lines)
+    return _pdf_bytes_download(filename, payload)
+
+
+def _pdf_bytes_download(filename, payload):
     response = make_response(payload)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -216,7 +278,9 @@ def dashboard():
     stats["pending_submissions"] = submission_model.count_by_status(
         "pending", owner_admin_id=_owner_scope_admin_id()
     )
-    recent_inquiries = inquiry_model.get_all(limit=8)
+    recent_inquiries = inquiry_model.get_all(
+        limit=8, owner_admin_id=_inquiry_owner_scope()
+    )
     return render_template(
         "admin/dashboard.html",
         stats=stats,
@@ -349,23 +413,76 @@ def leads():
     tier = request.args.get("tier")
     return render_template(
         "admin/leads.html",
-        leads=lead_model.get_all(status=status, tier=tier),
+        leads=lead_model.get_all(
+            status=status, tier=tier, owner_admin_id=_inquiry_owner_scope()
+        ),
         statuses=LEAD_STATUSES,
     )
+
+
+@admin_bp.route("/leads/export-pdf")
+@permission_required("manage_leads")
+def leads_export_pdf():
+    status = request.args.get("status")
+    tier = request.args.get("tier")
+    urgent_only = (request.args.get("urgent") or "").strip().lower() in {"1", "true", "yes"}
+    rows = lead_model.get_all(
+        status=status,
+        tier=tier,
+        urgent_only=urgent_only,
+        limit=1000,
+        owner_admin_id=_inquiry_owner_scope(),
+    )
+    payload = generate_leads_list_pdf(
+        rows,
+        current_user,
+        filters={"status": status, "tier": tier, "urgent_only": urgent_only or None},
+    )
+    stamp = date.today().isoformat().replace("-", "")
+    _log_admin_action(
+        "leads_pdf_exported",
+        "Downloaded leads PDF report",
+        entity_type="lead",
+        meta={"count": len(rows), "status": status or "all", "tier": tier or "all"},
+    )
+    return _pdf_bytes_download(f"leads-export-{stamp}.pdf", payload)
 
 
 @admin_bp.route("/leads/<int:lid>")
 @permission_required("manage_leads")
 def lead_detail(lid):
-    lead = lead_model.get_by_id(lid)
+    lead = lead_model.get_by_id(lid, owner_admin_id=_inquiry_owner_scope())
     if not lead:
         abort(404)
+    _ensure_lead_owner(lead)
     return render_template("admin/lead_detail.html", lead=lead, notes=lead_model.get_notes(lid), statuses=LEAD_STATUSES)
+
+
+@admin_bp.route("/leads/<int:lid>/export-pdf")
+@permission_required("manage_leads")
+def lead_export_pdf(lid):
+    lead = lead_model.get_by_id(lid, owner_admin_id=_inquiry_owner_scope())
+    if not lead:
+        abort(404)
+    _ensure_lead_owner(lead)
+    notes = lead_model.get_notes(lid)
+    inquiries = inquiry_model.get_for_lead(lead)
+    payload = generate_single_lead_pdf(lead, inquiries, notes, current_user)
+    _log_admin_action(
+        "lead_dossier_pdf_exported",
+        "Downloaded lead dossier PDF",
+        entity_type="lead",
+        entity_id=lid,
+        meta={"name": lead.get("name")},
+    )
+    return _pdf_bytes_download(f"lead-dossier-{lid}.pdf", payload)
 
 
 @admin_bp.route("/leads/<int:lid>/update", methods=["POST"])
 @permission_required("manage_leads")
 def update_lead(lid):
+    lead = lead_model.get_by_id(lid, owner_admin_id=_inquiry_owner_scope())
+    _ensure_lead_owner(lead)
     new_status = request.form.get("status")
     if current_user.role == ROLE_CALLER and not _allowed_caller_status(new_status):
         flash("Caller role can only update follow-up statuses.", "warning")
@@ -397,6 +514,7 @@ def inquiries():
         start_date=start_date,
         end_date=end_date,
         status=selected_status or None,
+        owner_admin_id=_inquiry_owner_scope(),
     )
     _log_admin_action(
         "sensitive_inquiries_viewed",
@@ -418,9 +536,10 @@ def inquiries():
 @admin_bp.route("/inquiries/<int:inquiry_id>/detail")
 @permission_required("manage_inquiries")
 def inquiry_detail(inquiry_id):
-    inquiry = inquiry_model.get_by_id(inquiry_id)
+    inquiry = inquiry_model.get_by_id(inquiry_id, owner_admin_id=_inquiry_owner_scope())
     if not inquiry:
         abort(404)
+    _ensure_inquiry_owner(inquiry)
     _log_admin_action(
         "sensitive_inquiry_detail_view",
         "Viewed sensitive inquiry details",
@@ -438,9 +557,10 @@ def inquiry_detail(inquiry_id):
 @admin_bp.route("/inquiries/<int:inquiry_id>/update", methods=["POST"])
 @permission_required("manage_inquiries")
 def update_inquiry(inquiry_id):
-    inquiry = inquiry_model.get_by_id(inquiry_id)
+    inquiry = inquiry_model.get_by_id(inquiry_id, owner_admin_id=_inquiry_owner_scope())
     if not inquiry:
         abort(404)
+    _ensure_inquiry_owner(inquiry)
     updated = inquiry_model.update_entry(
         inquiry_id,
         status=request.form.get("status"),
@@ -477,6 +597,7 @@ def print_inquiries():
         start_date=start_date,
         end_date=end_date,
         status=selected_status or None,
+        owner_admin_id=_inquiry_owner_scope(),
     )
     return render_template(
         "admin/inquiries_print.html",
@@ -894,12 +1015,22 @@ def admin_users():
     setup_payload = None
     if setup_admin_id:
         setup_payload = Admin.totp_setup_payload(Admin.get_by_id(setup_admin_id, include_inactive=True))
+    role_keys = list(ROLE_KEYS)
+    if ROLE_BROKER not in role_keys:
+        role_keys.append(ROLE_BROKER)
+    role_presets = dict(ROLE_PRESETS)
+    role_presets.setdefault(
+        ROLE_BROKER,
+        ["manage_properties", "manage_leads", "manage_inquiries"],
+    )
+    role_options = role_options_for_ui()
     return render_template(
         "admin/admin_users.html",
         admins=admins,
         permission_keys=PERMISSION_KEYS,
-        role_keys=ROLE_KEYS,
-        role_presets=ROLE_PRESETS,
+        role_keys=role_keys,
+        role_presets=role_presets,
+        role_options=role_options,
         edit_admin_id=edit_id,
         setup_payload=setup_payload,
     )

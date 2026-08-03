@@ -143,8 +143,13 @@ TEMPLATES = {
     <div class="col-md-3">
       <label class="form-label">Role Preset *</label>
       <select class="form-select" name="role" required>
+        {% for opt in role_options %}
+        <option value="{{ opt.value }}">{{ opt.title }}</option>
+        {% else %}
         {% for role in role_keys %}
         <option value="{{ role }}">{{ role|replace('_', ' ')|title }}</option>
+        {% endfor %}
+        <option value="broker">Broker</option>
         {% endfor %}
       </select>
     </div>
@@ -263,8 +268,13 @@ TEMPLATES = {
                 <div class="col-md-3">
                   <label class="form-label">Role Preset</label>
                   <select class="form-select" name="role" required>
+                    {% for opt in role_options %}
+                    <option value="{{ opt.value }}" {% if admin_row.role == opt.value %}selected{% endif %}>{{ opt.title }}</option>
+                    {% else %}
                     {% for role in role_keys %}
                     <option value="{{ role }}" {% if admin_row.role == role %}selected{% endif %}>{{ role|replace('_', ' ')|title }}</option>
+                    {% endfor %}
+                    <option value="broker" {% if admin_row.role == 'broker' %}selected{% endif %}>Broker</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -342,6 +352,20 @@ TEMPLATES = {
     <h5>Default Role Permission Presets</h5>
   </div>
   <div class="row g-3">
+    {% for opt in role_options %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">{{ opt.title }}</h6>
+        <ul class="small mb-0">
+          {% for key in opt.permissions %}
+          <li>{{ key }}</li>
+          {% else %}
+          <li>No default permissions</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% else %}
     {% for role in role_keys %}
     <div class="col-md-6 col-lg-3">
       <div class="border rounded p-3 h-100">
@@ -352,6 +376,17 @@ TEMPLATES = {
           {% else %}
           <li>No default permissions</li>
           {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">Broker</h6>
+        <ul class="small mb-0">
+          <li>manage_properties</li>
+          <li>manage_leads</li>
+          <li>manage_inquiries</li>
         </ul>
       </div>
     </div>
@@ -1294,6 +1329,7 @@ TEMPLATES = {
 {% block page_subheading %}Update lead status, schedule follow-ups, and keep a clean communication timeline.{% endblock %}
 {% block page_actions %}
 <a href="{{ url_for('admin.leads') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Leads</a>
+<a href="{{ url_for('admin.lead_export_pdf', lid=lead.id) }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>Export Lead PDF</a>
 {% endblock %}
 {% block content %}
 <div class="row g-4">
@@ -1345,13 +1381,21 @@ TEMPLATES = {
 {% block title %}Leads{% endblock %}
 {% block page_heading %}Lead Management{% endblock %}
 {% block page_subheading %}Prioritize high-intent prospects, monitor status flow, and jump directly into follow-up actions.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.leads_export_pdf') }}{% if request.query_string %}?{{ request.query_string.decode('utf-8') }}{% endif %}" class="btn btn-outline-danger btn-sm">
+  <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF Report
+</a>
+{% endblock %}
 {% block content %}
-<div class="admin-filter-bar mb-2">
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2">
   <a href="?" class="admin-filter-chip {% if not request.args.get('status') and not request.args.get('tier') %}active{% endif %}">All</a>
   {% for s in statuses %}
   <a href="?status={{ s }}" class="admin-filter-chip {% if request.args.get('status') == s %}active{% endif %}">{{ s|title }}</a>
   {% endfor %}
   <a href="?tier=hot" class="admin-filter-chip {% if request.args.get('tier') == 'hot' %}active{% endif %}">Hot</a>
+  <a href="{{ url_for('admin.leads_export_pdf') }}{% if request.query_string %}?{{ request.query_string.decode('utf-8') }}{% endif %}" class="btn btn-outline-danger btn-sm ms-auto">
+    <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF Report
+  </a>
 </div>
 
 <div class="admin-table-wrap table-responsive">

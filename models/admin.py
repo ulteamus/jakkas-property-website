@@ -18,8 +18,16 @@ ROLE_MAIN_ADMIN = "main_admin"
 ROLE_MANAGER = "manager"
 ROLE_EXECUTIVE = "executive"
 ROLE_CALLER = "caller"
+ROLE_BROKER = "broker"
 
-ROLE_KEYS = [ROLE_SUPER_ADMIN, ROLE_MAIN_ADMIN, ROLE_MANAGER, ROLE_EXECUTIVE, ROLE_CALLER]
+ROLE_KEYS = [
+    ROLE_SUPER_ADMIN,
+    ROLE_MAIN_ADMIN,
+    ROLE_MANAGER,
+    ROLE_EXECUTIVE,
+    ROLE_CALLER,
+    ROLE_BROKER,
+]
 
 DEFAULT_BOOTSTRAP_ADMIN_USERNAME = "sam"
 LEGACY_BOOTSTRAP_ADMIN_USERNAME = "admin"
@@ -66,6 +74,11 @@ ROLE_PRESETS = {
         "manage_leads",
         "manage_inquiries",
     ],
+    ROLE_BROKER: [
+        "manage_properties",
+        "manage_leads",
+        "manage_inquiries",
+    ],
 }
 
 EXECUTIVE_ALLOWED_PERMISSIONS = {
@@ -75,6 +88,47 @@ EXECUTIVE_ALLOWED_PERMISSIONS = {
     "manage_sellers",
     "manage_customer_visits",
 }
+
+BROKER_ALLOWED_PERMISSIONS = {
+    "manage_properties",
+    "manage_leads",
+    "manage_inquiries",
+}
+
+ROLE_TITLES = {
+    ROLE_SUPER_ADMIN: "Super Admin",
+    ROLE_MAIN_ADMIN: "Main Admin",
+    ROLE_MANAGER: "Manager",
+    ROLE_EXECUTIVE: "Executive",
+    ROLE_CALLER: "Caller",
+    ROLE_BROKER: "Broker",
+}
+
+
+def role_options_for_ui():
+    """Role dropdown + preset cards for /admin/employees."""
+    options = [
+        {
+            "value": role,
+            "title": ROLE_TITLES.get(role, role.replace("_", " ").title()),
+            "permissions": list(ROLE_PRESETS.get(role, [])),
+        }
+        for role in ROLE_KEYS
+    ]
+    if not any(opt["value"] == ROLE_BROKER for opt in options):
+        options.append(
+            {
+                "value": ROLE_BROKER,
+                "title": "Broker",
+                "permissions": [
+                    "manage_properties",
+                    "manage_leads",
+                    "manage_inquiries",
+                ],
+            }
+        )
+    return options
+
 
 _schema_checked = False
 _OTP_EXPIRY_MINUTES = 10
@@ -95,6 +149,8 @@ def _normalize_role(value):
         "employee": ROLE_EXECUTIVE,
         "executive": ROLE_EXECUTIVE,
         "caller": ROLE_CALLER,
+        "broker": ROLE_BROKER,
+        "agent_broker": ROLE_BROKER,
     }
     normalized = mapping.get(role, role)
     return normalized if normalized in ROLE_KEYS else ROLE_EXECUTIVE
@@ -283,6 +339,10 @@ def _normalize_existing_roles_and_permissions():
             permissions = {perm for perm in permissions if perm in EXECUTIVE_ALLOWED_PERMISSIONS}
             if not permissions:
                 permissions = set(ROLE_PRESETS.get(role, []))
+        elif role == ROLE_BROKER:
+            permissions = {perm for perm in permissions if perm in BROKER_ALLOWED_PERMISSIONS}
+            if not permissions:
+                permissions = set(ROLE_PRESETS.get(role, []))
         execute(
             "UPDATE admins SET role=%s, permissions_json=%s WHERE id=%s",
             (role, _serialize_permissions(permissions), row["id"]),
@@ -374,6 +434,8 @@ class Admin(UserMixin):
         if self.is_super_admin:
             return True
         if self.role == ROLE_EXECUTIVE and permission_key not in EXECUTIVE_ALLOWED_PERMISSIONS:
+            return False
+        if self.role == ROLE_BROKER and permission_key not in BROKER_ALLOWED_PERMISSIONS:
             return False
         return permission_key in self.permissions
 
@@ -597,6 +659,9 @@ class Admin(UserMixin):
             return set(PERMISSION_KEYS)
         if role == ROLE_EXECUTIVE:
             cleaned = {perm for perm in cleaned if perm in EXECUTIVE_ALLOWED_PERMISSIONS}
+            return cleaned or set(ROLE_PRESETS.get(role, []))
+        if role == ROLE_BROKER:
+            cleaned = {perm for perm in cleaned if perm in BROKER_ALLOWED_PERMISSIONS}
             return cleaned or set(ROLE_PRESETS.get(role, []))
         return cleaned or set(ROLE_PRESETS.get(role, []))
 

@@ -191,8 +191,15 @@ def _haversine_km(lat1, lng1, lat2, lng2):
     return r * c
 
 
-def get_by_id(pid):
+def get_by_id(pid, owner_admin_id=None):
     _ensure_schema()
+    if owner_admin_id:
+        return _parse(
+            query_one(
+                "SELECT * FROM properties WHERE id=%s AND owner_admin_id=%s",
+                (pid, owner_admin_id),
+            )
+        )
     return _parse(query_one("SELECT * FROM properties WHERE id=%s", (pid,)))
 
 

@@ -2,13 +2,21 @@
 {% block title %}Leads{% endblock %}
 {% block page_heading %}Lead Management{% endblock %}
 {% block page_subheading %}Prioritize high-intent prospects, monitor status flow, and jump directly into follow-up actions.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.leads_export_pdf') }}{% if request.query_string %}?{{ request.query_string.decode('utf-8') }}{% endif %}" class="btn btn-outline-danger btn-sm">
+  <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF Report
+</a>
+{% endblock %}
 {% block content %}
-<div class="admin-filter-bar mb-2">
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2">
   <a href="?" class="admin-filter-chip {% if not request.args.get('status') and not request.args.get('tier') %}active{% endif %}">All</a>
   {% for s in statuses %}
   <a href="?status={{ s }}" class="admin-filter-chip {% if request.args.get('status') == s %}active{% endif %}">{{ s|title }}</a>
   {% endfor %}
   <a href="?tier=hot" class="admin-filter-chip {% if request.args.get('tier') == 'hot' %}active{% endif %}">Hot</a>
+  <a href="{{ url_for('admin.leads_export_pdf') }}{% if request.query_string %}?{{ request.query_string.decode('utf-8') }}{% endif %}" class="btn btn-outline-danger btn-sm ms-auto">
+    <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF Report
+  </a>
 </div>
 
 <div class="admin-table-wrap table-responsive">

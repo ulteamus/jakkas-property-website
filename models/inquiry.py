@@ -100,15 +100,18 @@ def create(data):
     )
 
 
-def get_all(limit=150, start_date=None, end_date=None, status=None):
+def get_all(limit=150, start_date=None, end_date=None, status=None, owner_admin_id=None):
     _ensure_schema()
     sql = (
-        """SELECT i.*, p.property_name
+        """SELECT i.*, p.property_name, p.owner_admin_id AS property_owner_admin_id
            FROM inquiries i
            LEFT JOIN properties p ON p.id=i.property_id
            WHERE 1=1"""
     )
     params = []
+    if owner_admin_id:
+        sql += " AND p.owner_admin_id=%s"
+        params.append(owner_admin_id)
     if status:
         sql += " AND i.status=%s"
         params.append(_normalize_status(status))
@@ -123,15 +126,51 @@ def get_all(limit=150, start_date=None, end_date=None, status=None):
     return query_all(sql, params)
 
 
-def get_by_id(inquiry_id):
+def get_by_id(inquiry_id, owner_admin_id=None):
     _ensure_schema()
-    return query_one(
-        """SELECT i.*, p.property_name
+    sql = (
+        """SELECT i.*, p.property_name, p.owner_admin_id AS property_owner_admin_id
            FROM inquiries i
            LEFT JOIN properties p ON p.id=i.property_id
-           WHERE i.id=%s""",
-        (inquiry_id,),
+           WHERE i.id=%s"""
     )
+    params = [inquiry_id]
+    if owner_admin_id:
+        sql += " AND p.owner_admin_id=%s"
+        params.append(owner_admin_id)
+    return query_one(sql, params)
+
+
+def get_for_lead(lead, limit=20):
+    """Inquiries related to a lead (by inquiry_id and/or mobile)."""
+    _ensure_schema()
+    lead = lead or {}
+    rows = []
+    seen = set()
+    inquiry_id = lead.get("inquiry_id")
+    if inquiry_id:
+        row = get_by_id(inquiry_id)
+        if row and row.get("id") not in seen:
+            rows.append(row)
+            seen.add(row["id"])
+    mobile = (lead.get("mobile") or "").strip()
+    if mobile:
+        extras = query_all(
+            """SELECT i.*, p.property_name, p.owner_admin_id AS property_owner_admin_id
+               FROM inquiries i
+               LEFT JOIN properties p ON p.id=i.property_id
+               WHERE i.mobile=%s
+               ORDER BY i.created_at DESC
+               LIMIT %s""",
+            (mobile, max(1, min(int(limit or 20), 50))),
+        )
+        for row in extras or []:
+            rid = row.get("id")
+            if rid in seen:
+                continue
+            rows.append(row)
+            seen.add(rid)
+    return rows
 
 
 def update_entry(inquiry_id, status=None, notes=None):

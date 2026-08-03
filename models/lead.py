@@ -15,9 +15,17 @@ def create_from_inquiry(data, inquiry_id=None):
     return lid
 
 
-def get_all(status=None, tier=None, urgent_only=False, limit=200):
-    sql = "SELECT l.*, p.property_name FROM leads l LEFT JOIN properties p ON p.id=l.property_id WHERE 1=1"
+def get_all(status=None, tier=None, urgent_only=False, limit=200, owner_admin_id=None):
+    sql = (
+        """SELECT l.*, p.property_name, p.owner_admin_id AS property_owner_admin_id
+           FROM leads l
+           LEFT JOIN properties p ON p.id=l.property_id
+           WHERE 1=1"""
+    )
     params = []
+    if owner_admin_id:
+        sql += " AND p.owner_admin_id=%s"
+        params.append(owner_admin_id)
     if status:
         sql += " AND l.status=%s"
         params.append(status)
@@ -31,12 +39,18 @@ def get_all(status=None, tier=None, urgent_only=False, limit=200):
     return query_all(sql, params)
 
 
-def get_by_id(lid):
-    return query_one(
-        """SELECT l.*, p.property_name FROM leads l
-           LEFT JOIN properties p ON p.id=l.property_id WHERE l.id=%s""",
-        (lid,),
+def get_by_id(lid, owner_admin_id=None):
+    sql = (
+        """SELECT l.*, p.property_name, p.owner_admin_id AS property_owner_admin_id
+           FROM leads l
+           LEFT JOIN properties p ON p.id=l.property_id
+           WHERE l.id=%s"""
     )
+    params = [lid]
+    if owner_admin_id:
+        sql += " AND p.owner_admin_id=%s"
+        params.append(owner_admin_id)
+    return query_one(sql, params)
 
 
 def update_status(lid, status, admin_id=None):

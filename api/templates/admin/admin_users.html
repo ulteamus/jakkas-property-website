@@ -53,8 +53,13 @@
     <div class="col-md-3">
       <label class="form-label">Role Preset *</label>
       <select class="form-select" name="role" required>
+        {% for opt in role_options %}
+        <option value="{{ opt.value }}">{{ opt.title }}</option>
+        {% else %}
         {% for role in role_keys %}
         <option value="{{ role }}">{{ role|replace('_', ' ')|title }}</option>
+        {% endfor %}
+        <option value="broker">Broker</option>
         {% endfor %}
       </select>
     </div>
@@ -173,8 +178,13 @@
                 <div class="col-md-3">
                   <label class="form-label">Role Preset</label>
                   <select class="form-select" name="role" required>
+                    {% for opt in role_options %}
+                    <option value="{{ opt.value }}" {% if admin_row.role == opt.value %}selected{% endif %}>{{ opt.title }}</option>
+                    {% else %}
                     {% for role in role_keys %}
                     <option value="{{ role }}" {% if admin_row.role == role %}selected{% endif %}>{{ role|replace('_', ' ')|title }}</option>
+                    {% endfor %}
+                    <option value="broker" {% if admin_row.role == 'broker' %}selected{% endif %}>Broker</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -252,6 +262,20 @@
     <h5>Default Role Permission Presets</h5>
   </div>
   <div class="row g-3">
+    {% for opt in role_options %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">{{ opt.title }}</h6>
+        <ul class="small mb-0">
+          {% for key in opt.permissions %}
+          <li>{{ key }}</li>
+          {% else %}
+          <li>No default permissions</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% else %}
     {% for role in role_keys %}
     <div class="col-md-6 col-lg-3">
       <div class="border rounded p-3 h-100">
@@ -262,6 +286,17 @@
           {% else %}
           <li>No default permissions</li>
           {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">Broker</h6>
+        <ul class="small mb-0">
+          <li>manage_properties</li>
+          <li>manage_leads</li>
+          <li>manage_inquiries</li>
         </ul>
       </div>
     </div>
