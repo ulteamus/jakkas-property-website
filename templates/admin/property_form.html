@@ -54,11 +54,33 @@
       <input type="checkbox" class="form-check-input" name="is_featured" id="feat" {% if property and property.is_featured %}checked{% endif %}>
       <label class="form-check-label" for="feat">Featured</label>
     </div>
-    <div class="col-md-4"><label>Images</label><input type="file" class="form-control" name="images" multiple accept="image/*"></div>
-    <div class="col-md-4"><label>Videos</label><input type="file" class="form-control" name="videos" multiple accept="video/*"></div>
-    <div class="col-md-4"><label>Documents (PDF)</label><input type="file" class="form-control" name="documents" multiple accept=".pdf"></div>
+    <div class="col-md-4">
+      <label>Images</label>
+      <input type="file" class="form-control" id="adminImagesInput" name="images" multiple accept="image/*">
+      <div id="adminImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
+    </div>
+    <div class="col-md-4">
+      <label>Videos</label>
+      <input type="file" class="form-control" id="adminVideosInput" name="videos" multiple accept="video/*">
+      <div id="adminVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
+    </div>
+    <div class="col-md-4">
+      <label>Documents (PDF)</label>
+      <input type="file" class="form-control" id="adminDocsInput" name="documents" multiple accept=".pdf">
+      <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
+    </div>
   </div>
   <button class="btn btn-jk-accent mt-3">Save Property</button>
 </form>
 <p class="small text-muted mt-2">Map marker is created automatically from latitude/longitude.</p>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
+<script>
+  if (window.MediaFileManager) {
+    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'));
+    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'));
+    MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
+  }
+</script>
 {% endblock %}

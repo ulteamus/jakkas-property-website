@@ -305,25 +305,17 @@
 
 
     <h5 class="mt-4 mb-3">Media Upload</h5>
-
     <div class="row g-3">
-
       <div class="col-12 col-md-6">
-
-        <label class="form-label">Property Images (Multiple)</label>
-
-        <input class="form-control" type="file" name="images" accept="image/*" multiple>
-
+        <label class="form-label" for="sellImagesInput">Property Images (Multiple)</label>
+        <input class="form-control" id="sellImagesInput" type="file" name="images" accept="image/*" multiple>
+        <div id="sellImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
       </div>
-
       <div class="col-12 col-md-6">
-
-        <label class="form-label">Property Videos (Multiple)</label>
-
-        <input class="form-control" type="file" name="videos" accept="video/*" multiple>
-
+        <label class="form-label" for="sellVideosInput">Property Videos (Multiple)</label>
+        <input class="form-control" id="sellVideosInput" type="file" name="videos" accept="video/*" multiple>
+        <div id="sellVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
       </div>
-
     </div>
 
 
@@ -343,8 +335,7 @@
 {% endblock %}
 
 {% block extra_js %}
-
+<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/sell_property.js') }}"></script>
-
 {% endblock %}
 

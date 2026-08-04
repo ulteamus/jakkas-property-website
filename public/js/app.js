@@ -29,14 +29,19 @@ async function saveProperty(id) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ property_id: id }),
     });
-    alert('Property saved successfully.');
+    window.location.href = '/saved';
   } catch (err) {
     alert('Unable to save property right now.');
   }
 }
 
 document.querySelectorAll('.btn-save').forEach(btn => {
-  btn.addEventListener('click', () => saveProperty(btn.dataset.id));
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const id = btn.dataset.id;
+    if (id) saveProperty(id);
+    else window.location.href = '/saved';
+  });
 });
 
 const inquiryPanel = document.getElementById('quickInquiryPanel');

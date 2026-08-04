@@ -168,4 +168,15 @@
   syncSubmitterFields();
   syncPropertyType();
   updateAreaSqFt();
+
+  if (window.MediaFileManager) {
+    MediaFileManager.bind(
+      document.getElementById("sellImagesInput"),
+      document.getElementById("sellImagesPreview")
+    );
+    MediaFileManager.bind(
+      document.getElementById("sellVideosInput"),
+      document.getElementById("sellVideosPreview")
+    );
+  }
 })();

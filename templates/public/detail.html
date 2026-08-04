@@ -1,5 +1,21 @@
 {% extends "public/base.html" %}
 {% block title %}{{ property.property_name }} - {{ company_name }}{% endblock %}
+{% block head_meta %}
+{% set cover = None %}
+{% if media.images and media.images|length %}
+  {% set cover = url_for('uploads', filename=media.images[0].file_path, _external=True) %}
+{% elif property.primary_image %}
+  {% set cover = url_for('uploads', filename=property.primary_image, _external=True) %}
+{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ property.property_name }} | {{ company_name }}">
+<meta property="og:description" content="{{ (property.description or (property.property_name ~ ' in ' ~ (property.area_name or 'Surat')))|truncate(160, True) }}">
+<meta property="og:url" content="{{ request.url }}">
+{% if cover %}<meta property="og:image" content="{{ cover }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ property.property_name }} | {{ company_name }}">
+{% if cover %}<meta name="twitter:image" content="{{ cover }}">{% endif %}
+{% endblock %}
 {% block content %}
 <div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}">
   <div class="row g-4">
@@ -61,11 +77,13 @@
         <button class="btn btn-jk-accent" type="button" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </button>
-        <button class="btn btn-jk-outline" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel">
+        <button class="btn btn-jk-outline btn-request-visit" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel" aria-controls="visitPanel">
           <i class="bi bi-calendar-check"></i> Request Site Visit
         </button>
-        <button class="btn btn-outline-secondary btn-save" data-id="{{ property.id }}"><i class="bi bi-heart"></i> Save Property</button>
-        <button class="btn btn-outline-secondary btn-share"><i class="bi bi-share"></i> Share</button>
+        <a class="btn btn-outline-secondary btn-save" href="{{ url_for('public.saved') }}" data-id="{{ property.id }}" role="button">
+          <i class="bi bi-heart"></i> Save Property
+        </a>
+        <button class="btn btn-outline-secondary btn-share" type="button"><i class="bi bi-share"></i> Share</button>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
@@ -80,6 +98,7 @@
     <h3 class="section-title">Send Inquiry</h3>
     <form id="inquiryForm" class="row g-3">
       <input type="hidden" name="property_id" value="{{ property.id }}">
+      <input type="hidden" name="intent" id="inquiryIntent" value="inquiry">
       <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
       <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
       <div class="col-12"><input class="form-control" name="email" placeholder="Email"></div>
@@ -92,7 +111,8 @@
     <h3 class="section-title">Request Site Visit</h3>
     <form id="visitForm" class="row g-3">
       <input type="hidden" name="property_id" value="{{ property.id }}">
-      <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
+      <input type="hidden" name="intent" value="site_visit">
+      <div class="col-md-6"><input class="form-control" name="name" id="visitNameInput" placeholder="Your Name" required></div>
       <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
       <div class="col-md-6"><input class="form-control" name="email" placeholder="Email"></div>
       <div class="col-md-6"><input type="date" class="form-control" name="preferred_date" required></div>

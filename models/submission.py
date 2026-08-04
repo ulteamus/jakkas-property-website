@@ -209,7 +209,7 @@ def recent_submissions(limit=50):
     return [_parse_submission(row) for row in rows]
 
 
-def list_submissions(status=None, limit=200, offset=0, owner_admin_id=None, start_date=None, end_date=None):
+def list_submissions(status=None, limit=200, offset=0, owner_admin_id=None, start_date=None, end_date=None, area=None):
     _ensure_table()
     sql = (
         """SELECT s.*, p.status AS property_current_status, p.slug AS property_slug
@@ -230,6 +230,10 @@ def list_submissions(status=None, limit=200, offset=0, owner_admin_id=None, star
     if end_date:
         sql += " AND DATE(s.created_at) <= DATE(%s)"
         params.append(end_date)
+    if area:
+        sql += " AND (LOWER(COALESCE(s.location_area,'')) LIKE %s OR LOWER(COALESCE(s.property_address,'')) LIKE %s OR LOWER(COALESCE(s.city,'')) LIKE %s)"
+        like = f"%{str(area).strip().lower()}%"
+        params.extend([like, like, like])
     sql += (
         """ ORDER BY
             CASE

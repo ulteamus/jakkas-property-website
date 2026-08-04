@@ -1,164 +1,341 @@
 {% extends "public/base.html" %}
+
 {% block title %}Sell Your Property - {{ company_name }}{% endblock %}
+
 {% block content %}
-<section class="container py-5 jk-flow">
-  <header class="reveal-on-scroll mb-4">
+
+<section class="container py-4 py-md-5 jk-flow sell-page">
+
+  <header class="mb-4">
+
     <h1 class="section-title">Sell Your Property</h1>
+
     <p class="text-muted mb-0">
+
       Submit your sale listing details. Every submission is marked as <strong>Pending Approval</strong> and
+
       becomes public only after admin verification.
+
     </p>
+
   </header>
 
-  <form method="POST" enctype="multipart/form-data" class="submission-form card p-4 p-lg-5 reveal-on-scroll" id="sellPropertyForm">
+
+
+  <form method="POST" enctype="multipart/form-data" class="submission-form card p-3 p-md-4 p-lg-5" id="sellPropertyForm">
+
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <h5 class="mb-3">Owner Details (Mandatory)</h5>
-    <div class="row g-3">
-      <div class="col-md-6"><input class="form-control" name="owner_name" placeholder="Owner Name *" required></div>
-      <div class="col-md-6"><input class="form-control" name="owner_mobile" placeholder="Mobile Number *" required></div>
-      <div class="col-md-6"><input class="form-control" name="owner_alt_mobile" placeholder="Alternate Mobile Number"></div>
-      <div class="col-md-6"><input type="email" class="form-control" name="owner_email" placeholder="Email Address"></div>
-      <div class="col-12"><textarea class="form-control" name="owner_address" rows="2" placeholder="Full Residential Address *" required></textarea></div>
+
+
+    <h5 class="mb-3" id="contactSectionTitle">Owner Details (Mandatory)</h5>
+
+    <div class="row g-3 sell-contact-row">
+
+      <div class="col-12">
+
+        <label class="form-label">Listed By *</label>
+
+        <input type="hidden" id="submitterTypeInput" name="submitter_type" value="owner">
+
+        <div class="sell-option-chips" role="group" aria-label="Listed by">
+
+          <button type="button" class="sell-option-chip is-active" data-submitter-type="owner">Owner</button>
+
+          <button type="button" class="sell-option-chip" data-submitter-type="broker">Broker</button>
+
+          <button type="button" class="sell-option-chip" data-submitter-type="developer">Developer</button>
+
+        </div>
+
+      </div>
+
+      <div class="col-12 col-md-6 sell-contact-field">
+
+        <label class="form-label" for="contactNameInput" id="contactNameLabel">Owner Name *</label>
+
+        <input class="form-control" id="contactNameInput" name="owner_name" placeholder="Owner Name *" required>
+
+      </div>
+
+      <div class="col-12 col-md-6 sell-contact-field">
+
+        <label class="form-label" for="ownerMobileInput">Mobile Number *</label>
+
+        <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" minlength="10" maxlength="15" required>
+
+      </div>
+
+      <div class="col-12 col-md-6 sell-contact-field">
+
+        <label class="form-label" for="ownerAltMobileInput">Alternate Mobile</label>
+
+        <input class="form-control" id="ownerAltMobileInput" name="owner_alt_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="Alternate mobile (optional)" maxlength="15">
+
+      </div>
+
+      <div class="col-12 col-md-6 sell-contact-field">
+
+        <label class="form-label" for="ownerEmailInput">Email Address</label>
+
+        <input type="email" class="form-control" id="ownerEmailInput" name="owner_email" placeholder="Email address (optional)">
+
+      </div>
+
+      <div class="col-12 sell-contact-field">
+
+        <label class="form-label" for="ownerAddressInput">Full Residential Address *</label>
+
+        <textarea class="form-control" id="ownerAddressInput" name="owner_address" rows="2" placeholder="Full residential address *" required></textarea>
+
+      </div>
+
     </div>
+
+
 
     <h5 class="mt-4 mb-3">Property Details</h5>
-    <p class="text-muted small mb-3">Start with your property location — we’ll estimate a fair market price for that area.</p>
+
+
 
     <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label" for="sellCityInput">City</label>
-        <input class="form-control" id="sellCityInput" name="city" value="Surat" placeholder="City" readonly>
-      </div>
-      <div class="col-md-8">
-        <label class="form-label" for="sellLocationInput">Location / Area *</label>
-        <input class="form-control" id="sellLocationInput" name="location_area" list="suratLocalities" placeholder="e.g. Vesu, Adajan, Pal, Piplod" required autocomplete="off">
-        <datalist id="suratLocalities">
-          {% for loc in surat_localities %}
-          <option value="{{ loc }}"></option>
+
+      <div class="col-12 col-md-4">
+
+        <label class="form-label" for="sellCitySelect">City *</label>
+
+        <select class="form-select" id="sellCitySelect" name="city" required>
+
+          {% for city in city_options %}
+
+          <option value="{{ city }}" {% if city == 'Surat' %}selected{% endif %}>{{ city }}</option>
+
           {% endfor %}
-        </datalist>
-      </div>
 
-      <div class="col-md-6">
-        <label class="form-label" for="propertyTypeSelect">Property Type *</label>
-        <select class="form-select" name="property_type" id="propertyTypeSelect" required>
-          <option value="">Property Type *</option>
-          <option value="apartment">Apartment</option>
-          <option value="villa">Villa</option>
-          <option value="bungalow">Bungalow</option>
-          <option value="plot">Plot</option>
-          <option value="commercial">Commercial</option>
-          <option value="residential">Residential</option>
         </select>
+
       </div>
-      <div class="col-md-6">
+
+      <div class="col-12 col-md-8">
+
+        <label class="form-label" for="sellLocationInput">Location / Area *</label>
+
+        <input class="form-control" id="sellLocationInput" name="location_area" list="suratLocalities" placeholder="e.g. Vesu, Adajan, Pal, Piplod" required autocomplete="off">
+
+        <datalist id="suratLocalities">
+
+          {% for loc in surat_localities %}
+
+          <option value="{{ loc }}"></option>
+
+          {% endfor %}
+
+        </datalist>
+
+      </div>
+
+
+
+      <div class="col-12">
+
+        <label class="form-label">Property Type *</label>
+
+        <input type="hidden" id="propertyTypeInput" name="property_type" value="">
+
+        <div class="sell-option-chips sell-property-type-chips" role="group" aria-label="Property type">
+
+          <button type="button" class="sell-option-chip" data-property-type="apartment">Apartment / Flat</button>
+
+          <button type="button" class="sell-option-chip" data-property-type="villa">Villa</button>
+
+          <button type="button" class="sell-option-chip" data-property-type="bungalow">Bungalow</button>
+
+          <button type="button" class="sell-option-chip" data-property-type="plot">Plot / Land</button>
+
+          <button type="button" class="sell-option-chip" data-property-type="shop">Shop</button>
+
+          <button type="button" class="sell-option-chip" data-property-type="office">Office</button>
+
+        </div>
+
+        <div class="form-text">Select the type that best matches your property.</div>
+
+      </div>
+
+
+
+      <div class="col-12 col-md-6">
+
         <label class="form-label" for="propertyTitleInput">Property Title *</label>
-        <input class="form-control" id="propertyTitleInput" name="property_title" placeholder="Property Title *" required>
+
+        <input class="form-control" id="propertyTitleInput" name="property_title" placeholder="e.g. 3 BHK flat in Vesu" required>
+
       </div>
 
-      <div class="col-md-3">
+
+
+      <div class="col-12 col-sm-6 col-md-3">
+
         <label class="form-label" for="bhkInput">BHK</label>
+
         <input class="form-control" id="bhkInput" type="number" name="bhk" min="0" placeholder="BHK">
+
       </div>
 
-      <div class="col-md-3" id="unitNumberWrap">
+
+
+      <div class="col-12 col-sm-6 col-md-3" id="unitNumberWrap">
+
         <label class="form-label" for="unitNumberInput" id="unitNumberLabel">Unit Number</label>
+
         <input class="form-control" id="unitNumberInput" name="bungalow_number" placeholder="Unit Number">
+
       </div>
 
-      <div class="col-md-3 d-none" id="apartmentNumberWrap">
+
+
+      <div class="col-12 col-sm-6 col-md-3 d-none" id="apartmentNumberWrap">
+
         <label class="form-label" for="apartmentNumberInput">Apartment Number</label>
+
         <input class="form-control" id="apartmentNumberInput" name="apartment_number" placeholder="Apartment Number">
+
       </div>
 
-      <div class="col-md-3 d-none" id="flatNumberWrap">
+
+
+      <div class="col-12 col-sm-6 col-md-3 d-none" id="flatNumberWrap">
+
         <label class="form-label" for="flatNumberInput">Flat Number</label>
+
         <input class="form-control" id="flatNumberInput" name="flat_number" placeholder="Flat Number">
+
       </div>
 
-      <div class="col-md-3">
-        <label class="form-label" for="areaInput">Area (sq ft) *</label>
-        <input class="form-control" id="areaInput" type="number" name="area_sq_ft" placeholder="Area (sq ft) *" required min="1">
-      </div>
-
-      <div class="col-12">
-        <div id="aiPricePanel" class="sell-ai-price-panel d-none" aria-live="polite">
-          <div class="sell-ai-price-panel__head">
-            <span class="sell-ai-badge"><i class="bi bi-stars"></i> AI Price Estimate</span>
-            <span class="sell-ai-locality" id="aiPriceLocality"></span>
-          </div>
-          <div class="sell-ai-price-panel__body">
-            <div>
-              <p class="sell-ai-label mb-1">Predicted market price</p>
-              <p class="sell-ai-value mb-0" id="aiPriceValue">—</p>
-              <p class="sell-ai-sub mb-0" id="aiPriceRange"></p>
-            </div>
-            <div class="sell-ai-meta">
-              <div><span>Rate / sq.ft</span><strong id="aiPricePerSqft">—</strong></div>
-              <div><span>Area</span><strong id="aiPriceArea">—</strong></div>
-              <div><span>Type</span><strong id="aiPriceType">—</strong></div>
-            </div>
-          </div>
-          <div class="sell-ai-bar" aria-hidden="true">
-            <span class="sell-ai-bar__fill" id="aiPriceBarFill"></span>
-          </div>
-          <button type="button" class="btn btn-sm btn-jk-outline mt-3" id="useAiPriceBtn">Use AI estimate as expected price</button>
-        </div>
-        <div id="aiPriceLoading" class="sell-ai-loading d-none">
-          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-          Calculating price for your location…
-        </div>
-        <div id="aiPriceError" class="alert alert-warning py-2 small d-none mt-2 mb-0"></div>
-      </div>
-
-      <div class="col-md-4 d-none" id="expectedPriceWrap">
-        <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
-        <input class="form-control" id="expectedPriceInput" type="number" name="price" placeholder="Your expected price" min="1">
-        <p class="form-text mb-0">Enter your asking price after reviewing the AI estimate.</p>
-      </div>
-
-      <div class="col-12">
-        <label class="form-label" for="propertyAddressInput">Property Address *</label>
-        <textarea class="form-control" id="propertyAddressInput" name="property_address" rows="2" placeholder="Property Address *" required></textarea>
-      </div>
-      <div class="col-12">
-        <label class="form-label" for="descriptionInput">Property Description</label>
-        <textarea class="form-control" id="descriptionInput" name="description" rows="4" placeholder="Property Description"></textarea>
-      </div>
     </div>
+
+
+
+    <h5 class="mt-4 mb-3">Area &amp; Expected Price</h5>
+
+    <div class="row g-3 sell-area-price-row">
+
+      <div class="col-12 col-md-6">
+
+        <label class="form-label" for="areaValueInput">Property Area *</label>
+
+        <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter area number" required min="0.01" step="any">
+
+        <label class="form-label mt-3">Area Unit *</label>
+
+        <input type="hidden" id="areaUnitInput" name="area_unit" value="sq_ft">
+
+        <div class="sell-option-chips" role="group" aria-label="Area unit">
+
+          <button type="button" class="sell-option-chip is-active" data-area-unit="sq_ft">Sq. Ft.</button>
+
+          <button type="button" class="sell-option-chip" data-area-unit="sq_yard">Sq. Yard</button>
+
+          <button type="button" class="sell-option-chip" data-area-unit="vigha">Vigha</button>
+
+          <button type="button" class="sell-option-chip" data-area-unit="sq_meter">Sq. Meter</button>
+
+        </div>
+
+        <input type="hidden" id="areaSqFtInput" name="area_sq_ft">
+
+        <div class="form-text" id="areaConvertedHint"></div>
+
+      </div>
+
+
+
+      <div class="col-12 col-md-6">
+
+        <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
+
+        <input class="form-control" id="expectedPriceInput" type="number" name="price" placeholder="Enter expected price" min="1" step="1" required>
+
+      </div>
+
+
+
+      <div class="col-12">
+
+        <label class="form-label" for="propertyAddressInput">Property Address *</label>
+
+        <textarea class="form-control" id="propertyAddressInput" name="property_address" rows="2" placeholder="Full property address *" required></textarea>
+
+      </div>
+
+      <div class="col-12">
+
+        <label class="form-label" for="descriptionInput">Property Description</label>
+
+        <textarea class="form-control" id="descriptionInput" name="description" rows="4" placeholder="Describe your property (optional)"></textarea>
+
+      </div>
+
+    </div>
+
+
 
     <h5 class="mt-4 mb-3">Amenities</h5>
+
     <div class="row g-2">
+
       {% for amenity in ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply'] %}
+
       <div class="col-6 col-md-4 col-lg-3">
+
         <label class="amenity-check">
+
           <input type="checkbox" name="amenities" value="{{ amenity }}">
+
           <span>{{ amenity }}</span>
+
         </label>
+
       </div>
+
       {% endfor %}
+
     </div>
+
+
 
     <h5 class="mt-4 mb-3">Media Upload</h5>
     <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Property Images (Multiple)</label>
-        <input class="form-control" type="file" name="images" accept="image/*" multiple>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="sellImagesInput">Property Images (Multiple)</label>
+        <input class="form-control" id="sellImagesInput" type="file" name="images" accept="image/*" multiple>
+        <div id="sellImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
       </div>
-      <div class="col-md-6">
-        <label class="form-label">Property Videos (Multiple)</label>
-        <input class="form-control" type="file" name="videos" accept="video/*" multiple>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="sellVideosInput">Property Videos (Multiple)</label>
+        <input class="form-control" id="sellVideosInput" type="file" name="videos" accept="video/*" multiple>
+        <div id="sellVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
       </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mt-4">
-      <button class="btn btn-jk-accent btn-lg" type="submit" id="sellSubmitBtn" disabled>Submit For Selling</button>
-      <a href="{{ url_for('public.listings') }}" class="btn btn-outline-secondary btn-lg">Browse Listings</a>
+
+
+    <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-4">
+
+      <button class="btn btn-jk-accent btn-lg w-100 w-sm-auto" type="submit" id="sellSubmitBtn">Submit For Selling</button>
+
+      <a href="{{ url_for('public.listings') }}" class="btn btn-outline-secondary btn-lg w-100 w-sm-auto">Browse Listings</a>
+
     </div>
+
   </form>
+
 </section>
+
 {% endblock %}
+
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/sell_property.js') }}"></script>
 {% endblock %}
+

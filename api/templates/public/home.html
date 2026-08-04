@@ -49,7 +49,7 @@
 <section class="jv-section jv-services">
   <div class="container">
     <div class="row g-4">
-      <div class="col-md-4 scroll-reveal">
+      <div class="col-12 col-md-4 scroll-reveal">
         <article class="jv-service-card">
           <div class="jv-service-icon"><i class="bi bi-house-heart"></i></div>
           <h2 class="jv-service-title">Residential Properties</h2>
@@ -57,7 +57,7 @@
           <a href="{{ url_for('public.listings') }}?listing_intent=buy" class="jv-link">Explore residential</a>
         </article>
       </div>
-      <div class="col-md-4 scroll-reveal">
+      <div class="col-12 col-md-4 scroll-reveal">
         <article class="jv-service-card">
           <div class="jv-service-icon"><i class="bi bi-building"></i></div>
           <h2 class="jv-service-title">Commercial Properties</h2>
@@ -65,7 +65,7 @@
           <a href="{{ url_for('public.listings') }}?type=commercial" class="jv-link">Explore commercial</a>
         </article>
       </div>
-      <div class="col-md-4 scroll-reveal">
+      <div class="col-12 col-md-4 scroll-reveal">
         <article class="jv-service-card">
           <div class="jv-service-icon"><i class="bi bi-key"></i></div>
           <h2 class="jv-service-title">Rent &amp; Investment</h2>
@@ -80,19 +80,19 @@
 <section class="jv-section jv-stats-band">
   <div class="container">
     <div class="row g-4 text-center">
-      <div class="col-md-4 scroll-reveal">
+      <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
           <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span>
           <span class="jv-stat-label">Properties Listed</span>
         </div>
       </div>
-      <div class="col-md-4 scroll-reveal">
+      <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
           <span class="jv-stat-value" data-counter="{{ home_stats.clients }}">{{ home_stats.clients }}</span>
           <span class="jv-stat-label">Clients Served</span>
         </div>
       </div>
-      <div class="col-md-4 scroll-reveal">
+      <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
           <span class="jv-stat-value" data-counter="{{ home_stats.years }}">{{ home_stats.years }}</span><span class="jv-stat-suffix">+</span>
           <span class="jv-stat-label">Years of Experience</span>
@@ -104,20 +104,22 @@
 
 <section class="jv-section">
   <div class="container">
-    <div class="row g-5 align-items-center">
-      <div class="col-lg-6 scroll-reveal">
+    <div class="jv-about-split scroll-reveal">
+      <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
         <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
+      </div>
+      <div class="jv-about-media">
+        <div class="jv-about-visual">
+          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
+        </div>
+      </div>
+      <div class="jv-about-body">
         <p class="jv-body-text">
           {{ company_name }} delivers transparent, customer-focused real estate services across Surat —
           whether you are buying, selling, or renting residential and commercial property.
         </p>
         <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
-      </div>
-      <div class="col-lg-6 scroll-reveal">
-        <div class="jv-about-visual">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
-        </div>
       </div>
     </div>
   </div>
@@ -131,10 +133,15 @@
       <p class="jv-body-text mx-auto" style="max-width:640px">
         Curated residential and commercial listings across Surat's most promising neighbourhoods.
       </p>
+      <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+        <a href="{{ url_for('public.listings') }}" class="btn btn-jk-accent"><i class="bi bi-grid"></i> View All Listings</a>
+        <a href="{{ url_for('public.listings') }}?listing_intent=buy" class="btn btn-jk-outline">For Sale</a>
+        <a href="{{ url_for('public.listings') }}?listing_intent=rent" class="btn btn-jk-outline">For Rent</a>
+      </div>
     </div>
     <div id="jvDiscoverGrid" class="row g-4 jv-discover-grid">
       {% for p in featured_properties %}
-      <div class="col-md-6 col-lg-4">
+      <div class="col-12 col-md-6 col-lg-4">
         <article class="jv-property-card property-card">
           {{ render_listing_media(p, height=240, badge_text='For ' ~ ('Rent' if p.listing_intent == 'rent' else 'Sale')) }}
           <div class="jv-property-body">
@@ -143,7 +150,7 @@
             </h3>
             <p class="jv-property-meta">{{ p.display_type or p.property_type }} · {{ p.area_name }}, Surat</p>
             <p class="jv-property-price">From ₹{{ "{:,.0f}".format(p.price) }}{% if p.listing_type == 'rent' %}/mo{% endif %}</p>
-            <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="jv-link">View property</a>
+            <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-primary">View Details</a>
           </div>
         </article>
       </div>
@@ -159,13 +166,13 @@
 
 <section class="jv-section">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-3 scroll-reveal">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 scroll-reveal">
       <h2 class="jv-section-title mb-0">Testimonials &amp; Reviews</h2>
       <a href="{{ url_for('public.testimonials') }}" class="btn btn-jk-outline btn-sm">View all</a>
     </div>
     <div class="row g-4 scroll-reveal-stagger">
       {% for t in testimonials %}
-      <div class="col-md-6 col-lg-4">
+      <div class="col-12 col-md-6 col-lg-4">
         <article class="testimonial-card jv-testimonial h-100">
           <div class="text-warning mb-2">{% for _ in range(t.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
           <p class="mb-3">"{{ t.review_text }}"</p>

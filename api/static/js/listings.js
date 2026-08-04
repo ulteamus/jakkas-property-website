@@ -88,9 +88,10 @@ function cardHTML(p) {
     <p class="text-muted mb-2"><i class="bi bi-rulers"></i> ${sqft} sq.ft ${p.bhk ? `· ${p.bhk} BHK` : ''}</p>
     <p class="price">${formatINR(p.price)}${p.listing_type === 'rent' ? '/mo' : ''}</p>
     <p class="small text-muted line-clamp-2">${p.description || 'Verified property listing from JAKKASH.'}</p>
-    <div class="d-flex gap-2 mt-2">
+    <div class="d-flex gap-2 mt-2 flex-wrap">
       <a href="/property/${p.slug}" class="btn btn-sm btn-jk-primary">View Details</a>
-      <button class="btn btn-sm btn-jk-outline btn-save" data-id="${p.id}"><i class="bi bi-heart"></i></button>
+      <a href="/property/${p.slug}#visitPanel" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
+      <a href="/saved" class="btn btn-sm btn-outline-secondary btn-save" data-id="${p.id}"><i class="bi bi-heart"></i></a>
     </div>
   </div></div></div>`;
 }
@@ -150,7 +151,10 @@ async function load(options = {}) {
     results.querySelectorAll('.listing-card-col').forEach((col) => { col.className = LIST_COL_CLASS; });
   }
   document.querySelectorAll('.btn-save').forEach(btn => {
-    btn.onclick = () => saveProperty(btn.dataset.id);
+    btn.onclick = (e) => {
+      e.preventDefault();
+      saveProperty(btn.dataset.id);
+    };
   });
 }
 

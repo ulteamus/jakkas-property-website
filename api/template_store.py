@@ -125,8 +125,8 @@ TEMPLATES = {
       <input class="form-control" name="username" required>
     </div>
     <div class="col-md-3">
-      <label class="form-label">Email *</label>
-      <input type="email" class="form-control" name="email" required>
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" name="email" placeholder="Optional">
     </div>
     <div class="col-md-3">
       <label class="form-label">Full Name</label>
@@ -153,27 +153,8 @@ TEMPLATES = {
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-6 d-flex align-items-end gap-4">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="is_active" id="newActive" checked value="1">
-        <label class="form-check-label" for="newActive">Active</label>
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="require_otp" id="newRequireOtp" checked value="1">
-        <label class="form-check-label" for="newRequireOtp">Require OTP</label>
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="mobile_otp_enabled" id="newMobileOtp" checked value="1">
-        <label class="form-check-label" for="newMobileOtp">Enable Mobile OTP</label>
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="phone_verified" id="newPhoneVerified" value="1">
-        <label class="form-check-label" for="newPhoneVerified">Phone Verified</label>
-      </div>
-    </div>
     <div class="col-12">
-      <label class="form-label">Granular Permissions (optional override)</label>
-      <div class="row row-cols-1 row-cols-md-4 g-2">
+      <label class="form-label">Granular Permissions (optional override)</label>      <div class="row row-cols-1 row-cols-md-4 g-2">
         {% for key in permission_keys %}
         <div class="col">
           <label class="form-check border rounded p-2 d-flex align-items-center gap-2">
@@ -1671,13 +1652,35 @@ TEMPLATES = {
       <input type="checkbox" class="form-check-input" name="is_featured" id="feat" {% if property and property.is_featured %}checked{% endif %}>
       <label class="form-check-label" for="feat">Featured</label>
     </div>
-    <div class="col-md-4"><label>Images</label><input type="file" class="form-control" name="images" multiple accept="image/*"></div>
-    <div class="col-md-4"><label>Videos</label><input type="file" class="form-control" name="videos" multiple accept="video/*"></div>
-    <div class="col-md-4"><label>Documents (PDF)</label><input type="file" class="form-control" name="documents" multiple accept=".pdf"></div>
+    <div class="col-md-4">
+      <label>Images</label>
+      <input type="file" class="form-control" id="adminImagesInput" name="images" multiple accept="image/*">
+      <div id="adminImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
+    </div>
+    <div class="col-md-4">
+      <label>Videos</label>
+      <input type="file" class="form-control" id="adminVideosInput" name="videos" multiple accept="video/*">
+      <div id="adminVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
+    </div>
+    <div class="col-md-4">
+      <label>Documents (PDF)</label>
+      <input type="file" class="form-control" id="adminDocsInput" name="documents" multiple accept=".pdf">
+      <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
+    </div>
   </div>
   <button class="btn btn-jk-accent mt-3">Save Property</button>
 </form>
 <p class="small text-muted mt-2">Map marker is created automatically from latitude/longitude.</p>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
+<script>
+  if (window.MediaFileManager) {
+    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'));
+    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'));
+    MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
+  }
+</script>
 {% endblock %}
 """,
     "admin/reviews.html": """{% extends "admin/base.html" %}
@@ -1798,7 +1801,7 @@ TEMPLATES = {
 <a
   class="btn btn-outline-secondary btn-sm"
   target="_blank"
-  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '') }}"
+  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '', area=area_filter if area_filter else None) }}"
 >
   <i class="bi bi-printer me-1"></i>Print View
 </a>
@@ -1813,15 +1816,26 @@ TEMPLATES = {
     </div>
     <h3 class="kpi-value">{{ period_stats.get(value, 0) }}</h3>
     <p class="kpi-meta mb-2">{{ period_stats.get(value, 0) }} sell propert{{ 'y' if period_stats.get(value, 0) == 1 else 'ies' }} in this {{ label|lower }} period</p>
-    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter) }}" class="btn btn-sm btn-light">View {{ label }}</a>
+    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter, area=area_filter if area_filter else None) }}" class="btn btn-sm btn-light">View {{ label }}</a>
   </article>
   {% endfor %}
 </section>
 
-<div class="admin-filter-bar mb-2">
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2">
   {% for value, label in statuses %}
-  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter, area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
   {% endfor %}
+  <form method="get" class="ms-auto d-flex align-items-center gap-2">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="hidden" name="period" value="{{ period_filter }}">
+    <label class="form-label mb-0 small text-muted" for="areaFilter">Area</label>
+    <select class="form-select form-select-sm" id="areaFilter" name="area" onchange="this.form.submit()" style="min-width: 160px;">
+      <option value="">All areas</option>
+      {% for area in area_options %}
+      <option value="{{ area }}" {% if area_filter == area %}selected{% endif %}>{{ area }}</option>
+      {% endfor %}
+    </select>
+  </form>
 </div>
 
 <div class="admin-table-wrap table-responsive">
@@ -2896,9 +2910,10 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <p class="text-muted mb-2"><i class="bi bi-geo-alt"></i> {{ p.area_name }}, Surat</p>
       <p class="price mb-2">₹{{ "{:,.0f}".format(p.price) }}{% if p.listing_type=='rent' %}/mo{% endif %}</p>
       <p class="small text-muted line-clamp-2">{{ p.description or 'Premium property listing with verified details and expert support.' }}</p>
-      <div class="d-flex gap-2 mt-2">
+      <div class="d-flex gap-2 mt-2 flex-wrap">
         <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-primary">View Details</a>
-        <button class="btn btn-sm btn-jk-outline btn-save" data-id="{{ p.id }}"><i class="bi bi-heart"></i></button>
+        <a href="{{ url_for('public.property_detail', slug=p.slug) }}#visitPanel" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
+        <a href="{{ url_for('public.saved') }}" class="btn btn-sm btn-outline-secondary btn-save" data-id="{{ p.id }}"><i class="bi bi-heart"></i></a>
       </div>
     </div>
   </div>
@@ -3057,6 +3072,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   <link href="{{ url_for('static', filename='css/jovista-theme.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
+  {% block head_meta %}{% endblock %}
   {% block extra_css %}{% endblock %}
 </head>
 <body class="jk-jovista{% if request.endpoint == 'public.home' %} jk-home{% endif %}">
@@ -3370,6 +3386,22 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 """,
     "public/detail.html": """{% extends "public/base.html" %}
 {% block title %}{{ property.property_name }} - {{ company_name }}{% endblock %}
+{% block head_meta %}
+{% set cover = None %}
+{% if media.images and media.images|length %}
+  {% set cover = url_for('uploads', filename=media.images[0].file_path, _external=True) %}
+{% elif property.primary_image %}
+  {% set cover = url_for('uploads', filename=property.primary_image, _external=True) %}
+{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ property.property_name }} | {{ company_name }}">
+<meta property="og:description" content="{{ (property.description or (property.property_name ~ ' in ' ~ (property.area_name or 'Surat')))|truncate(160, True) }}">
+<meta property="og:url" content="{{ request.url }}">
+{% if cover %}<meta property="og:image" content="{{ cover }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ property.property_name }} | {{ company_name }}">
+{% if cover %}<meta name="twitter:image" content="{{ cover }}">{% endif %}
+{% endblock %}
 {% block content %}
 <div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}">
   <div class="row g-4">
@@ -3431,11 +3463,13 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
         <button class="btn btn-jk-accent" type="button" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </button>
-        <button class="btn btn-jk-outline" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel">
+        <button class="btn btn-jk-outline btn-request-visit" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel" aria-controls="visitPanel">
           <i class="bi bi-calendar-check"></i> Request Site Visit
         </button>
-        <button class="btn btn-outline-secondary btn-save" data-id="{{ property.id }}"><i class="bi bi-heart"></i> Save Property</button>
-        <button class="btn btn-outline-secondary btn-share"><i class="bi bi-share"></i> Share</button>
+        <a class="btn btn-outline-secondary btn-save" href="{{ url_for('public.saved') }}" data-id="{{ property.id }}" role="button">
+          <i class="bi bi-heart"></i> Save Property
+        </a>
+        <button class="btn btn-outline-secondary btn-share" type="button"><i class="bi bi-share"></i> Share</button>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
@@ -3450,6 +3484,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
     <h3 class="section-title">Send Inquiry</h3>
     <form id="inquiryForm" class="row g-3">
       <input type="hidden" name="property_id" value="{{ property.id }}">
+      <input type="hidden" name="intent" id="inquiryIntent" value="inquiry">
       <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
       <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
       <div class="col-12"><input class="form-control" name="email" placeholder="Email"></div>
@@ -3462,7 +3497,8 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
     <h3 class="section-title">Request Site Visit</h3>
     <form id="visitForm" class="row g-3">
       <input type="hidden" name="property_id" value="{{ property.id }}">
-      <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
+      <input type="hidden" name="intent" value="site_visit">
+      <div class="col-md-6"><input class="form-control" name="name" id="visitNameInput" placeholder="Your Name" required></div>
       <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
       <div class="col-md-6"><input class="form-control" name="email" placeholder="Email"></div>
       <div class="col-md-6"><input type="date" class="form-control" name="preferred_date" required></div>
@@ -3587,20 +3623,22 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
 <section class="jv-section">
   <div class="container">
-    <div class="row g-5 align-items-center">
-      <div class="col-12 col-lg-6 scroll-reveal">
+    <div class="jv-about-split scroll-reveal">
+      <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
         <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
+      </div>
+      <div class="jv-about-media">
+        <div class="jv-about-visual">
+          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
+        </div>
+      </div>
+      <div class="jv-about-body">
         <p class="jv-body-text">
           {{ company_name }} delivers transparent, customer-focused real estate services across Surat —
           whether you are buying, selling, or renting residential and commercial property.
         </p>
         <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
-      </div>
-      <div class="col-12 col-lg-6 scroll-reveal">
-        <div class="jv-about-visual">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
-        </div>
       </div>
     </div>
   </div>
@@ -4242,25 +4280,17 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
 
     <h5 class="mt-4 mb-3">Media Upload</h5>
-
     <div class="row g-3">
-
       <div class="col-12 col-md-6">
-
-        <label class="form-label">Property Images (Multiple)</label>
-
-        <input class="form-control" type="file" name="images" accept="image/*" multiple>
-
+        <label class="form-label" for="sellImagesInput">Property Images (Multiple)</label>
+        <input class="form-control" id="sellImagesInput" type="file" name="images" accept="image/*" multiple>
+        <div id="sellImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
       </div>
-
       <div class="col-12 col-md-6">
-
-        <label class="form-label">Property Videos (Multiple)</label>
-
-        <input class="form-control" type="file" name="videos" accept="video/*" multiple>
-
+        <label class="form-label" for="sellVideosInput">Property Videos (Multiple)</label>
+        <input class="form-control" id="sellVideosInput" type="file" name="videos" accept="video/*" multiple>
+        <div id="sellVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
       </div>
-
     </div>
 
 
@@ -4280,9 +4310,8 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 {% endblock %}
 
 {% block extra_js %}
-
+<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/sell_property.js') }}"></script>
-
 {% endblock %}
 
 """,

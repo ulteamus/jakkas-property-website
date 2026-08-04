@@ -16,6 +16,7 @@
   <link href="{{ url_for('static', filename='css/jovista-theme.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
+  {% block head_meta %}{% endblock %}
   {% block extra_css %}{% endblock %}
 </head>
 <body class="jk-jovista{% if request.endpoint == 'public.home' %} jk-home{% endif %}">

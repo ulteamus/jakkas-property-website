@@ -734,8 +734,10 @@ class Admin(UserMixin):
 
         username = (data.get("username") or "").strip()
         email = (data.get("email") or "").strip().lower()
-        if not username or not email:
-            raise ValueError("Username and email are required.")
+        if not username:
+            raise ValueError("Username is required.")
+        if not email:
+            email = f"{username}@jakkash.local"
         if Admin.get_by_username(username, include_inactive=True):
             raise ValueError("Username already exists.")
         existing_email = query_one("SELECT id FROM admins WHERE LOWER(email)=LOWER(%s)", (email,))

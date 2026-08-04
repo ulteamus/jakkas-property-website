@@ -624,11 +624,29 @@ def _resolve_submission_period(period_filter):
 def _submission_redirect_args():
     status = (request.form.get("redirect_status") or request.args.get("status") or "pending").strip().lower()
     period = (request.form.get("redirect_period") or request.args.get("period") or "weekly").strip().lower()
+    area = (request.form.get("redirect_area") or request.args.get("area") or "").strip()
     if status not in {"pending", "approved", "rejected", "all"}:
         status = "pending"
     if period not in {"daily", "weekly", "monthly", "yearly"}:
         period = "weekly"
-    return {"status": status, "period": period}
+    args = {"status": status, "period": period}
+    if area:
+        args["area"] = area
+    return args
+
+
+SELL_AREA_FILTER_OPTIONS = [
+    "Adajan",
+    "Vesu",
+    "Pal",
+    "Piplod",
+    "Athwa",
+    "City Light",
+    "Althan",
+    "Varachha",
+    "Katargam",
+    "Ring Road",
+]
 
 
 def _apply_submission_status_change(submission, new_status, review_note=None):
@@ -694,6 +712,7 @@ def sell_properties():
     allowed = {"pending", "approved", "rejected", "all"}
     if status_filter not in allowed:
         status_filter = "pending"
+    area_filter = (request.args.get("area") or "").strip()
     period_key, start_date, end_date = _resolve_submission_period(request.args.get("period"))
     owner_scope = _owner_scope_admin_id()
     submissions_rows = submission_model.list_submissions(
@@ -702,6 +721,7 @@ def sell_properties():
         owner_admin_id=owner_scope,
         start_date=start_date,
         end_date=end_date,
+        area=area_filter or None,
     )
     period_stats = submission_model.period_counts(owner_admin_id=owner_scope)
     return render_template(
@@ -709,6 +729,8 @@ def sell_properties():
         submissions=submissions_rows,
         status_filter=status_filter,
         period_filter=period_key,
+        area_filter=area_filter,
+        area_options=SELL_AREA_FILTER_OPTIONS,
         period_stats=period_stats,
         statuses=[
             ("pending", "Pending"),
@@ -856,6 +878,7 @@ def print_sell_properties():
     status_filter = (request.args.get("status") or "all").strip().lower()
     if status_filter not in {"pending", "approved", "rejected", "all"}:
         status_filter = "all"
+    area_filter = (request.args.get("area") or "").strip()
     period_key, start_date, end_date = _resolve_submission_period(request.args.get("period"))
     rows = submission_model.list_submissions(
         status=None if status_filter == "all" else status_filter,
@@ -863,12 +886,14 @@ def print_sell_properties():
         owner_admin_id=_owner_scope_admin_id(),
         start_date=start_date,
         end_date=end_date,
+        area=area_filter or None,
     )
     return render_template(
         "admin/sell_properties_print.html",
         submissions=rows,
         status_filter=status_filter,
         period_filter=period_key,
+        area_filter=area_filter,
         start_date=start_date,
         end_date=end_date,
     )
@@ -1040,18 +1065,22 @@ def admin_users():
 @super_admin_required
 def create_admin_user():
     try:
+        username = (request.form.get("username") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        if not email and username:
+            email = f"{username}@jakkash.local"
         created = Admin.create_admin(
             {
-                "username": request.form.get("username"),
-                "email": request.form.get("email"),
+                "username": username,
+                "email": email,
                 "full_name": request.form.get("full_name"),
                 "password": request.form.get("password"),
                 "role": request.form.get("role"),
                 "phone": request.form.get("phone"),
-                "phone_verified": _parse_bool_form(request.form, "phone_verified"),
-                "is_active": _parse_bool_form(request.form, "is_active"),
-                "require_otp": _parse_bool_form(request.form, "require_otp"),
-                "mobile_otp_enabled": _parse_bool_form(request.form, "mobile_otp_enabled"),
+                "phone_verified": False,
+                "is_active": True,
+                "require_otp": False,
+                "mobile_otp_enabled": False,
                 "permissions": _permissions_from_form(request.form),
             },
             created_by_admin_id=current_user.id,

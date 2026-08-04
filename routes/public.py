@@ -1,3 +1,4 @@
+import os
 import uuid
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 
@@ -75,14 +76,20 @@ def about():
         "properties_listed": 0,
         "happy_clients": 0,
         "successful_deals": 0,
-        "years_experience": 10,
+        "years_experience": int(os.getenv("COMPANY_YEARS_EXPERIENCE", "10")),
     }
     try:
         dashboard = analytics_model.dashboard_stats()
         reviews_count = len(reviews_model.list_reviews(limit=500))
         about_stats["properties_listed"] = int(dashboard.get("total_properties") or 0)
-        about_stats["successful_deals"] = int(dashboard.get("sold_properties") or 0)
-        about_stats["happy_clients"] = max(int(dashboard.get("total_inquiries") or 0), reviews_count)
+        about_stats["successful_deals"] = int(
+            dashboard.get("sold_properties") or dashboard.get("total_sold") or 0
+        )
+        about_stats["happy_clients"] = max(
+            int(dashboard.get("total_inquiries") or 0),
+            int(dashboard.get("total_leads") or 0),
+            reviews_count,
+        )
     except Exception:
         pass
     return render_template("public/about.html", about_stats=about_stats)

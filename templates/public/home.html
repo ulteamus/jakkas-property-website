@@ -104,20 +104,22 @@
 
 <section class="jv-section">
   <div class="container">
-    <div class="row g-5 align-items-center">
-      <div class="col-12 col-lg-6 scroll-reveal">
+    <div class="jv-about-split scroll-reveal">
+      <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
         <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
+      </div>
+      <div class="jv-about-media">
+        <div class="jv-about-visual">
+          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
+        </div>
+      </div>
+      <div class="jv-about-body">
         <p class="jv-body-text">
           {{ company_name }} delivers transparent, customer-focused real estate services across Surat —
           whether you are buying, selling, or renting residential and commercial property.
         </p>
         <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
-      </div>
-      <div class="col-12 col-lg-6 scroll-reveal">
-        <div class="jv-about-visual">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
-        </div>
       </div>
     </div>
   </div>

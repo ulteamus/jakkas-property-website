@@ -28,6 +28,29 @@ document.querySelector('.btn-share')?.addEventListener('click', () => {
   else { navigator.clipboard.writeText(location.href); alert('Link copied!'); }
 });
 
+function openSiteVisitPanel(focus = true) {
+  const panel = document.getElementById('visitPanel');
+  const intent = document.getElementById('inquiryIntent');
+  if (intent) intent.value = 'site_visit';
+  if (panel && window.bootstrap?.Collapse) {
+    bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).show();
+  } else if (panel) {
+    panel.classList.add('show');
+  }
+  panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (focus) {
+    setTimeout(() => document.getElementById('visitNameInput')?.focus(), 280);
+  }
+}
+
+document.querySelectorAll('.btn-request-visit').forEach((btn) => {
+  btn.addEventListener('click', () => openSiteVisitPanel(true));
+});
+
+if (location.hash === '#visitPanel' || /[?&]intent=site_visit\b/i.test(location.search)) {
+  openSiteVisitPanel(true);
+}
+
 document.getElementById('inquiryForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const body = Object.fromEntries(new FormData(e.target));
