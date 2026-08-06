@@ -74,7 +74,7 @@
           <i class="bi bi-whatsapp"></i> WhatsApp Broker
         </a>
         <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-        <button class="btn btn-jk-accent" type="button" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
+        <button class="btn btn-jk-accent btn-send-inquiry" type="button" data-action="send-inquiry" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </button>
         <button class="btn btn-jk-outline btn-request-visit" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel" aria-controls="visitPanel">
@@ -83,7 +83,7 @@
         <a class="btn btn-outline-secondary btn-save" href="{{ url_for('public.saved') }}" data-id="{{ property.id }}" role="button">
           <i class="bi bi-heart"></i> Save Property
         </a>
-        <button class="btn btn-outline-secondary btn-share" type="button"><i class="bi bi-share"></i> Share</button>
+        <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
@@ -99,7 +99,7 @@
     <form id="inquiryForm" class="row g-3">
       <input type="hidden" name="property_id" value="{{ property.id }}">
       <input type="hidden" name="intent" id="inquiryIntent" value="inquiry">
-      <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
+      <div class="col-md-6"><input class="form-control" name="name" id="inquiryNameInput" placeholder="Your Name" required></div>
       <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
       <div class="col-12"><input class="form-control" name="email" placeholder="Email"></div>
       <div class="col-12"><textarea class="form-control" name="message" rows="3" placeholder="Message"></textarea></div>

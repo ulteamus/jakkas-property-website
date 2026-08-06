@@ -6,7 +6,7 @@
 <a
   class="btn btn-outline-secondary btn-sm"
   target="_blank"
-  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '', area=area_filter if area_filter else None) }}"
+  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '', area=area_filter if area_filter else None, seller_type=seller_type_filter if seller_type_filter else None) }}"
 >
   <i class="bi bi-printer me-1"></i>Print View
 </a>
@@ -21,24 +21,31 @@
     </div>
     <h3 class="kpi-value">{{ period_stats.get(value, 0) }}</h3>
     <p class="kpi-meta mb-2">{{ period_stats.get(value, 0) }} sell propert{{ 'y' if period_stats.get(value, 0) == 1 else 'ies' }} in this {{ label|lower }} period</p>
-    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter, area=area_filter if area_filter else None) }}" class="btn btn-sm btn-light">View {{ label }}</a>
+    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter, area=area_filter if area_filter else None, seller_type=seller_type_filter if seller_type_filter else None) }}" class="btn btn-sm btn-light">View {{ label }}</a>
   </article>
   {% endfor %}
 </section>
 
 <div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2">
   {% for value, label in statuses %}
-  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter, area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter, area=area_filter if area_filter else None, seller_type=seller_type_filter if seller_type_filter else None) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
   {% endfor %}
-  <form method="get" class="ms-auto d-flex align-items-center gap-2">
+  <form method="get" class="ms-auto d-flex align-items-center gap-2 flex-wrap">
     <input type="hidden" name="status" value="{{ status_filter }}">
     <input type="hidden" name="period" value="{{ period_filter }}">
     <label class="form-label mb-0 small text-muted" for="areaFilter">Area</label>
-    <select class="form-select form-select-sm" id="areaFilter" name="area" onchange="this.form.submit()" style="min-width: 160px;">
+    <select class="form-select form-select-sm" id="areaFilter" name="area" onchange="this.form.submit()" style="min-width: 140px;">
       <option value="">All areas</option>
       {% for area in area_options %}
       <option value="{{ area }}" {% if area_filter == area %}selected{% endif %}>{{ area }}</option>
       {% endfor %}
+    </select>
+    <label class="form-label mb-0 small text-muted" for="sellerTypeFilter">Seller Type</label>
+    <select class="form-select form-select-sm" id="sellerTypeFilter" name="seller_type" onchange="this.form.submit()" style="min-width: 140px;">
+      <option value="">All</option>
+      <option value="owner" {% if seller_type_filter == 'owner' %}selected{% endif %}>Owner</option>
+      <option value="broker" {% if seller_type_filter == 'broker' %}selected{% endif %}>Broker</option>
+      <option value="developer" {% if seller_type_filter == 'developer' %}selected{% endif %}>Developer</option>
     </select>
   </form>
 </div>
@@ -62,7 +69,7 @@
       <tr id="submission-{{ submission.id }}">
         <td>{{ submission.id }}</td>
         <td>
-          <div class="fw-semibold">{{ submission.owner_name }}</div>
+          <div class="fw-semibold">{{ submission.display_owner_name or submission.owner_name }}</div>
           <div class="small">
             <a href="tel:{{ submission.owner_mobile }}">{{ submission.owner_mobile }}</a>
             {% if submission.owner_alt_mobile %}

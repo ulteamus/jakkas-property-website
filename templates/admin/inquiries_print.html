@@ -10,6 +10,7 @@
       .no-print { display: none !important; }
       body { margin: 0; }
     }
+    .cat-badge { font-size: 0.75rem; }
   </style>
 </head>
 <body class="p-3">
@@ -19,11 +20,17 @@
   </div>
   <div class="mb-2 small text-muted">
     Range: {{ range_filter|title }} | Dates: {{ start_date }} to {{ end_date }} | Status: {{ selected_status|replace('_', ' ')|title }}
+    | Category:
+    {% if selected_inquiry_type == 'site_visit' %}Site Visit Requests
+    {% elif selected_inquiry_type == 'property' %}Property-Specific Inquiries
+    {% elif selected_inquiry_type == 'general' %}General Inquiries
+    {% else %}All{% endif %}
   </div>
   <table class="table table-sm table-bordered align-middle">
     <thead class="table-light">
       <tr>
         <th>Date</th>
+        <th>Category</th>
         <th>Name</th>
         <th>Mobile</th>
         <th>Email</th>
@@ -34,8 +41,14 @@
     </thead>
     <tbody>
       {% for inquiry in inquiries %}
+      {% set itype = inquiry.inquiry_type or ('property' if inquiry.property_id else 'general') %}
       <tr>
         <td>{{ inquiry.created_at }}</td>
+        <td>
+          <span class="badge text-bg-secondary cat-badge">
+            {% if itype == 'site_visit' %}Site Visit{% elif itype == 'property' %}Property{% else %}General{% endif %}
+          </span>
+        </td>
         <td>{{ inquiry.name }}</td>
         <td>{{ inquiry.mobile }}</td>
         <td>{{ inquiry.email or '-' }}</td>
@@ -45,7 +58,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" class="text-center">No inquiries available.</td>
+        <td colspan="8" class="text-center">No inquiries available.</td>
       </tr>
       {% endfor %}
     </tbody>

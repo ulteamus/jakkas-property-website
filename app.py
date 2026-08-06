@@ -90,6 +90,7 @@ def create_app():
 
     @app.before_request
     def ensure_session_ids():
+        session.permanent = True
         if "session_id" not in session:
             session["session_id"] = str(uuid.uuid4())
         if "visitor_id" not in session:

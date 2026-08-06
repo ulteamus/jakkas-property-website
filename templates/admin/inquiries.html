@@ -1,19 +1,19 @@
 {% extends "admin/base.html" %}
 {% block title %}Inquiries{% endblock %}
 {% block page_heading %}Inquiries{% endblock %}
-{% block page_subheading %}Operational inquiry workflow with inline updates, date filters, and print-ready output.{% endblock %}
+{% block page_subheading %}Operational inquiry workflow with category filters, inline updates, and print-ready output.{% endblock %}
 {% block page_actions %}
 <a
   class="btn btn-outline-secondary btn-sm"
   target="_blank"
-  href="{{ url_for('admin.print_inquiries', range=range_filter, start_date=start_date, end_date=end_date, status=selected_status if selected_status != 'all' else '') }}"
+  href="{{ url_for('admin.print_inquiries', range=range_filter, start_date=start_date, end_date=end_date, status=selected_status if selected_status != 'all' else '', inquiry_type=selected_inquiry_type if selected_inquiry_type != 'all' else '') }}"
 >
   <i class="bi bi-printer me-1"></i>Print View
 </a>
 {% endblock %}
 {% block content %}
 <section class="admin-section-card">
-  <form method="GET" class="row g-3 align-items-end">
+  <form method="GET" class="row g-3 align-items-end" id="inquiryFilterForm">
     <div class="col-md-3">
       <label class="form-label">Range</label>
       <select name="range" class="form-select">
@@ -39,6 +39,14 @@
         {% endfor %}
       </select>
     </div>
+    <div class="col-12">
+      <input type="hidden" name="inquiry_type" id="inquiryTypeInput" value="{{ selected_inquiry_type }}">
+      <div class="admin-filter-bar d-flex flex-wrap gap-2 mb-2">
+        {% for value, label in inquiry_types %}
+        <button type="button" class="admin-filter-chip {% if selected_inquiry_type == value %}active{% endif %}" data-inquiry-type="{{ value }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+    </div>
     <div class="col-12 d-flex gap-2">
       <button class="btn btn-jk-accent">Apply Filters</button>
       <a class="btn btn-outline-secondary" href="{{ url_for('admin.inquiries') }}">Reset</a>
@@ -46,11 +54,17 @@
   </form>
 </section>
 
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="small text-muted">Select rows to bulk-delete the current filtered set.</div>
+  <button type="button" class="btn btn-sm btn-outline-danger" id="bulkDeleteInquiriesBtn">Delete Selected</button>
+</div>
 <div class="admin-table-wrap table-responsive">
   <table class="table align-middle">
     <thead>
       <tr>
+        <th style="width:36px;"><input type="checkbox" id="selectAllInquiries"></th>
         <th>Date</th>
+        <th>Category</th>
         <th>Name</th>
         <th>Mobile</th>
         <th>Property</th>
@@ -61,8 +75,15 @@
     </thead>
     <tbody>
       {% for i in inquiries %}
+      {% set itype = i.inquiry_type or ('property' if i.property_id else 'general') %}
       <tr>
+        <td><input type="checkbox" value="{{ i.id }}" class="inquiry-check"></td>
         <td>{{ i.created_at }}</td>
+        <td>
+          <span class="badge text-bg-secondary">
+            {% if itype == 'site_visit' %}Site Visit{% elif itype == 'property' %}Property{% else %}General{% endif %}
+          </span>
+        </td>
         <td class="fw-semibold">{{ i.name }}</td>
         <td>{{ i.mobile }}</td>
         <td>{{ i.property_name or 'General' }}</td>
@@ -81,14 +102,49 @@
         </td>
         <td class="text-nowrap">
           <a href="{{ url_for('admin.inquiry_detail', inquiry_id=i.id) }}" class="btn btn-sm btn-outline-secondary">Detail</a>
+          <form method="POST" action="{{ url_for('admin.delete_inquiry', inquiry_id=i.id) }}" class="d-inline" onsubmit="return confirm('Delete this inquiry?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger">Delete</button>
+          </form>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" class="text-center text-muted py-4">No inquiries for the selected filter.</td>
+        <td colspan="9" class="text-center text-muted py-4">No inquiries for the selected filter.</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+<form method="POST" action="{{ url_for('admin.bulk_delete_inquiries') }}" id="bulkInquiryForm" class="d-none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.querySelectorAll('[data-inquiry-type]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.getElementById('inquiryTypeInput').value = btn.dataset.inquiryType || 'all';
+      document.getElementById('inquiryFilterForm').submit();
+    });
+  });
+  document.getElementById('selectAllInquiries')?.addEventListener('change', (e) => {
+    document.querySelectorAll('.inquiry-check').forEach((cb) => { cb.checked = e.target.checked; });
+  });
+  document.getElementById('bulkDeleteInquiriesBtn')?.addEventListener('click', () => {
+    const form = document.getElementById('bulkInquiryForm');
+    form.querySelectorAll('input[name="inquiry_ids"]').forEach((n) => n.remove());
+    const checked = [...document.querySelectorAll('.inquiry-check:checked')];
+    if (!checked.length) { alert('Select at least one inquiry.'); return; }
+    if (!confirm('Delete selected inquiries?')) return;
+    checked.forEach((cb) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'inquiry_ids';
+      input.value = cb.value;
+      form.appendChild(input);
+    });
+    form.submit();
+  });
+</script>
 {% endblock %}

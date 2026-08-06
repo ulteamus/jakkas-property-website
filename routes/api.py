@@ -315,8 +315,17 @@ def api_inquiry():
     required = ["name", "mobile"]
     if not all(data.get(k) for k in required):
         return jsonify({"success": False, "error": "Name and mobile required"}), 400
-    iid = inquiry_model.create(data)
-    lead_model.create_from_inquiry(data, inquiry_id=iid)
+    payload = dict(data)
+    if not payload.get("inquiry_type"):
+        intent = (payload.get("intent") or "").strip().lower()
+        if intent in {"site_visit", "visit"}:
+            payload["inquiry_type"] = "site_visit"
+        elif payload.get("property_id"):
+            payload["inquiry_type"] = "property"
+        else:
+            payload["inquiry_type"] = "general"
+    iid = inquiry_model.create(payload)
+    lead_model.create_from_inquiry(payload, inquiry_id=iid)
     return jsonify({"success": True, "message": "Inquiry submitted. We will contact you soon."})
 
 
@@ -379,6 +388,7 @@ def api_visit_request():
         "property_id": data.get("property_id"),
         "message": site_visit_message,
         "source": "site_visit_request",
+        "inquiry_type": "site_visit",
     }
     iid = inquiry_model.create(payload)
     lead_model.create_from_inquiry(payload, inquiry_id=iid)
@@ -414,10 +424,12 @@ def api_call_click():
 
 @api_bp.route("/saved", methods=["GET", "POST", "DELETE"])
 def api_saved():
+    session.permanent = True
     sid = session.get("session_id")
     if not sid:
         session["session_id"] = str(uuid.uuid4())
         sid = session["session_id"]
+        session.modified = True
 
     if request.method == "GET":
         rows = query_all(

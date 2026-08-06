@@ -8,11 +8,11 @@
 
   <header class="mb-4">
 
-    <h1 class="section-title">Sell Your Property</h1>
+    <h1 class="section-title">Sell / Rent Your Property</h1>
 
     <p class="text-muted mb-0">
 
-      Submit your sale listing details. Every submission is marked as <strong>Pending Approval</strong> and
+      Submit your listing details. Every submission is marked as <strong>Pending Approval</strong> and
 
       becomes public only after admin verification.
 
@@ -28,17 +28,27 @@
 
 
 
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Listing Intent *</label>
+      <input type="hidden" id="listingIntentInput" name="listing_intent" value="sell">
+      <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
+        <button type="button" class="sell-option-chip btn-orange is-active" data-listing-intent="sell">Sell Property</button>
+        <button type="button" class="sell-option-chip" data-listing-intent="rent">Rent Property</button>
+      </div>
+    </div>
+
     <h5 class="mb-3" id="contactSectionTitle">Owner Details (Mandatory)</h5>
 
     <div class="row g-3 sell-contact-row">
 
       <div class="col-12">
 
-        <label class="form-label">Listed By *</label>
+        <label class="form-label">Seller Type *</label>
 
         <input type="hidden" id="submitterTypeInput" name="submitter_type" value="owner">
+        <input type="hidden" id="sellerTypeInput" name="seller_type" value="owner">
 
-        <div class="sell-option-chips" role="group" aria-label="Listed by">
+        <div class="sell-option-chips" role="group" aria-label="Seller type">
 
           <button type="button" class="sell-option-chip is-active" data-submitter-type="owner">Owner</button>
 
@@ -174,11 +184,21 @@
 
 
 
-      <div class="col-12 col-sm-6 col-md-3">
+      <div class="col-12 col-sm-6 col-md-3" id="bhkWrap">
 
-        <label class="form-label" for="bhkInput">BHK</label>
+        <label class="form-label" for="bhkInput">BHK Number</label>
 
         <input class="form-control" id="bhkInput" type="number" name="bhk" min="0" placeholder="BHK">
+
+      </div>
+
+
+
+      <div class="col-12 col-sm-6 col-md-3 d-none" id="blockWingWrap">
+
+        <label class="form-label" for="blockWingInput">Block / Wing</label>
+
+        <input class="form-control" id="blockWingInput" name="block_wing" placeholder="e.g. A, B, C">
 
       </div>
 
@@ -188,7 +208,7 @@
 
         <label class="form-label" for="unitNumberInput" id="unitNumberLabel">Unit Number</label>
 
-        <input class="form-control" id="unitNumberInput" name="bungalow_number" placeholder="Unit Number">
+        <input class="form-control" id="unitNumberInput" name="unit_number" placeholder="e.g. 101, 903">
 
       </div>
 
@@ -222,9 +242,9 @@
 
       <div class="col-12 col-md-6">
 
-        <label class="form-label" for="areaValueInput">Property Area *</label>
+        <label class="form-label" for="areaValueInput" id="areaValueLabel">Enter the area in sqft *</label>
 
-        <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter area number" required min="0.01" step="any">
+        <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter the area in sqft" required min="0.01" step="any">
 
         <label class="form-label mt-3">Area Unit *</label>
 

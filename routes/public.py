@@ -169,8 +169,10 @@ def sell_property():
             flash("Please fill all mandatory fields before submitting.", "danger")
             return redirect(url_for("public.sell_property"))
 
-        property_status = "sell"
-        listing_type = "sale"
+        property_status = (request.form.get("listing_intent") or "sell").strip().lower()
+        if property_status not in {"sell", "rent"}:
+            property_status = "sell"
+        listing_type = "rent" if property_status == "rent" else "sale"
         property_type_raw = (request.form.get("property_type") or "flat").lower()
         property_type = property_type_raw
         if property_type in {"shop", "office", "commercial"}:
@@ -185,10 +187,13 @@ def sell_property():
         amenities = request.form.getlist("amenities")
         area_name = request.form.get("location_area") or request.form.get("city") or "Surat"
         apartment_number = (request.form.get("apartment_number") or "").strip() or None
-        unit_number = (request.form.get("bungalow_number") or "").strip() or None
+        unit_number = (request.form.get("unit_number") or request.form.get("bungalow_number") or "").strip() or None
         flat_number = (request.form.get("flat_number") or "").strip() or None
+        block_wing = (request.form.get("block_wing") or "").strip() or None
         if property_type_raw == "apartment":
-            unit_number = flat_number
+            unit_number = unit_number or flat_number or apartment_number
+        hide_bhk_types = {"plot", "land", "shop", "office"}
+        bhk_value = 0 if property_type_raw in hide_bhk_types else int(request.form.get("bhk") or 0)
 
         try:
             area_factors = {"sq_ft": 1, "sq_yard": 9, "vigha": 17424, "sq_meter": 10.7639}
@@ -200,7 +205,7 @@ def sell_property():
             else:
                 area_sq_ft = area_value * area_factors.get(area_unit, 1)
             price = float(str(request.form.get("price")).replace(",", ""))
-            submitter_type = (request.form.get("submitter_type") or "owner").lower()
+            submitter_type = (request.form.get("seller_type") or request.form.get("submitter_type") or "owner").lower()
             if submitter_type not in {"owner", "broker", "developer"}:
                 submitter_type = "owner"
             duplicate = prop_model.find_duplicate(
@@ -222,13 +227,17 @@ def sell_property():
                     "area_name": area_name,
                     "address": request.form.get("property_address"),
                     "price": price,
-                    "bhk": int(request.form.get("bhk") or 0),
+                    "bhk": bhk_value,
                     "sq_ft": area_sq_ft,
                     "description": request.form.get("description"),
                     "amenities": amenities,
                     "status": "reserved",  # Pending admin approval
                     "is_featured": False,
                     "listing_type": listing_type,
+                    "listing_intent": property_status,
+                    "seller_type": submitter_type,
+                    "block_wing": block_wing,
+                    "unit_number": unit_number,
                     "creation_source": "user_submission",
                 }
             )
@@ -258,14 +267,17 @@ def sell_property():
                     "property_title": request.form.get("property_title"),
                     "property_type": request.form.get("property_type"),
                     "property_status": property_status,
-                    "bhk": int(request.form.get("bhk") or 0),
+                    "bhk": bhk_value,
                     "bungalow_number": unit_number,
-                    "apartment_number": apartment_number,
+                    "apartment_number": apartment_number or unit_number,
+                    "block_wing": block_wing,
+                    "unit_number": unit_number,
                     "area_sq_ft": area_sq_ft,
                     "area_unit": area_unit,
                     "area_value": area_value,
                     "price": price,
                     "submitter_type": submitter_type,
+                    "seller_type": submitter_type,
                     "property_address": request.form.get("property_address"),
                     "city": request.form.get("city") or "Surat",
                     "location_area": request.form.get("location_area"),
@@ -285,6 +297,7 @@ def sell_property():
                     "property_id": created_property["id"],
                     "message": "New property submitted from public Sell Your Property form.",
                     "source": "property_submission",
+                    "inquiry_type": "property",
                 }
             )
         except Exception:

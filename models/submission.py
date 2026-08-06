@@ -88,41 +88,43 @@ def _ensure_schema():
 
     if use_sqlite():
         cols = {str(row.get("name", "")).lower() for row in query_all("PRAGMA table_info(owner_submissions)")}
-        if "owner_admin_id" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN owner_admin_id INTEGER")
-        if "reviewed_by" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN reviewed_by INTEGER")
-        if "reviewed_at" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN reviewed_at TEXT")
-        if "review_note" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN review_note TEXT")
-        if "apartment_number" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN apartment_number TEXT")
-        if "submitter_type" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN submitter_type TEXT DEFAULT 'owner'")
-        if "area_unit" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN area_unit TEXT")
-        if "area_value" not in cols:
-            execute("ALTER TABLE owner_submissions ADD COLUMN area_value REAL")
+        extras = {
+            "owner_admin_id": "INTEGER",
+            "reviewed_by": "INTEGER",
+            "reviewed_at": "TEXT",
+            "review_note": "TEXT",
+            "apartment_number": "TEXT",
+            "submitter_type": "TEXT DEFAULT 'owner'",
+            "area_unit": "TEXT",
+            "area_value": "REAL",
+            "block_wing": "TEXT",
+            "unit_number": "TEXT",
+            "seller_type": "TEXT",
+            "listing_intent": "TEXT DEFAULT 'sell'",
+        }
+        for name, ddl in extras.items():
+            if name not in cols:
+                execute(f"ALTER TABLE owner_submissions ADD COLUMN {name} {ddl}")
         return
 
     cols = {str(row.get("Field", "")).lower() for row in query_all("SHOW COLUMNS FROM owner_submissions")}
-    if "owner_admin_id" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN owner_admin_id INT NULL")
-    if "reviewed_by" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN reviewed_by INT NULL")
-    if "reviewed_at" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN reviewed_at TIMESTAMP NULL")
-    if "review_note" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN review_note TEXT")
-    if "apartment_number" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN apartment_number VARCHAR(80)")
-    if "submitter_type" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN submitter_type VARCHAR(20) DEFAULT 'owner'")
-    if "area_unit" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN area_unit VARCHAR(20)")
-    if "area_value" not in cols:
-        execute("ALTER TABLE owner_submissions ADD COLUMN area_value DECIMAL(12,2)")
+    extras = {
+        "owner_admin_id": "INT NULL",
+        "reviewed_by": "INT NULL",
+        "reviewed_at": "TIMESTAMP NULL",
+        "review_note": "TEXT",
+        "apartment_number": "VARCHAR(80)",
+        "submitter_type": "VARCHAR(20) DEFAULT 'owner'",
+        "area_unit": "VARCHAR(20)",
+        "area_value": "DECIMAL(12,2)",
+        "block_wing": "VARCHAR(40)",
+        "unit_number": "VARCHAR(80)",
+        "seller_type": "VARCHAR(20)",
+        "listing_intent": "VARCHAR(20) DEFAULT 'sell'",
+    }
+    for name, ddl in extras.items():
+        if name not in cols:
+            execute(f"ALTER TABLE owner_submissions ADD COLUMN {name} {ddl}")
 
 
 def _decode_json(raw):
@@ -139,12 +141,41 @@ def _decode_json(raw):
     return value if isinstance(value, list) else []
 
 
+def _normalize_seller_type(value):
+    cleaned = (value or "").strip().lower()
+    return cleaned if cleaned in {"owner", "broker", "developer"} else "owner"
+
+
+def _normalize_listing_intent(value):
+    cleaned = (value or "sell").strip().lower()
+    if cleaned in {"sell", "rent"}:
+        return cleaned
+    if cleaned in {"sale", "buy"}:
+        return "sell"
+    return "sell"
+
+
+def format_contact_name(row):
+    name = (row.get("owner_name") or "").strip() or "Unknown"
+    seller = _normalize_seller_type(row.get("seller_type") or row.get("submitter_type"))
+    label = seller.title()
+    return f"[{label}] {name}"
+
+
 def _parse_submission(row):
     if not row:
         return None
     row["amenities"] = _decode_json(row.get("amenities_json"))
     row["images"] = _decode_json(row.get("images_json"))
     row["videos"] = _decode_json(row.get("videos_json"))
+    seller = _normalize_seller_type(row.get("seller_type") or row.get("submitter_type"))
+    row["seller_type"] = seller
+    row["submitter_type"] = seller
+    row["listing_intent"] = _normalize_listing_intent(row.get("listing_intent") or row.get("property_status"))
+    row["block_wing"] = (row.get("block_wing") or "").strip() or None
+    unit = (row.get("unit_number") or row.get("apartment_number") or row.get("bungalow_number") or "").strip()
+    row["unit_number"] = unit or None
+    row["display_owner_name"] = format_contact_name(row)
     return row
 
 
@@ -161,13 +192,24 @@ def create_submission(data):
         from models.admin import Admin
 
         owner_admin_id = Admin.get_default_owner_admin_id()
+    seller_type = _normalize_seller_type(data.get("seller_type") or data.get("submitter_type"))
+    listing_intent = _normalize_listing_intent(
+        data.get("listing_intent") or data.get("property_status") or "sell"
+    )
+    block_wing = (data.get("block_wing") or "").strip() or None
+    unit_number = (
+        (data.get("unit_number") or data.get("apartment_number") or data.get("bungalow_number") or "")
+        .strip()
+        or None
+    )
     return execute(
         """INSERT INTO owner_submissions (
            property_id, owner_name, owner_mobile, owner_alt_mobile, owner_email, owner_address,
            property_title, property_type, property_status, bhk, bungalow_number, apartment_number,
            area_sq_ft, area_unit, area_value, price, property_address, city, location_area, description,
-           amenities_json, listing_intent, images_json, videos_json, status, owner_admin_id, submitter_type
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+           amenities_json, listing_intent, images_json, videos_json, status, owner_admin_id,
+           submitter_type, seller_type, block_wing, unit_number
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (
             data.get("property_id"),
             data["owner_name"],
@@ -177,10 +219,10 @@ def create_submission(data):
             data["owner_address"],
             data["property_title"],
             data["property_type"],
-            data.get("property_status", "buy"),
+            data.get("property_status", listing_intent),
             int(data.get("bhk") or 0),
-            data.get("bungalow_number"),
-            data.get("apartment_number"),
+            data.get("bungalow_number") or unit_number,
+            data.get("apartment_number") or unit_number,
             float(data.get("area_sq_ft") or 0),
             data.get("area_unit"),
             float(data.get("area_value") or 0) or None,
@@ -190,13 +232,25 @@ def create_submission(data):
             data.get("location_area"),
             data.get("description"),
             json.dumps(data.get("amenities") or []),
-            data.get("listing_intent", "buy"),
+            listing_intent,
             json.dumps(data.get("images") or []),
             json.dumps(data.get("videos") or []),
             "pending",
             owner_admin_id,
-            (data.get("submitter_type") or "owner").lower(),
+            seller_type,
+            seller_type,
+            block_wing,
+            unit_number,
         ),
+    )
+
+
+def link_property(submission_id, property_id):
+    """Attach a property to a submission without deleting the submission row."""
+    _ensure_table()
+    execute(
+        "UPDATE owner_submissions SET property_id=%s WHERE id=%s",
+        (property_id, submission_id),
     )
 
 
@@ -209,7 +263,7 @@ def recent_submissions(limit=50):
     return [_parse_submission(row) for row in rows]
 
 
-def list_submissions(status=None, limit=200, offset=0, owner_admin_id=None, start_date=None, end_date=None, area=None):
+def list_submissions(status=None, limit=200, offset=0, owner_admin_id=None, start_date=None, end_date=None, area=None, seller_type=None):
     _ensure_table()
     sql = (
         """SELECT s.*, p.status AS property_current_status, p.slug AS property_slug
@@ -234,6 +288,10 @@ def list_submissions(status=None, limit=200, offset=0, owner_admin_id=None, star
         sql += " AND (LOWER(COALESCE(s.location_area,'')) LIKE %s OR LOWER(COALESCE(s.property_address,'')) LIKE %s OR LOWER(COALESCE(s.city,'')) LIKE %s)"
         like = f"%{str(area).strip().lower()}%"
         params.extend([like, like, like])
+    if seller_type:
+        st = _normalize_seller_type(seller_type)
+        sql += " AND LOWER(COALESCE(s.seller_type, s.submitter_type, 'owner'))=%s"
+        params.append(st)
     sql += (
         """ ORDER BY
             CASE

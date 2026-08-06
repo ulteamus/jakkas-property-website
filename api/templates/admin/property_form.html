@@ -6,12 +6,12 @@
 <a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Properties</a>
 {% endblock %}
 {% block content %}
-<form method="POST" enctype="multipart/form-data" class="admin-section-card">
+<form method="POST" enctype="multipart/form-data" class="admin-section-card" id="adminPropertyForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="row g-3">
     <div class="col-md-8"><label>Property Name *</label><input class="form-control" name="property_name" value="{{ property.property_name if property else '' }}" required></div>
     <div class="col-md-4"><label>Type *</label>
-      <select class="form-select" name="property_type" required>
+      <select class="form-select" name="property_type" id="adminPropertyType" required>
         {% for t in types %}<option value="{{ t }}" {% if property and property.property_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
       </select>
     </div>
@@ -28,7 +28,9 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-3"><label>BHK</label><input type="number" class="form-control" name="bhk" value="{{ property.bhk if property else 0 }}"></div>
+    <div class="col-md-3" id="adminBhkWrap"><label>BHK Number</label><input type="number" class="form-control" name="bhk" id="adminBhkInput" value="{{ property.bhk if property else 0 }}"></div>
+    <div class="col-md-3"><label>Block / Wing</label><input class="form-control" name="block_wing" value="{{ property.block_wing if property and property.block_wing else '' }}" placeholder="A, B, C"></div>
+    <div class="col-md-3"><label>Unit Number</label><input class="form-control" name="unit_number" value="{{ property.unit_number if property and property.unit_number else '' }}" placeholder="101, 903"></div>
     <div class="col-md-3"><label>Sq Ft *</label><input type="number" class="form-control" name="sq_ft" value="{{ property.sq_ft if property else '' }}" required></div>
     <div class="col-md-3"><label>Latitude</label><input class="form-control" name="latitude" value="{{ property.latitude if property else '21.1702' }}"></div>
     <div class="col-md-3"><label>Longitude</label><input class="form-control" name="longitude" value="{{ property.longitude if property else '72.8311' }}"></div>
@@ -37,11 +39,23 @@
     <div class="col-12"><label>Amenities (comma-separated)</label>
       <input class="form-control" name="amenities" value="{% if property and property.amenities %}{{ property.amenities|join(', ') }}{% endif %}">
     </div>
-    <div class="col-md-4"><label>Listing</label>
-      <select class="form-select" name="listing_type">
-        <option value="buy" {% if not property or property.listing_type!='rent' %}selected{% endif %}>Buy</option>
-        <option value="sell">Sell</option>
-        <option value="rent" {% if property and property.listing_type=='rent' %}selected{% endif %}>Rent</option>
+    <div class="col-md-4"><label>Sell vs Rent *</label>
+      <select class="form-select" name="listing_intent">
+        {% set intent = (property.listing_intent if property else 'sell') %}
+        {% if intent not in ['sell','rent'] %}
+          {% set intent = 'rent' if property and property.listing_type == 'rent' else 'sell' %}
+        {% endif %}
+        <option value="sell" {% if intent == 'sell' %}selected{% endif %}>Sell Property</option>
+        <option value="rent" {% if intent == 'rent' %}selected{% endif %}>Rent Property</option>
+      </select>
+      <input type="hidden" name="listing_type" id="adminListingType" value="{{ 'rent' if intent == 'rent' else 'sale' }}">
+    </div>
+    <div class="col-md-4"><label>Seller Type</label>
+      <select class="form-select" name="seller_type">
+        <option value="">—</option>
+        {% for st in ['owner','broker','developer'] %}
+        <option value="{{ st }}" {% if property and property.seller_type == st %}selected{% endif %}>{{ st|title }}</option>
+        {% endfor %}
       </select>
     </div>
     <div class="col-md-4"><label>Creation Source</label>
@@ -82,5 +96,26 @@
     MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'));
     MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
   }
+  (function () {
+    const typeEl = document.getElementById('adminPropertyType');
+    const bhkWrap = document.getElementById('adminBhkWrap');
+    const bhkInput = document.getElementById('adminBhkInput');
+    const intentEl = document.querySelector('select[name="listing_intent"]');
+    const listingType = document.getElementById('adminListingType');
+    const hide = new Set(['plot', 'land', 'shop', 'office']);
+    function syncBhk() {
+      const t = (typeEl?.value || '').toLowerCase();
+      const show = !hide.has(t);
+      bhkWrap?.classList.toggle('d-none', !show);
+      if (bhkInput) bhkInput.disabled = !show;
+    }
+    function syncIntent() {
+      if (listingType && intentEl) listingType.value = intentEl.value === 'rent' ? 'rent' : 'sale';
+    }
+    typeEl?.addEventListener('change', syncBhk);
+    intentEl?.addEventListener('change', syncIntent);
+    syncBhk();
+    syncIntent();
+  })();
 </script>
 {% endblock %}

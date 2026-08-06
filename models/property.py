@@ -29,18 +29,32 @@ def _ensure_schema():
     from database.db import get_connection, use_sqlite
 
     get_connection()
+    extra_sqlite = {
+        "owner_admin_id": "INTEGER",
+        "creation_source": "TEXT DEFAULT 'admin'",
+        "block_wing": "TEXT",
+        "unit_number": "TEXT",
+        "listing_intent": "TEXT DEFAULT 'sell'",
+        "seller_type": "TEXT",
+    }
+    extra_mysql = {
+        "owner_admin_id": "INT NULL",
+        "creation_source": "VARCHAR(40) DEFAULT 'admin'",
+        "block_wing": "VARCHAR(40)",
+        "unit_number": "VARCHAR(80)",
+        "listing_intent": "VARCHAR(20) DEFAULT 'sell'",
+        "seller_type": "VARCHAR(20)",
+    }
     if use_sqlite():
         cols = {str(row.get("name", "")).lower() for row in query_all("PRAGMA table_info(properties)")}
-        if "owner_admin_id" not in cols:
-            execute("ALTER TABLE properties ADD COLUMN owner_admin_id INTEGER")
-        if "creation_source" not in cols:
-            execute("ALTER TABLE properties ADD COLUMN creation_source TEXT DEFAULT 'admin'")
+        for name, ddl in extra_sqlite.items():
+            if name not in cols:
+                execute(f"ALTER TABLE properties ADD COLUMN {name} {ddl}")
         return
     cols = {str(row.get("Field", "")).lower() for row in query_all("SHOW COLUMNS FROM properties")}
-    if "owner_admin_id" not in cols:
-        execute("ALTER TABLE properties ADD COLUMN owner_admin_id INT NULL")
-    if "creation_source" not in cols:
-        execute("ALTER TABLE properties ADD COLUMN creation_source VARCHAR(40) DEFAULT 'admin'")
+    for name, ddl in extra_mysql.items():
+        if name not in cols:
+            execute(f"ALTER TABLE properties ADD COLUMN {name} {ddl}")
 
 
 OWNER_PUBLIC_STRIP_KEYS = (
@@ -65,12 +79,18 @@ def _parse(row):
         except json.JSONDecodeError:
             row["amenities"] = []
     listing_type = (row.get("listing_type") or "sale").lower()
-    if listing_type == "rent":
-        row["listing_intent"] = "rent"
-    elif listing_type == "sell":
-        row["listing_intent"] = "sell"
-    else:
-        row["listing_intent"] = "buy"
+    intent = (row.get("listing_intent") or "").strip().lower()
+    if intent not in {"sell", "rent"}:
+        if listing_type == "rent":
+            intent = "rent"
+        elif listing_type in {"sell", "sale", "buy"}:
+            intent = "sell"
+        else:
+            intent = "sell"
+    row["listing_intent"] = intent
+    row["seller_type"] = _normalize_seller_type(row.get("seller_type"))
+    row["block_wing"] = (row.get("block_wing") or "").strip() or None
+    row["unit_number"] = (row.get("unit_number") or "").strip() or None
     row["display_type"] = _display_type(row.get("property_type"))
     row["creation_source"] = _normalize_creation_source(row.get("creation_source"))
     return row
@@ -153,6 +173,21 @@ def _normalize_listing_type(value):
     if listing_type in {"sell", "sale", "buy"}:
         return "sale"
     return "sale"
+
+
+def _normalize_listing_intent(value, listing_type=None):
+    intent = (value or "").strip().lower()
+    if intent in {"sell", "rent"}:
+        return intent
+    lt = _normalize_listing_type(listing_type or value)
+    return "rent" if lt == "rent" else "sell"
+
+
+def _normalize_seller_type(value):
+    cleaned = (value or "").strip().lower()
+    if cleaned in {"owner", "broker", "developer"}:
+        return cleaned
+    return None
 
 
 def _normalize_creation_source(value):
@@ -334,13 +369,24 @@ def create(data, created_by_admin_id=None):
         slug = f"{slug}-{uuid.uuid4().hex[:6]}"
     property_type = _normalize_property_type(data["property_type"])
     amenities = json.dumps(data.get("amenities") or [])
-    listing_type = _normalize_listing_type(data.get("listing_type", "sale"))
+    listing_intent = _normalize_listing_intent(
+        data.get("listing_intent"), data.get("listing_type", "sale")
+    )
+    listing_type = "rent" if listing_intent == "rent" else _normalize_listing_type(
+        data.get("listing_type", "sale")
+    )
+    if listing_intent == "rent":
+        listing_type = "rent"
     creation_source = _normalize_creation_source(data.get("creation_source"))
+    seller_type = _normalize_seller_type(data.get("seller_type"))
+    block_wing = (data.get("block_wing") or "").strip() or None
+    unit_number = (data.get("unit_number") or "").strip() or None
     pid = execute(
         """INSERT INTO properties
            (property_name,slug,property_type,area_name,address,price,bhk,sq_ft,
-            description,amenities,latitude,longitude,status,is_featured,listing_type,primary_image,owner_admin_id,creation_source)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            description,amenities,latitude,longitude,status,is_featured,listing_type,primary_image,owner_admin_id,creation_source,
+            block_wing,unit_number,listing_intent,seller_type)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (
             data["property_name"], slug, property_type, data["area_name"],
             data.get("address"), data["price"], data.get("bhk", 0), data["sq_ft"],
@@ -348,6 +394,7 @@ def create(data, created_by_admin_id=None):
             data.get("longitude", 72.8311), data.get("status", "available"),
             1 if data.get("is_featured") else 0, listing_type,
             data.get("primary_image"), created_by_admin_id or _default_owner_admin_id(), creation_source,
+            block_wing, unit_number, listing_intent, seller_type,
         ),
     )
     return get_by_id(pid)
@@ -363,17 +410,28 @@ def update(pid, data):
     _ensure_schema()
     property_type = _normalize_property_type(data["property_type"])
     amenities = json.dumps(data.get("amenities") or [])
-    listing_type = _normalize_listing_type(data.get("listing_type", "sale"))
+    listing_intent = _normalize_listing_intent(
+        data.get("listing_intent"), data.get("listing_type", "sale")
+    )
+    listing_type = "rent" if listing_intent == "rent" else _normalize_listing_type(
+        data.get("listing_type", "sale")
+    )
+    if listing_intent == "rent":
+        listing_type = "rent"
+    seller_type = _normalize_seller_type(data.get("seller_type"))
+    block_wing = (data.get("block_wing") or "").strip() or None
+    unit_number = (data.get("unit_number") or "").strip() or None
     execute(
         """UPDATE properties SET property_name=%s,property_type=%s,area_name=%s,address=%s,
            price=%s,bhk=%s,sq_ft=%s,description=%s,amenities=%s,latitude=%s,longitude=%s,
-           status=%s,is_featured=%s,listing_type=%s WHERE id=%s""",
+           status=%s,is_featured=%s,listing_type=%s,block_wing=%s,unit_number=%s,
+           listing_intent=%s,seller_type=%s WHERE id=%s""",
         (
             data["property_name"], property_type, data["area_name"],
             data.get("address"), data["price"], data.get("bhk", 0), data["sq_ft"],
             data.get("description"), amenities, data.get("latitude"),
             data.get("longitude"), data.get("status"), 1 if data.get("is_featured") else 0,
-            listing_type, pid,
+            listing_type, block_wing, unit_number, listing_intent, seller_type, pid,
         ),
     )
 

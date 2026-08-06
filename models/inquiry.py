@@ -2,12 +2,27 @@ from database import execute, query_all, query_one
 from database.db import use_sqlite
 
 INQUIRY_STATUSES = ["new", "contacted", "in_progress", "closed"]
+INQUIRY_TYPES = ["site_visit", "general", "property"]
 _schema_checked = False
 
 
 def _normalize_status(value):
     cleaned = (value or "new").strip().lower()
     return cleaned if cleaned in INQUIRY_STATUSES else "new"
+
+
+def _normalize_inquiry_type(value, property_id=None, source=None):
+    cleaned = (value or "").strip().lower()
+    if cleaned in INQUIRY_TYPES:
+        return cleaned
+    if cleaned in {"site_visit", "visit", "visit_request"}:
+        return "site_visit"
+    src = (source or "").strip().lower()
+    if "visit" in src:
+        return "site_visit"
+    if property_id:
+        return "property"
+    return "general"
 
 
 def _ensure_schema():
@@ -27,25 +42,26 @@ def _ensure_schema():
                source TEXT DEFAULT 'contact_form',
                status TEXT DEFAULT 'new',
                notes TEXT,
+               inquiry_type TEXT DEFAULT 'general',
                created_at TEXT DEFAULT (datetime('now')),
                updated_at TEXT DEFAULT (datetime('now'))
             )"""
         )
         cols = {str(row.get("name", "")).lower() for row in query_all("PRAGMA table_info(inquiries)")}
-        if "status" not in cols:
-            execute("ALTER TABLE inquiries ADD COLUMN status TEXT DEFAULT 'new'")
-        if "notes" not in cols:
-            execute("ALTER TABLE inquiries ADD COLUMN notes TEXT")
+        for name, ddl in {
+            "status": "TEXT DEFAULT 'new'",
+            "notes": "TEXT",
+            "updated_at": "TEXT",
+            "budget": "TEXT",
+            "preferred_location": "TEXT",
+            "inquiry_type": "TEXT DEFAULT 'general'",
+        }.items():
+            if name not in cols:
+                execute(f"ALTER TABLE inquiries ADD COLUMN {name} {ddl}")
         if "updated_at" not in cols:
-            # SQLite does not allow non-constant defaults in ALTER TABLE.
-            execute("ALTER TABLE inquiries ADD COLUMN updated_at TEXT")
             execute(
                 "UPDATE inquiries SET updated_at=COALESCE(updated_at, created_at, datetime('now'))"
             )
-        if "budget" not in cols:
-            execute("ALTER TABLE inquiries ADD COLUMN budget TEXT")
-        if "preferred_location" not in cols:
-            execute("ALTER TABLE inquiries ADD COLUMN preferred_location TEXT")
         return
 
     execute(
@@ -59,6 +75,7 @@ def _ensure_schema():
            source VARCHAR(50) DEFAULT 'contact_form',
            status VARCHAR(30) DEFAULT 'new',
            notes TEXT,
+           inquiry_type VARCHAR(30) DEFAULT 'general',
            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
            INDEX idx_inquiries_created_at (created_at),
@@ -66,25 +83,28 @@ def _ensure_schema():
         )"""
     )
     cols = {str(row.get("Field", "")).lower() for row in query_all("SHOW COLUMNS FROM inquiries")}
-    if "status" not in cols:
-        execute("ALTER TABLE inquiries ADD COLUMN status VARCHAR(30) DEFAULT 'new'")
-    if "notes" not in cols:
-        execute("ALTER TABLE inquiries ADD COLUMN notes TEXT")
-    if "updated_at" not in cols:
-        execute(
-            "ALTER TABLE inquiries ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-        )
-    if "budget" not in cols:
-        execute("ALTER TABLE inquiries ADD COLUMN budget VARCHAR(120)")
-    if "preferred_location" not in cols:
-        execute("ALTER TABLE inquiries ADD COLUMN preferred_location VARCHAR(180)")
+    for name, ddl in {
+        "status": "VARCHAR(30) DEFAULT 'new'",
+        "notes": "TEXT",
+        "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "budget": "VARCHAR(120)",
+        "preferred_location": "VARCHAR(180)",
+        "inquiry_type": "VARCHAR(30) DEFAULT 'general'",
+    }.items():
+        if name not in cols:
+            execute(f"ALTER TABLE inquiries ADD COLUMN {name} {ddl}")
 
 
 def create(data):
     _ensure_schema()
+    inquiry_type = _normalize_inquiry_type(
+        data.get("inquiry_type"),
+        property_id=data.get("property_id"),
+        source=data.get("source"),
+    )
     return execute(
-        """INSERT INTO inquiries (name,mobile,email,message,property_id,source,status,notes,budget,preferred_location)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        """INSERT INTO inquiries (name,mobile,email,message,property_id,source,status,notes,budget,preferred_location,inquiry_type)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (
             data["name"],
             data["mobile"],
@@ -96,11 +116,12 @@ def create(data):
             data.get("notes"),
             data.get("budget"),
             data.get("preferred_location"),
+            inquiry_type,
         ),
     )
 
 
-def get_all(limit=150, start_date=None, end_date=None, status=None, owner_admin_id=None):
+def get_all(limit=150, start_date=None, end_date=None, status=None, owner_admin_id=None, inquiry_type=None):
     _ensure_schema()
     sql = (
         """SELECT i.*, p.property_name, p.owner_admin_id AS property_owner_admin_id
@@ -115,6 +136,10 @@ def get_all(limit=150, start_date=None, end_date=None, status=None, owner_admin_
     if status:
         sql += " AND i.status=%s"
         params.append(_normalize_status(status))
+    if inquiry_type:
+        itype = _normalize_inquiry_type(inquiry_type)
+        sql += " AND COALESCE(i.inquiry_type, CASE WHEN i.property_id IS NOT NULL THEN 'property' ELSE 'general' END)=%s"
+        params.append(itype)
     if start_date:
         sql += " AND DATE(i.created_at) >= DATE(%s)"
         params.append(start_date)
@@ -187,3 +212,18 @@ def update_entry(inquiry_id, status=None, notes=None):
         ),
     )
     return get_by_id(inquiry_id)
+
+
+def delete(inquiry_id):
+    _ensure_schema()
+    execute("DELETE FROM inquiries WHERE id=%s", (inquiry_id,))
+
+
+def delete_many(inquiry_ids):
+    _ensure_schema()
+    ids = [int(x) for x in (inquiry_ids or []) if str(x).isdigit() or isinstance(x, int)]
+    if not ids:
+        return 0
+    placeholders = ",".join(["%s"] * len(ids))
+    execute(f"DELETE FROM inquiries WHERE id IN ({placeholders})", tuple(ids))
+    return len(ids)

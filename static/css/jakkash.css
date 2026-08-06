@@ -1431,10 +1431,11 @@ body.drawer-open {
   transition: all 0.2s ease;
 }
 .sell-option-chip:hover,
-.sell-option-chip.is-active {
-  border-color: var(--jk-orange, #f79433);
-  background: rgba(247, 148, 51, 0.12);
-  color: #b45309;
+.sell-option-chip.is-active,
+.sell-option-chip.btn-orange {
+  background: #e67e22;
+  border-color: #e67e22;
+  color: #fff;
 }
 .sell-contact-row .sell-contact-field {
   display: flex;
@@ -2110,24 +2111,36 @@ a.chat-chip:hover {
   .jv-about-split {
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 0.65rem;
   }
 
   .jv-about-heading {
     order: 1;
+    margin-bottom: 0 !important;
+  }
+
+  .jv-about-heading .section-title,
+  .jv-about-heading p {
+    margin-bottom: 0.35rem !important;
   }
 
   .jv-about-media {
     order: 2;
+    margin: 0.25rem 0 !important;
   }
 
   .jv-about-body {
     order: 3;
+    margin-top: 0.15rem !important;
+  }
+
+  .jv-about-body p {
+    margin-bottom: 0.5rem !important;
   }
 
   .jv-about-media .jv-about-photo {
     width: 100%;
-    max-height: 320px;
+    max-height: 280px;
     object-fit: cover;
     border-radius: 16px;
   }

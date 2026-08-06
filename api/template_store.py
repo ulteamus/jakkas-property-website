@@ -399,7 +399,7 @@ TEMPLATES = {
       <div class="admin-section-heading p-3 pb-0">
         <h5>Trending Areas</h5>
       </div>
-      <div class="admin-table-wrap border-0 rounded-0 shadow-none">
+      <div class="admin-table-wrap table-responsive border-0 rounded-0 shadow-none">
         <table class="table table-sm align-middle">
           <thead>
             <tr><th>Area</th><th>Demand Score</th><th>Searches</th></tr>
@@ -420,7 +420,7 @@ TEMPLATES = {
       <div class="admin-section-heading p-3 pb-0">
         <h5>By Property Type</h5>
       </div>
-      <div class="admin-table-wrap border-0 rounded-0 shadow-none">
+      <div class="admin-table-wrap table-responsive border-0 rounded-0 shadow-none">
         <table class="table table-sm align-middle">
           <thead>
             <tr><th>Type</th><th>Count</th><th>Avg Price</th></tr>
@@ -593,13 +593,13 @@ TEMPLATES = {
     "admin/customer_visits.html": """{% extends "admin/base.html" %}
 {% block title %}Customer Visits{% endblock %}
 {% block page_heading %}Customer Visit Form{% endblock %}
-{% block page_subheading %}Capture visit records with linked properties, executive details, and signature areas.{% endblock %}
+{% block page_subheading %}Capture visit records with linked properties and signature areas.{% endblock %}
 {% block content %}
 <section class="admin-section-card">
   <div class="admin-section-heading">
     <h5>Create Customer Visit Record</h5>
   </div>
-  <form method="POST" class="row g-3">
+  <form method="POST" class="row g-3" id="customerVisitForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-3">
       <label>Visit Date *</label>
@@ -621,23 +621,17 @@ TEMPLATES = {
       <label>Client Requirement *</label>
       <textarea class="form-control" name="client_requirement" rows="2" required></textarea>
     </div>
-    <div class="col-md-6">
-      <label>Visited Property *</label>
-      <select class="form-select" name="property_id" required>
-        <option value="">Select Property</option>
+    <div class="col-12">
+      <label>Visited Properties *</label>
+      <select class="form-select" id="visitPropertySelect">
+        <option value="">Add a property…</option>
         {% for property in properties %}
         <option value="{{ property.id }}">#{{ property.id }} - {{ property.property_name }} ({{ property.area_name }})</option>
         {% endfor %}
       </select>
-    </div>
-    <div class="col-md-6">
-      <label>Linked Executive (optional)</label>
-      <select class="form-select" name="executive_admin_id">
-        <option value="">Select Executive</option>
-        {% for executive in executives %}
-        <option value="{{ executive.id }}">{{ executive.full_name or executive.username }} ({{ executive.role|replace('_', ' ')|title }})</option>
-        {% endfor %}
-      </select>
+      <div id="visitPropertyTags" class="d-flex flex-wrap gap-2 mt-2" aria-live="polite"></div>
+      <div id="visitPropertyIds"></div>
+      <div class="form-text">Select one or more properties. Click X on a tag to remove it.</div>
     </div>
     <div class="col-md-4">
       <label>Executive Name *</label>
@@ -679,7 +673,8 @@ TEMPLATES = {
     <form method="GET" class="row g-2">
       <div class="col-auto"><input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}"></div>
       <div class="col-auto"><input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}"></div>
-      <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filter</button></div>
+      <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filter by Date</button></div>
+      <div class="col-auto"><a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin.customer_visits') }}">Clear</a></div>
     </form>
   </div>
   <div class="admin-table-wrap table-responsive">
@@ -688,7 +683,7 @@ TEMPLATES = {
         <tr>
           <th>Date</th>
           <th>Client</th>
-          <th>Property</th>
+          <th>Properties</th>
           <th>Executive</th>
           <th>Requirement</th>
           <th>Actions</th>
@@ -702,15 +697,19 @@ TEMPLATES = {
             <div class="fw-semibold">{{ visit.client_name }}</div>
             <div class="small text-muted">{{ visit.client_contact }}</div>
           </td>
-          <td>{{ visit.property_name or ('Property #' ~ visit.property_id) }}</td>
+          <td>{{ visit.property_names_display or visit.property_name or ('Property #' ~ visit.property_id) }}</td>
           <td>
-            <div>{{ visit.executive_name or visit.linked_executive_name or '-' }}</div>
+            <div>{{ visit.executive_name or '-' }}</div>
             <div class="small text-muted">{{ visit.executive_contact or '-' }}</div>
           </td>
           <td>{{ visit.client_requirement or '-' }}</td>
           <td class="text-nowrap">
             <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ url_for('admin.print_customer_visit', visit_id=visit.id) }}">Print</a>
             <a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin.customer_visit_pdf', visit_id=visit.id) }}">PDF</a>
+            <form method="POST" action="{{ url_for('admin.delete_customer_visit', visit_id=visit.id) }}" class="d-inline" onsubmit="return confirm('Delete this visit record?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
           </td>
         </tr>
         {% else %}
@@ -725,6 +724,50 @@ TEMPLATES = {
 {% endblock %}
 {% block extra_js %}
 <script>
+  (function () {
+    const select = document.getElementById('visitPropertySelect');
+    const tags = document.getElementById('visitPropertyTags');
+    const idsHost = document.getElementById('visitPropertyIds');
+    const selected = new Map();
+
+    function render() {
+      tags.innerHTML = '';
+      idsHost.innerHTML = '';
+      selected.forEach((label, id) => {
+        const pill = document.createElement('span');
+        pill.className = 'badge text-bg-light border d-inline-flex align-items-center gap-2 px-2 py-2';
+        pill.innerHTML = `<span>${label}</span>`;
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'btn btn-sm btn-link text-danger p-0';
+        x.textContent = '×';
+        x.addEventListener('click', () => { selected.delete(id); render(); });
+        pill.appendChild(x);
+        tags.appendChild(pill);
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'property_ids';
+        hidden.value = id;
+        idsHost.appendChild(hidden);
+      });
+    }
+
+    select?.addEventListener('change', () => {
+      const id = select.value;
+      const label = select.options[select.selectedIndex]?.text || id;
+      if (id) selected.set(id, label);
+      select.value = '';
+      render();
+    });
+
+    document.getElementById('customerVisitForm')?.addEventListener('submit', (e) => {
+      if (!selected.size) {
+        e.preventDefault();
+        alert('Please select at least one property.');
+      }
+    });
+  })();
+
   function setupSignaturePad(canvasId, outputId, clearButtonId) {
     const canvas = document.getElementById(canvasId);
     const output = document.getElementById(outputId);
@@ -769,10 +812,13 @@ TEMPLATES = {
       event.preventDefault();
     }
 
-    ["mousedown", "touchstart"].forEach((evt) => canvas.addEventListener(evt, start));
-    ["mousemove", "touchmove"].forEach((evt) => canvas.addEventListener(evt, move));
-    ["mouseup", "mouseleave", "touchend", "touchcancel"].forEach((evt) => canvas.addEventListener(evt, end));
-
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("mousemove", move);
+    canvas.addEventListener("mouseup", end);
+    canvas.addEventListener("mouseleave", end);
+    canvas.addEventListener("touchstart", start, { passive: false });
+    canvas.addEventListener("touchmove", move, { passive: false });
+    canvas.addEventListener("touchend", end);
     clearButton.addEventListener("click", () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       output.value = "";
@@ -877,6 +923,297 @@ TEMPLATES = {
     </section>
   </div>
 </div>
+{% endblock %}
+""",
+    "admin/employees.html": """{% extends "admin/base.html" %}
+{% block title %}Employee Permissions{% endblock %}
+{% block page_heading %}Employee Permission Management{% endblock %}
+{% block page_subheading %}Create employee admins, assign role presets, and control granular access with OTP-secured updates.{% endblock %}
+{% block page_actions %}
+<span class="badge bg-secondary align-self-center">{{ admins|length }} accounts</span>
+{% endblock %}
+{% block content %}
+{% if setup_payload %}
+<section class="admin-section-card mb-3">
+  <div class="admin-section-heading">
+    <h5>Google Authenticator Setup: {{ setup_payload.username }}</h5>
+  </div>
+  <div class="row g-3 align-items-center">
+    <div class="col-md-4 text-center">
+      <img src="{{ setup_payload.qr_url }}" alt="TOTP QR Code" class="img-fluid rounded border" style="max-width: 220px;">
+    </div>
+    <div class="col-md-8">
+      <p class="mb-2"><strong>Secret:</strong> <code>{{ setup_payload.secret }}</code></p>
+      <p class="small text-muted mb-2">Scan this QR in Google Authenticator (or compatible app), then verify at next login.</p>
+      <div class="small text-muted text-break">{{ setup_payload.otpauth_uri }}</div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="admin-section-card mb-3">
+  <div class="admin-section-heading">
+    <h5>Create Employee Admin</h5>
+  </div>
+  <form method="POST" action="{{ url_for('admin.create_admin_user') }}" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-3">
+      <label class="form-label">Username *</label>
+      <input class="form-control" name="username" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" name="email" placeholder="Optional">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Full Name</label>
+      <input class="form-control" name="full_name">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Phone</label>
+      <input class="form-control" name="phone" placeholder="+91xxxxxxxxxx">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Password *</label>
+      <input type="password" class="form-control" name="password" minlength="6" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Role Preset *</label>
+      <select class="form-select" name="role" required>
+        {% for opt in role_options %}
+        <option value="{{ opt.value }}">{{ opt.title }}</option>
+        {% else %}
+        {% for role in role_keys %}
+        <option value="{{ role }}">{{ role|replace('_', ' ')|title }}</option>
+        {% endfor %}
+        <option value="broker">Broker</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Granular Permissions (optional override)</label>      <div class="row row-cols-1 row-cols-md-4 g-2">
+        {% for key in permission_keys %}
+        <div class="col">
+          <label class="form-check border rounded p-2 d-flex align-items-center gap-2">
+            <input class="form-check-input mt-0" type="checkbox" name="permissions" value="{{ key }}">
+            <span class="small">{{ key }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="small text-muted mt-2 mb-0">If no permission is checked, default role preset permissions are applied automatically.</p>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-jk-accent">Create Employee Admin</button>
+    </div>
+  </form>
+</section>
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Employee Accounts</h5>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Verification</th>
+          <th>Permissions</th>
+          <th style="min-width: 290px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for admin_row in admins %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ admin_row.full_name or admin_row.username }}</div>
+            <div class="small text-muted">{{ admin_row.username }} • {{ admin_row.email }}</div>
+            <div class="small text-muted">{{ admin_row.phone or "No phone configured" }}</div>
+          </td>
+          <td>
+            <span class="admin-status-pill status-pending">{{ admin_row.role|replace('_', ' ')|title }}</span>
+          </td>
+          <td>
+            {% if admin_row.is_active %}
+            <span class="admin-status-pill status-approved">Active</span>
+            {% else %}
+            <span class="admin-status-pill status-rejected">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ admin_row.verification_summary }}</td>
+          <td class="small">{{ admin_row.permission_summary }}</td>
+          <td class="text-nowrap">
+            <form method="POST" action="{{ url_for('admin.toggle_admin_user', admin_id=admin_row.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="is_active" value="{{ 0 if admin_row.is_active else 1 }}">
+              <button class="btn btn-sm btn-outline-secondary">{{ "Disable" if admin_row.is_active else "Enable" }}</button>
+            </form>
+            <a href="{{ url_for('admin.admin_users', edit=admin_row.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+            {% if not admin_row.is_super_admin or admins|selectattr('is_super_admin')|list|length > 1 %}
+            <form method="POST" action="{{ url_for('admin.delete_admin_user', admin_id=admin_row.id) }}" class="d-inline" onsubmit="return confirm('Deactivate this account?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger">Deactivate</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% if edit_admin_id == admin_row.id %}
+        <tr>
+          <td colspan="6">
+            <div class="border rounded p-3 bg-light-subtle">
+              <h6 class="mb-3">Edit: {{ admin_row.username }}</h6>
+              <form method="POST" action="{{ url_for('admin.update_admin_user', admin_id=admin_row.id) }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" class="form-control" name="email" value="{{ admin_row.email }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Full Name</label>
+                  <input class="form-control" name="full_name" value="{{ admin_row.full_name }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Phone</label>
+                  <input class="form-control" name="phone" value="{{ admin_row.phone or '' }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Reset Password</label>
+                  <input type="password" class="form-control" name="password" minlength="6" placeholder="Leave blank to keep">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Role Preset</label>
+                  <select class="form-select" name="role" required>
+                    {% for opt in role_options %}
+                    <option value="{{ opt.value }}" {% if admin_row.role == opt.value %}selected{% endif %}>{{ opt.title }}</option>
+                    {% else %}
+                    {% for role in role_keys %}
+                    <option value="{{ role }}" {% if admin_row.role == role %}selected{% endif %}>{{ role|replace('_', ' ')|title }}</option>
+                    {% endfor %}
+                    <option value="broker" {% if admin_row.role == 'broker' %}selected{% endif %}>Broker</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-9 d-flex align-items-end gap-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_active" id="active{{ admin_row.id }}" value="1" {% if admin_row.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="active{{ admin_row.id }}">Active</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="require_otp" id="req{{ admin_row.id }}" value="1" {% if admin_row.require_otp %}checked{% endif %}>
+                    <label class="form-check-label" for="req{{ admin_row.id }}">Require OTP</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="mobile_otp_enabled" id="mob{{ admin_row.id }}" value="1" {% if admin_row.mobile_otp_enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="mob{{ admin_row.id }}">Enable Mobile OTP</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="phone_verified" id="pv{{ admin_row.id }}" value="1" {% if admin_row.phone_verified %}checked{% endif %}>
+                    <label class="form-check-label" for="pv{{ admin_row.id }}">Phone Verified</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Permission Matrix</label>
+                  <div class="row row-cols-1 row-cols-md-4 g-2">
+                    {% for key in permission_keys %}
+                    <div class="col">
+                      <label class="form-check border rounded p-2 d-flex align-items-center gap-2">
+                        <input class="form-check-input mt-0" type="checkbox" name="permissions" value="{{ key }}" {% if admin_row.has_permission(key) %}checked{% endif %}>
+                        <span class="small">{{ key }}</span>
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                  <button class="btn btn-jk-accent">Save Employee Access</button>
+                  <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_users') }}">Cancel</a>
+                </div>
+              </form>
+              <hr class="my-3">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <form method="POST" action="{{ url_for('admin.setup_admin_totp', admin_id=admin_row.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-dark">Setup TOTP</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.setup_admin_totp', admin_id=admin_row.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="regenerate" value="1">
+                  <button class="btn btn-sm btn-outline-secondary">Regenerate TOTP Secret</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.disable_admin_totp', admin_id=admin_row.id) }}" onsubmit="return confirm('Disable Google Authenticator for this account?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger">Disable TOTP</button>
+                </form>
+                {% if setup_payload and setup_payload.admin_id == admin_row.id %}
+                <a class="btn btn-sm btn-outline-primary" href="#totp-setup-anchor">View Latest Setup QR</a>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No employee admin accounts found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-section-card mt-3">
+  <div class="admin-section-heading">
+    <h5>Default Role Permission Presets</h5>
+  </div>
+  <div class="row g-3">
+    {% for opt in role_options %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">{{ opt.title }}</h6>
+        <ul class="small mb-0">
+          {% for key in opt.permissions %}
+          <li>{{ key }}</li>
+          {% else %}
+          <li>No default permissions</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% else %}
+    {% for role in role_keys %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">{{ role|replace('_', ' ')|title }}</h6>
+        <ul class="small mb-0">
+          {% for key in role_presets.get(role, []) %}
+          <li>{{ key }}</li>
+          {% else %}
+          <li>No default permissions</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="col-md-6 col-lg-3">
+      <div class="border rounded p-3 h-100">
+        <h6 class="mb-2">Broker</h6>
+        <ul class="small mb-0">
+          <li>manage_properties</li>
+          <li>manage_leads</li>
+          <li>manage_inquiries</li>
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% if setup_payload %}
+<div id="totp-setup-anchor"></div>
+{% endif %}
 {% endblock %}
 """,
     "admin/forgot_password_identify.html": """<!DOCTYPE html>
@@ -1098,19 +1435,19 @@ TEMPLATES = {
     "admin/inquiries.html": """{% extends "admin/base.html" %}
 {% block title %}Inquiries{% endblock %}
 {% block page_heading %}Inquiries{% endblock %}
-{% block page_subheading %}Operational inquiry workflow with inline updates, date filters, and print-ready output.{% endblock %}
+{% block page_subheading %}Operational inquiry workflow with category filters, inline updates, and print-ready output.{% endblock %}
 {% block page_actions %}
 <a
   class="btn btn-outline-secondary btn-sm"
   target="_blank"
-  href="{{ url_for('admin.print_inquiries', range=range_filter, start_date=start_date, end_date=end_date, status=selected_status if selected_status != 'all' else '') }}"
+  href="{{ url_for('admin.print_inquiries', range=range_filter, start_date=start_date, end_date=end_date, status=selected_status if selected_status != 'all' else '', inquiry_type=selected_inquiry_type if selected_inquiry_type != 'all' else '') }}"
 >
   <i class="bi bi-printer me-1"></i>Print View
 </a>
 {% endblock %}
 {% block content %}
 <section class="admin-section-card">
-  <form method="GET" class="row g-3 align-items-end">
+  <form method="GET" class="row g-3 align-items-end" id="inquiryFilterForm">
     <div class="col-md-3">
       <label class="form-label">Range</label>
       <select name="range" class="form-select">
@@ -1136,6 +1473,14 @@ TEMPLATES = {
         {% endfor %}
       </select>
     </div>
+    <div class="col-12">
+      <input type="hidden" name="inquiry_type" id="inquiryTypeInput" value="{{ selected_inquiry_type }}">
+      <div class="admin-filter-bar d-flex flex-wrap gap-2 mb-2">
+        {% for value, label in inquiry_types %}
+        <button type="button" class="admin-filter-chip {% if selected_inquiry_type == value %}active{% endif %}" data-inquiry-type="{{ value }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+    </div>
     <div class="col-12 d-flex gap-2">
       <button class="btn btn-jk-accent">Apply Filters</button>
       <a class="btn btn-outline-secondary" href="{{ url_for('admin.inquiries') }}">Reset</a>
@@ -1143,11 +1488,17 @@ TEMPLATES = {
   </form>
 </section>
 
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="small text-muted">Select rows to bulk-delete the current filtered set.</div>
+  <button type="button" class="btn btn-sm btn-outline-danger" id="bulkDeleteInquiriesBtn">Delete Selected</button>
+</div>
 <div class="admin-table-wrap table-responsive">
   <table class="table align-middle">
     <thead>
       <tr>
+        <th style="width:36px;"><input type="checkbox" id="selectAllInquiries"></th>
         <th>Date</th>
+        <th>Category</th>
         <th>Name</th>
         <th>Mobile</th>
         <th>Property</th>
@@ -1158,8 +1509,15 @@ TEMPLATES = {
     </thead>
     <tbody>
       {% for i in inquiries %}
+      {% set itype = i.inquiry_type or ('property' if i.property_id else 'general') %}
       <tr>
+        <td><input type="checkbox" value="{{ i.id }}" class="inquiry-check"></td>
         <td>{{ i.created_at }}</td>
+        <td>
+          <span class="badge text-bg-secondary">
+            {% if itype == 'site_visit' %}Site Visit{% elif itype == 'property' %}Property{% else %}General{% endif %}
+          </span>
+        </td>
         <td class="fw-semibold">{{ i.name }}</td>
         <td>{{ i.mobile }}</td>
         <td>{{ i.property_name or 'General' }}</td>
@@ -1178,16 +1536,51 @@ TEMPLATES = {
         </td>
         <td class="text-nowrap">
           <a href="{{ url_for('admin.inquiry_detail', inquiry_id=i.id) }}" class="btn btn-sm btn-outline-secondary">Detail</a>
+          <form method="POST" action="{{ url_for('admin.delete_inquiry', inquiry_id=i.id) }}" class="d-inline" onsubmit="return confirm('Delete this inquiry?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger">Delete</button>
+          </form>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" class="text-center text-muted py-4">No inquiries for the selected filter.</td>
+        <td colspan="9" class="text-center text-muted py-4">No inquiries for the selected filter.</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+<form method="POST" action="{{ url_for('admin.bulk_delete_inquiries') }}" id="bulkInquiryForm" class="d-none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.querySelectorAll('[data-inquiry-type]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.getElementById('inquiryTypeInput').value = btn.dataset.inquiryType || 'all';
+      document.getElementById('inquiryFilterForm').submit();
+    });
+  });
+  document.getElementById('selectAllInquiries')?.addEventListener('change', (e) => {
+    document.querySelectorAll('.inquiry-check').forEach((cb) => { cb.checked = e.target.checked; });
+  });
+  document.getElementById('bulkDeleteInquiriesBtn')?.addEventListener('click', () => {
+    const form = document.getElementById('bulkInquiryForm');
+    form.querySelectorAll('input[name="inquiry_ids"]').forEach((n) => n.remove());
+    const checked = [...document.querySelectorAll('.inquiry-check:checked')];
+    if (!checked.length) { alert('Select at least one inquiry.'); return; }
+    if (!confirm('Delete selected inquiries?')) return;
+    checked.forEach((cb) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'inquiry_ids';
+      input.value = cb.value;
+      form.appendChild(input);
+    });
+    form.submit();
+  });
+</script>
 {% endblock %}
 """,
     "admin/inquiries_print.html": """<!DOCTYPE html>
@@ -1202,6 +1595,7 @@ TEMPLATES = {
       .no-print { display: none !important; }
       body { margin: 0; }
     }
+    .cat-badge { font-size: 0.75rem; }
   </style>
 </head>
 <body class="p-3">
@@ -1211,11 +1605,17 @@ TEMPLATES = {
   </div>
   <div class="mb-2 small text-muted">
     Range: {{ range_filter|title }} | Dates: {{ start_date }} to {{ end_date }} | Status: {{ selected_status|replace('_', ' ')|title }}
+    | Category:
+    {% if selected_inquiry_type == 'site_visit' %}Site Visit Requests
+    {% elif selected_inquiry_type == 'property' %}Property-Specific Inquiries
+    {% elif selected_inquiry_type == 'general' %}General Inquiries
+    {% else %}All{% endif %}
   </div>
   <table class="table table-sm table-bordered align-middle">
     <thead class="table-light">
       <tr>
         <th>Date</th>
+        <th>Category</th>
         <th>Name</th>
         <th>Mobile</th>
         <th>Email</th>
@@ -1226,8 +1626,14 @@ TEMPLATES = {
     </thead>
     <tbody>
       {% for inquiry in inquiries %}
+      {% set itype = inquiry.inquiry_type or ('property' if inquiry.property_id else 'general') %}
       <tr>
         <td>{{ inquiry.created_at }}</td>
+        <td>
+          <span class="badge text-bg-secondary cat-badge">
+            {% if itype == 'site_visit' %}Site Visit{% elif itype == 'property' %}Property{% else %}General{% endif %}
+          </span>
+        </td>
         <td>{{ inquiry.name }}</td>
         <td>{{ inquiry.mobile }}</td>
         <td>{{ inquiry.email or '-' }}</td>
@@ -1237,7 +1643,7 @@ TEMPLATES = {
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" class="text-center">No inquiries available.</td>
+        <td colspan="8" class="text-center">No inquiries available.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -1604,12 +2010,12 @@ TEMPLATES = {
 <a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Properties</a>
 {% endblock %}
 {% block content %}
-<form method="POST" enctype="multipart/form-data" class="admin-section-card">
+<form method="POST" enctype="multipart/form-data" class="admin-section-card" id="adminPropertyForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="row g-3">
     <div class="col-md-8"><label>Property Name *</label><input class="form-control" name="property_name" value="{{ property.property_name if property else '' }}" required></div>
     <div class="col-md-4"><label>Type *</label>
-      <select class="form-select" name="property_type" required>
+      <select class="form-select" name="property_type" id="adminPropertyType" required>
         {% for t in types %}<option value="{{ t }}" {% if property and property.property_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
       </select>
     </div>
@@ -1626,7 +2032,9 @@ TEMPLATES = {
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-3"><label>BHK</label><input type="number" class="form-control" name="bhk" value="{{ property.bhk if property else 0 }}"></div>
+    <div class="col-md-3" id="adminBhkWrap"><label>BHK Number</label><input type="number" class="form-control" name="bhk" id="adminBhkInput" value="{{ property.bhk if property else 0 }}"></div>
+    <div class="col-md-3"><label>Block / Wing</label><input class="form-control" name="block_wing" value="{{ property.block_wing if property and property.block_wing else '' }}" placeholder="A, B, C"></div>
+    <div class="col-md-3"><label>Unit Number</label><input class="form-control" name="unit_number" value="{{ property.unit_number if property and property.unit_number else '' }}" placeholder="101, 903"></div>
     <div class="col-md-3"><label>Sq Ft *</label><input type="number" class="form-control" name="sq_ft" value="{{ property.sq_ft if property else '' }}" required></div>
     <div class="col-md-3"><label>Latitude</label><input class="form-control" name="latitude" value="{{ property.latitude if property else '21.1702' }}"></div>
     <div class="col-md-3"><label>Longitude</label><input class="form-control" name="longitude" value="{{ property.longitude if property else '72.8311' }}"></div>
@@ -1635,11 +2043,23 @@ TEMPLATES = {
     <div class="col-12"><label>Amenities (comma-separated)</label>
       <input class="form-control" name="amenities" value="{% if property and property.amenities %}{{ property.amenities|join(', ') }}{% endif %}">
     </div>
-    <div class="col-md-4"><label>Listing</label>
-      <select class="form-select" name="listing_type">
-        <option value="buy" {% if not property or property.listing_type!='rent' %}selected{% endif %}>Buy</option>
-        <option value="sell">Sell</option>
-        <option value="rent" {% if property and property.listing_type=='rent' %}selected{% endif %}>Rent</option>
+    <div class="col-md-4"><label>Sell vs Rent *</label>
+      <select class="form-select" name="listing_intent">
+        {% set intent = (property.listing_intent if property else 'sell') %}
+        {% if intent not in ['sell','rent'] %}
+          {% set intent = 'rent' if property and property.listing_type == 'rent' else 'sell' %}
+        {% endif %}
+        <option value="sell" {% if intent == 'sell' %}selected{% endif %}>Sell Property</option>
+        <option value="rent" {% if intent == 'rent' %}selected{% endif %}>Rent Property</option>
+      </select>
+      <input type="hidden" name="listing_type" id="adminListingType" value="{{ 'rent' if intent == 'rent' else 'sale' }}">
+    </div>
+    <div class="col-md-4"><label>Seller Type</label>
+      <select class="form-select" name="seller_type">
+        <option value="">—</option>
+        {% for st in ['owner','broker','developer'] %}
+        <option value="{{ st }}" {% if property and property.seller_type == st %}selected{% endif %}>{{ st|title }}</option>
+        {% endfor %}
       </select>
     </div>
     <div class="col-md-4"><label>Creation Source</label>
@@ -1680,6 +2100,27 @@ TEMPLATES = {
     MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'));
     MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
   }
+  (function () {
+    const typeEl = document.getElementById('adminPropertyType');
+    const bhkWrap = document.getElementById('adminBhkWrap');
+    const bhkInput = document.getElementById('adminBhkInput');
+    const intentEl = document.querySelector('select[name="listing_intent"]');
+    const listingType = document.getElementById('adminListingType');
+    const hide = new Set(['plot', 'land', 'shop', 'office']);
+    function syncBhk() {
+      const t = (typeEl?.value || '').toLowerCase();
+      const show = !hide.has(t);
+      bhkWrap?.classList.toggle('d-none', !show);
+      if (bhkInput) bhkInput.disabled = !show;
+    }
+    function syncIntent() {
+      if (listingType && intentEl) listingType.value = intentEl.value === 'rent' ? 'rent' : 'sale';
+    }
+    typeEl?.addEventListener('change', syncBhk);
+    intentEl?.addEventListener('change', syncIntent);
+    syncBhk();
+    syncIntent();
+  })();
 </script>
 {% endblock %}
 """,
@@ -1801,7 +2242,7 @@ TEMPLATES = {
 <a
   class="btn btn-outline-secondary btn-sm"
   target="_blank"
-  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '', area=area_filter if area_filter else None) }}"
+  href="{{ url_for('admin.print_sell_properties', period=period_filter, status=status_filter if status_filter != 'all' else '', area=area_filter if area_filter else None, seller_type=seller_type_filter if seller_type_filter else None) }}"
 >
   <i class="bi bi-printer me-1"></i>Print View
 </a>
@@ -1816,24 +2257,31 @@ TEMPLATES = {
     </div>
     <h3 class="kpi-value">{{ period_stats.get(value, 0) }}</h3>
     <p class="kpi-meta mb-2">{{ period_stats.get(value, 0) }} sell propert{{ 'y' if period_stats.get(value, 0) == 1 else 'ies' }} in this {{ label|lower }} period</p>
-    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter, area=area_filter if area_filter else None) }}" class="btn btn-sm btn-light">View {{ label }}</a>
+    <a href="{{ url_for('admin.sell_properties', period=value, status=status_filter, area=area_filter if area_filter else None, seller_type=seller_type_filter if seller_type_filter else None) }}" class="btn btn-sm btn-light">View {{ label }}</a>
   </article>
   {% endfor %}
 </section>
 
 <div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2">
   {% for value, label in statuses %}
-  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter, area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
+  <a href="{{ url_for('admin.sell_properties', status=value, period=period_filter, area=area_filter if area_filter else None, seller_type=seller_type_filter if seller_type_filter else None) }}" class="admin-filter-chip {% if status_filter == value %}active{% endif %}">{{ label }}</a>
   {% endfor %}
-  <form method="get" class="ms-auto d-flex align-items-center gap-2">
+  <form method="get" class="ms-auto d-flex align-items-center gap-2 flex-wrap">
     <input type="hidden" name="status" value="{{ status_filter }}">
     <input type="hidden" name="period" value="{{ period_filter }}">
     <label class="form-label mb-0 small text-muted" for="areaFilter">Area</label>
-    <select class="form-select form-select-sm" id="areaFilter" name="area" onchange="this.form.submit()" style="min-width: 160px;">
+    <select class="form-select form-select-sm" id="areaFilter" name="area" onchange="this.form.submit()" style="min-width: 140px;">
       <option value="">All areas</option>
       {% for area in area_options %}
       <option value="{{ area }}" {% if area_filter == area %}selected{% endif %}>{{ area }}</option>
       {% endfor %}
+    </select>
+    <label class="form-label mb-0 small text-muted" for="sellerTypeFilter">Seller Type</label>
+    <select class="form-select form-select-sm" id="sellerTypeFilter" name="seller_type" onchange="this.form.submit()" style="min-width: 140px;">
+      <option value="">All</option>
+      <option value="owner" {% if seller_type_filter == 'owner' %}selected{% endif %}>Owner</option>
+      <option value="broker" {% if seller_type_filter == 'broker' %}selected{% endif %}>Broker</option>
+      <option value="developer" {% if seller_type_filter == 'developer' %}selected{% endif %}>Developer</option>
     </select>
   </form>
 </div>
@@ -1857,7 +2305,7 @@ TEMPLATES = {
       <tr id="submission-{{ submission.id }}">
         <td>{{ submission.id }}</td>
         <td>
-          <div class="fw-semibold">{{ submission.owner_name }}</div>
+          <div class="fw-semibold">{{ submission.display_owner_name or submission.owner_name }}</div>
           <div class="small">
             <a href="tel:{{ submission.owner_mobile }}">{{ submission.owner_mobile }}</a>
             {% if submission.owner_alt_mobile %}
@@ -2468,53 +2916,69 @@ TEMPLATES = {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Visit Print</title>
+  <title>JAKKASH — Customer Visit</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    .signature-box { min-height: 120px; border: 1px dashed #777; border-radius: 6px; padding: 8px; }
-    @media print { .no-print { display: none !important; } }
+    body { font-family: Georgia, "Times New Roman", serif; color: #1f1f24; }
+    .brand { letter-spacing: 0.08em; font-weight: 700; color: #e67e22; }
+    .sheet { max-width: 860px; margin: 0 auto; border: 1px solid #ddd; padding: 2rem 2.25rem; }
+    .meta-table th { width: 220px; background: #faf7f4; }
+    .signature-box { min-height: 130px; border: 1px dashed #777; border-radius: 6px; padding: 10px; }
+    @media print { .no-print { display: none !important; } body { background: #fff; } .sheet { border: 0; padding: 0; } }
   </style>
 </head>
-<body class="p-4">
-  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-    <h4 class="mb-0">Customer Visit Form</h4>
-    <button class="btn btn-dark btn-sm" onclick="window.print()">Print</button>
-  </div>
-  <table class="table table-bordered">
-    <tr><th style="width: 220px;">Visit Date</th><td>{{ visit.visit_date }}</td></tr>
-    <tr><th>Client Name</th><td>{{ visit.client_name }}</td></tr>
-    <tr><th>Client Address</th><td>{{ visit.client_address }}</td></tr>
-    <tr><th>Client Contact</th><td>{{ visit.client_contact }}</td></tr>
-    <tr><th>Client Requirement</th><td>{{ visit.client_requirement }}</td></tr>
-    <tr><th>Visited Property</th><td>{{ visit.property_name or ('Property #' ~ visit.property_id) }}</td></tr>
-    <tr><th>Executive Name</th><td>{{ visit.executive_name or visit.linked_executive_name or '-' }}</td></tr>
-    <tr><th>Executive Address</th><td>{{ visit.executive_address or '-' }}</td></tr>
-    <tr><th>Executive Contact</th><td>{{ visit.executive_contact or '-' }}</td></tr>
-  </table>
+<body class="p-4 bg-light">
+  <div class="sheet bg-white">
+    <div class="d-flex justify-content-between align-items-start mb-4 no-print">
+      <div>
+        <div class="brand">JAKKASH PROPERTY CONSULTANCY</div>
+        <div class="text-muted small">Customer Visit Record</div>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="window.print()">Print / Save PDF</button>
+    </div>
+    <header class="mb-4 border-bottom pb-3">
+      <div class="brand fs-4">JAKKASH PROPERTY CONSULTANCY</div>
+      <div class="text-muted">Surat · Brokerage Site Visit Form</div>
+    </header>
+    <table class="table table-bordered meta-table">
+      <tr><th>Visit Date</th><td>{{ visit.visit_date }}</td></tr>
+      <tr><th>Client Name</th><td>{{ visit.client_name }}</td></tr>
+      <tr><th>Client Address</th><td>{{ visit.client_address }}</td></tr>
+      <tr><th>Client Contact</th><td>{{ visit.client_contact }}</td></tr>
+      <tr><th>Client Requirement</th><td>{{ visit.client_requirement }}</td></tr>
+      <tr><th>Visited Properties</th><td>{{ visit.property_names_display or visit.property_name or ('Property #' ~ visit.property_id) }}</td></tr>
+      <tr><th>Executive Name</th><td>{{ visit.executive_name or '-' }}</td></tr>
+      <tr><th>Executive Address</th><td>{{ visit.executive_address or '-' }}</td></tr>
+      <tr><th>Executive Contact</th><td>{{ visit.executive_contact or '-' }}</td></tr>
+    </table>
 
-  <div class="row g-3">
-    <div class="col-md-6">
-      <h6>Customer Signature</h6>
-      <div class="signature-box">
-        {% if visit.customer_signature_data %}
-        <img src="{{ visit.customer_signature_data }}" alt="Customer Signature" class="img-fluid" style="max-height: 100px;">
-        {% else %}
-        <div class="text-muted small">Signature placeholder</div>
-        {% endif %}
+    <div class="row g-4 mt-2">
+      <div class="col-md-6">
+        <h6>Customer Signature</h6>
+        <div class="signature-box">
+          {% if visit.customer_signature_data %}
+          <img src="{{ visit.customer_signature_data }}" alt="Customer Signature" class="img-fluid" style="max-height: 110px;">
+          {% else %}
+          <div class="text-muted small">Signature placeholder</div>
+          {% endif %}
+        </div>
+        <div class="small text-muted mt-1">{{ visit.customer_signature_label or 'Customer signature pending' }}</div>
       </div>
-      <div class="small text-muted mt-1">{{ visit.customer_signature_label or 'Customer signature pending' }}</div>
-    </div>
-    <div class="col-md-6">
-      <h6>Executive Signature</h6>
-      <div class="signature-box">
-        {% if visit.executive_signature_data %}
-        <img src="{{ visit.executive_signature_data }}" alt="Executive Signature" class="img-fluid" style="max-height: 100px;">
-        {% else %}
-        <div class="text-muted small">Signature placeholder</div>
-        {% endif %}
+      <div class="col-md-6">
+        <h6>Executive Signature</h6>
+        <div class="signature-box">
+          {% if visit.executive_signature_data %}
+          <img src="{{ visit.executive_signature_data }}" alt="Executive Signature" class="img-fluid" style="max-height: 110px;">
+          {% else %}
+          <div class="text-muted small">Signature placeholder</div>
+          {% endif %}
+        </div>
+        <div class="small text-muted mt-1">{{ visit.executive_signature_label or 'Executive signature pending' }}</div>
       </div>
-      <div class="small text-muted mt-1">{{ visit.executive_signature_label or 'Executive signature pending' }}</div>
     </div>
+    <footer class="mt-4 pt-3 border-top small text-muted">
+      Generated for internal brokerage use · JAKKASH Property Consultancy
+    </footer>
   </div>
 </body>
 </html>
@@ -3460,7 +3924,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
           <i class="bi bi-whatsapp"></i> WhatsApp Broker
         </a>
         <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-        <button class="btn btn-jk-accent" type="button" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
+        <button class="btn btn-jk-accent btn-send-inquiry" type="button" data-action="send-inquiry" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </button>
         <button class="btn btn-jk-outline btn-request-visit" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel" aria-controls="visitPanel">
@@ -3469,7 +3933,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
         <a class="btn btn-outline-secondary btn-save" href="{{ url_for('public.saved') }}" data-id="{{ property.id }}" role="button">
           <i class="bi bi-heart"></i> Save Property
         </a>
-        <button class="btn btn-outline-secondary btn-share" type="button"><i class="bi bi-share"></i> Share</button>
+        <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
@@ -3485,7 +3949,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
     <form id="inquiryForm" class="row g-3">
       <input type="hidden" name="property_id" value="{{ property.id }}">
       <input type="hidden" name="intent" id="inquiryIntent" value="inquiry">
-      <div class="col-md-6"><input class="form-control" name="name" placeholder="Your Name" required></div>
+      <div class="col-md-6"><input class="form-control" name="name" id="inquiryNameInput" placeholder="Your Name" required></div>
       <div class="col-md-6"><input class="form-control" name="mobile" placeholder="Mobile" required></div>
       <div class="col-12"><input class="form-control" name="email" placeholder="Email"></div>
       <div class="col-12"><textarea class="form-control" name="message" rows="3" placeholder="Message"></textarea></div>
@@ -3983,11 +4447,11 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
   <header class="mb-4">
 
-    <h1 class="section-title">Sell Your Property</h1>
+    <h1 class="section-title">Sell / Rent Your Property</h1>
 
     <p class="text-muted mb-0">
 
-      Submit your sale listing details. Every submission is marked as <strong>Pending Approval</strong> and
+      Submit your listing details. Every submission is marked as <strong>Pending Approval</strong> and
 
       becomes public only after admin verification.
 
@@ -4003,17 +4467,27 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
 
 
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Listing Intent *</label>
+      <input type="hidden" id="listingIntentInput" name="listing_intent" value="sell">
+      <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
+        <button type="button" class="sell-option-chip btn-orange is-active" data-listing-intent="sell">Sell Property</button>
+        <button type="button" class="sell-option-chip" data-listing-intent="rent">Rent Property</button>
+      </div>
+    </div>
+
     <h5 class="mb-3" id="contactSectionTitle">Owner Details (Mandatory)</h5>
 
     <div class="row g-3 sell-contact-row">
 
       <div class="col-12">
 
-        <label class="form-label">Listed By *</label>
+        <label class="form-label">Seller Type *</label>
 
         <input type="hidden" id="submitterTypeInput" name="submitter_type" value="owner">
+        <input type="hidden" id="sellerTypeInput" name="seller_type" value="owner">
 
-        <div class="sell-option-chips" role="group" aria-label="Listed by">
+        <div class="sell-option-chips" role="group" aria-label="Seller type">
 
           <button type="button" class="sell-option-chip is-active" data-submitter-type="owner">Owner</button>
 
@@ -4149,11 +4623,21 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
 
 
-      <div class="col-12 col-sm-6 col-md-3">
+      <div class="col-12 col-sm-6 col-md-3" id="bhkWrap">
 
-        <label class="form-label" for="bhkInput">BHK</label>
+        <label class="form-label" for="bhkInput">BHK Number</label>
 
         <input class="form-control" id="bhkInput" type="number" name="bhk" min="0" placeholder="BHK">
+
+      </div>
+
+
+
+      <div class="col-12 col-sm-6 col-md-3 d-none" id="blockWingWrap">
+
+        <label class="form-label" for="blockWingInput">Block / Wing</label>
+
+        <input class="form-control" id="blockWingInput" name="block_wing" placeholder="e.g. A, B, C">
 
       </div>
 
@@ -4163,7 +4647,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
         <label class="form-label" for="unitNumberInput" id="unitNumberLabel">Unit Number</label>
 
-        <input class="form-control" id="unitNumberInput" name="bungalow_number" placeholder="Unit Number">
+        <input class="form-control" id="unitNumberInput" name="unit_number" placeholder="e.g. 101, 903">
 
       </div>
 
@@ -4197,9 +4681,9 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
 
       <div class="col-12 col-md-6">
 
-        <label class="form-label" for="areaValueInput">Property Area *</label>
+        <label class="form-label" for="areaValueInput" id="areaValueLabel">Enter the area in sqft *</label>
 
-        <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter area number" required min="0.01" step="any">
+        <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter the area in sqft" required min="0.01" step="any">
 
         <label class="form-label mt-3">Area Unit *</label>
 

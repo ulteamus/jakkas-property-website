@@ -502,6 +502,7 @@ def update_lead(lid):
 def inquiries():
     selected_range = request.args.get("range", "week")
     selected_status = (request.args.get("status") or "").strip().lower()
+    selected_type = (request.args.get("inquiry_type") or "all").strip().lower()
     range_key, start_date, end_date = _resolve_inquiry_window(
         selected_range,
         request.args.get("start_date"),
@@ -509,24 +510,39 @@ def inquiries():
     )
     if selected_status not in inquiry_model.INQUIRY_STATUSES:
         selected_status = ""
+    if selected_type not in {"all", "site_visit", "general", "property"}:
+        selected_type = "all"
     rows = inquiry_model.get_all(
         limit=500,
         start_date=start_date,
         end_date=end_date,
         status=selected_status or None,
         owner_admin_id=_inquiry_owner_scope(),
+        inquiry_type=None if selected_type == "all" else selected_type,
     )
     _log_admin_action(
         "sensitive_inquiries_viewed",
         "Viewed inquiries with sensitive contact data",
         entity_type="inquiry",
-        meta={"count": len(rows), "range": range_key, "status": selected_status or "all"},
+        meta={
+            "count": len(rows),
+            "range": range_key,
+            "status": selected_status or "all",
+            "inquiry_type": selected_type,
+        },
     )
     return render_template(
         "admin/inquiries.html",
         inquiries=rows,
         statuses=inquiry_model.INQUIRY_STATUSES,
         selected_status=selected_status or "all",
+        selected_inquiry_type=selected_type,
+        inquiry_types=[
+            ("all", "All"),
+            ("site_visit", "Site Visit Requests"),
+            ("general", "General Inquiries"),
+            ("property", "Property-Specific Inquiries"),
+        ],
         range_filter=range_key,
         start_date=start_date,
         end_date=end_date,
@@ -580,11 +596,46 @@ def update_inquiry(inquiry_id):
     return redirect(request.referrer or url_for("admin.inquiries"))
 
 
+@admin_bp.route("/inquiries/<int:inquiry_id>/delete", methods=["POST"])
+@permission_required("manage_inquiries")
+def delete_inquiry(inquiry_id):
+    inquiry = inquiry_model.get_by_id(inquiry_id, owner_admin_id=_inquiry_owner_scope())
+    if not inquiry:
+        abort(404)
+    _ensure_inquiry_owner(inquiry)
+    inquiry_model.delete(inquiry_id)
+    _log_admin_action(
+        "inquiry_deleted",
+        "Deleted inquiry",
+        entity_type="inquiry",
+        entity_id=inquiry_id,
+        meta={"name": inquiry.get("name"), "mobile": inquiry.get("mobile")},
+    )
+    flash("Inquiry deleted.", "warning")
+    return redirect(request.referrer or url_for("admin.inquiries"))
+
+
+@admin_bp.route("/inquiries/bulk-delete", methods=["POST"])
+@permission_required("manage_inquiries")
+def bulk_delete_inquiries():
+    ids = request.form.getlist("inquiry_ids")
+    deleted = inquiry_model.delete_many(ids)
+    _log_admin_action(
+        "inquiry_bulk_deleted",
+        "Bulk deleted inquiries",
+        entity_type="inquiry",
+        meta={"count": deleted},
+    )
+    flash(f"Deleted {deleted} inquir{'y' if deleted == 1 else 'ies'}.", "warning")
+    return redirect(request.referrer or url_for("admin.inquiries"))
+
+
 @admin_bp.route("/inquiries/print")
 @permission_required("manage_inquiries")
 def print_inquiries():
     selected_range = request.args.get("range", "week")
     selected_status = (request.args.get("status") or "").strip().lower()
+    selected_type = (request.args.get("inquiry_type") or "all").strip().lower()
     range_key, start_date, end_date = _resolve_inquiry_window(
         selected_range,
         request.args.get("start_date"),
@@ -592,17 +643,22 @@ def print_inquiries():
     )
     if selected_status not in inquiry_model.INQUIRY_STATUSES:
         selected_status = ""
+    if selected_type not in {"all", "site_visit", "general", "property"}:
+        selected_type = "all"
     rows = inquiry_model.get_all(
         limit=1000,
         start_date=start_date,
         end_date=end_date,
         status=selected_status or None,
         owner_admin_id=_inquiry_owner_scope(),
+        inquiry_type=None if selected_type == "all" else selected_type,
     )
     return render_template(
         "admin/inquiries_print.html",
         inquiries=rows,
+        statuses=inquiry_model.INQUIRY_STATUSES,
         selected_status=selected_status or "all",
+        selected_inquiry_type=selected_type,
         range_filter=range_key,
         start_date=start_date,
         end_date=end_date,
@@ -625,13 +681,18 @@ def _submission_redirect_args():
     status = (request.form.get("redirect_status") or request.args.get("status") or "pending").strip().lower()
     period = (request.form.get("redirect_period") or request.args.get("period") or "weekly").strip().lower()
     area = (request.form.get("redirect_area") or request.args.get("area") or "").strip()
+    seller_type = (request.form.get("redirect_seller_type") or request.args.get("seller_type") or "").strip().lower()
     if status not in {"pending", "approved", "rejected", "all"}:
         status = "pending"
     if period not in {"daily", "weekly", "monthly", "yearly"}:
         period = "weekly"
+    if seller_type not in {"owner", "broker", "developer"}:
+        seller_type = ""
     args = {"status": status, "period": period}
     if area:
         args["area"] = area
+    if seller_type:
+        args["seller_type"] = seller_type
     return args
 
 
@@ -658,6 +719,7 @@ def _apply_submission_status_change(submission, new_status, review_note=None):
     if previous == clean_status:
         return False
 
+    # Permanent persistence: never delete owner_submissions on approve/reject.
     submission_model.set_submission_status(
         sid,
         clean_status,
@@ -665,6 +727,39 @@ def _apply_submission_status_change(submission, new_status, review_note=None):
         review_note=review_note,
     )
     property_id = submission.get("property_id")
+
+    if clean_status == "approved" and not property_id:
+        # Create linked property if missing, keep submission row forever.
+        listing_intent = (submission.get("listing_intent") or "sell").lower()
+        listing_type = "rent" if listing_intent == "rent" else "sale"
+        created = prop_model.create(
+            {
+                "property_name": submission.get("property_title") or "Untitled Property",
+                "property_type": submission.get("property_type") or "flat",
+                "area_name": submission.get("location_area") or submission.get("city") or "Surat",
+                "address": submission.get("property_address"),
+                "price": float(submission.get("price") or 0),
+                "bhk": int(submission.get("bhk") or 0),
+                "sq_ft": float(submission.get("area_sq_ft") or 1),
+                "description": submission.get("description"),
+                "amenities": submission.get("amenities") or [],
+                "status": "available",
+                "is_featured": False,
+                "listing_type": listing_type,
+                "listing_intent": "rent" if listing_intent == "rent" else "sell",
+                "seller_type": submission.get("seller_type") or submission.get("submitter_type"),
+                "block_wing": submission.get("block_wing"),
+                "unit_number": submission.get("unit_number")
+                or submission.get("apartment_number")
+                or submission.get("bungalow_number"),
+                "creation_source": "user_submission",
+            },
+            created_by_admin_id=submission.get("owner_admin_id") or current_user.id,
+        )
+        property_id = created["id"]
+        submission_model.link_property(sid, property_id)
+        submission["property_id"] = property_id
+
     if property_id:
         existing_prop = prop_model.get_by_id(property_id)
         previous_prop_status = (existing_prop or {}).get("status")
@@ -713,6 +808,9 @@ def sell_properties():
     if status_filter not in allowed:
         status_filter = "pending"
     area_filter = (request.args.get("area") or "").strip()
+    seller_type_filter = (request.args.get("seller_type") or "").strip().lower()
+    if seller_type_filter not in {"owner", "broker", "developer"}:
+        seller_type_filter = ""
     period_key, start_date, end_date = _resolve_submission_period(request.args.get("period"))
     owner_scope = _owner_scope_admin_id()
     submissions_rows = submission_model.list_submissions(
@@ -722,6 +820,7 @@ def sell_properties():
         start_date=start_date,
         end_date=end_date,
         area=area_filter or None,
+        seller_type=seller_type_filter or None,
     )
     period_stats = submission_model.period_counts(owner_admin_id=owner_scope)
     return render_template(
@@ -730,6 +829,7 @@ def sell_properties():
         status_filter=status_filter,
         period_filter=period_key,
         area_filter=area_filter,
+        seller_type_filter=seller_type_filter,
         area_options=SELL_AREA_FILTER_OPTIONS,
         period_stats=period_stats,
         statuses=[
@@ -879,6 +979,9 @@ def print_sell_properties():
     if status_filter not in {"pending", "approved", "rejected", "all"}:
         status_filter = "all"
     area_filter = (request.args.get("area") or "").strip()
+    seller_type_filter = (request.args.get("seller_type") or "").strip().lower()
+    if seller_type_filter not in {"owner", "broker", "developer"}:
+        seller_type_filter = ""
     period_key, start_date, end_date = _resolve_submission_period(request.args.get("period"))
     rows = submission_model.list_submissions(
         status=None if status_filter == "all" else status_filter,
@@ -887,6 +990,7 @@ def print_sell_properties():
         start_date=start_date,
         end_date=end_date,
         area=area_filter or None,
+        seller_type=seller_type_filter or None,
     )
     return render_template(
         "admin/sell_properties_print.html",
@@ -894,6 +998,7 @@ def print_sell_properties():
         status_filter=status_filter,
         period_filter=period_key,
         area_filter=area_filter,
+        seller_type_filter=seller_type_filter,
         start_date=start_date,
         end_date=end_date,
     )
@@ -1199,12 +1304,11 @@ def customer_visits():
     start_date = _coerce_iso_date(request.args.get("start_date"))
     end_date = _coerce_iso_date(request.args.get("end_date"))
     if request.method == "POST":
-        property_id = request.form.get("property_id", type=int)
+        property_ids = [int(x) for x in request.form.getlist("property_ids") if str(x).isdigit()]
+        property_id = property_ids[0] if property_ids else request.form.get("property_id", type=int)
         linked_property = prop_model.get_by_id(property_id) if property_id else None
         if linked_property:
             _ensure_property_owner(linked_property)
-        executive_admin_id = request.form.get("executive_admin_id", type=int)
-        linked_exec = Admin.get_by_id(executive_admin_id, include_inactive=True) if executive_admin_id else None
         payload = {
             "visit_date": request.form.get("visit_date"),
             "client_name": request.form.get("client_name"),
@@ -1212,10 +1316,10 @@ def customer_visits():
             "client_contact": request.form.get("client_contact"),
             "client_requirement": request.form.get("client_requirement"),
             "property_id": property_id,
-            "executive_admin_id": executive_admin_id,
-            "executive_name": request.form.get("executive_name") or (linked_exec.full_name if linked_exec else ""),
+            "property_ids": property_ids,
+            "executive_name": request.form.get("executive_name"),
             "executive_address": request.form.get("executive_address"),
-            "executive_contact": request.form.get("executive_contact") or (linked_exec.phone if linked_exec else ""),
+            "executive_contact": request.form.get("executive_contact"),
             "customer_signature_label": request.form.get("customer_signature_label"),
             "executive_signature_label": request.form.get("executive_signature_label"),
             "customer_signature_data": request.form.get("customer_signature_data"),
@@ -1231,8 +1335,8 @@ def customer_visits():
             "executive_address",
             "executive_contact",
         ]
-        if not property_id or any(not str(payload.get(field) or "").strip() for field in required):
-            flash("Please complete all required customer visit fields.", "danger")
+        if not property_ids or any(not str(payload.get(field) or "").strip() for field in required):
+            flash("Please complete all required customer visit fields and select at least one property.", "danger")
             return redirect(url_for("admin.customer_visits"))
         visit = visit_model.create_visit(payload, created_by_admin_id=current_user.id)
         _log_admin_action(
@@ -1240,7 +1344,7 @@ def customer_visits():
             "Added customer visit form",
             entity_type="customer_visit",
             entity_id=(visit or {}).get("id"),
-            meta={"client_name": payload.get("client_name"), "property_id": property_id},
+            meta={"client_name": payload.get("client_name"), "property_ids": property_ids},
         )
         flash("Customer visit form saved.", "success")
         return redirect(url_for("admin.customer_visits"))
@@ -1252,19 +1356,30 @@ def customer_visits():
         status=None,
         owner_admin_id=_owner_scope_admin_id(),
     )
-    executives = [
-        admin_row
-        for admin_row in Admin.list_admins(include_inactive=False)
-        if admin_row.role in {"executive", "manager", "caller", "main_admin"}
-    ]
     return render_template(
         "admin/customer_visits.html",
         visits=rows,
         properties=properties,
-        executives=executives,
         start_date=start_date or "",
         end_date=end_date or "",
     )
+
+
+@admin_bp.route("/visits/<int:visit_id>/delete", methods=["POST"])
+@permission_required("manage_customer_visits")
+def delete_customer_visit(visit_id):
+    visit = visit_model.get_visit(visit_id)
+    if not visit:
+        abort(404)
+    visit_model.delete_visit(visit_id)
+    _log_admin_action(
+        "customer_visit_deleted",
+        "Deleted customer visit form",
+        entity_type="customer_visit",
+        entity_id=visit_id,
+    )
+    flash("Customer visit deleted.", "warning")
+    return redirect(url_for("admin.customer_visits"))
 
 
 @admin_bp.route("/visits/<int:visit_id>/print")
@@ -1380,7 +1495,11 @@ def _form_property(form):
         "longitude": _optional_float("longitude", "Longitude", 72.8311),
         "status": form.get("status", "available"),
         "is_featured": form.get("is_featured") == "on",
-        "listing_type": form.get("listing_type", "sale"),
+        "listing_type": form.get("listing_type") or form.get("listing_intent") or "sale",
+        "listing_intent": form.get("listing_intent") or form.get("listing_type") or "sell",
+        "seller_type": form.get("seller_type") or None,
+        "block_wing": (form.get("block_wing") or "").strip() or None,
+        "unit_number": (form.get("unit_number") or "").strip() or None,
         "creation_source": form.get("creation_source", "admin"),
     }
 

@@ -23,13 +23,66 @@ document.querySelector('.btn-whatsapp')?.addEventListener('click', async (e) => 
   if (d.whatsapp_url) window.open(d.whatsapp_url, '_blank');
 });
 
-document.querySelector('.btn-share')?.addEventListener('click', () => {
-  if (navigator.share) navigator.share({ title: document.title, url: location.href });
-  else { navigator.clipboard.writeText(location.href); alert('Link copied!'); }
+async function shareProperty() {
+  const title = document.querySelector('h1')?.textContent?.trim() || document.title;
+  const url = location.href;
+  const image = document.getElementById('mainImg')?.src || document.querySelector('meta[property="og:image"]')?.content || '';
+  const payload = { title, text: title, url };
+  if (image && navigator.canShare) {
+    try {
+      // URL share only — image file sharing is optional
+    } catch (_) { /* ignore */ }
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share(payload);
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('Link copied to clipboard.');
+  } catch (_) {
+    prompt('Copy this property link:', url);
+  }
+}
+
+document.querySelectorAll('.btn-share, [data-action="share-property"]').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    shareProperty();
+  });
 });
 
+function focusInquiryName() {
+  const nameInput =
+    document.getElementById('inquiryNameInput') ||
+    document.querySelector('#inquiryForm input[name="name"]') ||
+    document.getElementById('visitNameInput') ||
+    document.querySelector('#visitForm input[name="name"]');
+  nameInput?.focus();
+}
+
+function openInquiryPanel(focus = true) {
+  const panel =
+    document.getElementById('inquiryPanel') ||
+    document.getElementById('inquiryForm') ||
+    document.getElementById('visitPanel');
+  const intent = document.getElementById('inquiryIntent');
+  if (intent && !intent.value) intent.value = 'property';
+  if (panel && window.bootstrap?.Collapse && panel.classList.contains('collapse')) {
+    bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).show();
+  } else if (panel?.classList) {
+    panel.classList.add('show');
+  }
+  panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (focus) setTimeout(focusInquiryName, 280);
+}
+
 function openSiteVisitPanel(focus = true) {
-  const panel = document.getElementById('visitPanel');
+  const panel = document.getElementById('visitPanel') || document.getElementById('inquiryPanel');
   const intent = document.getElementById('inquiryIntent');
   if (intent) intent.value = 'site_visit';
   if (panel && window.bootstrap?.Collapse) {
@@ -39,7 +92,9 @@ function openSiteVisitPanel(focus = true) {
   }
   panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (focus) {
-    setTimeout(() => document.getElementById('visitNameInput')?.focus(), 280);
+    setTimeout(() => {
+      document.getElementById('visitNameInput')?.focus() || focusInquiryName();
+    }, 280);
   }
 }
 
@@ -47,8 +102,21 @@ document.querySelectorAll('.btn-request-visit').forEach((btn) => {
   btn.addEventListener('click', () => openSiteVisitPanel(true));
 });
 
+document.querySelectorAll('.btn-send-inquiry, [data-action="send-inquiry"], a[href*="#inquiry"]').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    const href = btn.getAttribute('href') || '';
+    if (href.includes('#') || btn.dataset.action === 'send-inquiry' || btn.classList.contains('btn-send-inquiry')) {
+      e.preventDefault();
+      openInquiryPanel(true);
+    }
+  });
+});
+
 if (location.hash === '#visitPanel' || /[?&]intent=site_visit\b/i.test(location.search)) {
   openSiteVisitPanel(true);
+}
+if (location.hash === '#inquiryForm' || location.hash === '#inquiryPanel') {
+  openInquiryPanel(true);
 }
 
 document.getElementById('inquiryForm')?.addEventListener('submit', async e => {

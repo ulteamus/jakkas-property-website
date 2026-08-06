@@ -1,16 +1,22 @@
 (function () {
   const form = document.getElementById('sellPropertyForm');
   const propertyTypeInput = document.getElementById('propertyTypeInput');
+  const listingIntentInput = document.getElementById('listingIntentInput');
   const unitWrap = document.getElementById('unitNumberWrap');
   const unitLabel = document.getElementById('unitNumberLabel');
   const unitInput = document.getElementById('unitNumberInput');
+  const blockWingWrap = document.getElementById('blockWingWrap');
+  const bhkWrap = document.getElementById('bhkWrap');
+  const bhkInput = document.getElementById('bhkInput');
   const apartmentWrap = document.getElementById('apartmentNumberWrap');
   const flatWrap = document.getElementById('flatNumberWrap');
   const submitterTypeInput = document.getElementById('submitterTypeInput');
+  const sellerTypeInput = document.getElementById('sellerTypeInput');
   const contactSectionTitle = document.getElementById('contactSectionTitle');
   const contactNameLabel = document.getElementById('contactNameLabel');
   const contactNameInput = document.getElementById('contactNameInput');
   const areaValueInput = document.getElementById('areaValueInput');
+  const areaValueLabel = document.getElementById('areaValueLabel');
   const areaUnitInput = document.getElementById('areaUnitInput');
   const areaSqFtInput = document.getElementById('areaSqFtInput');
   const areaConvertedHint = document.getElementById('areaConvertedHint');
@@ -18,13 +24,23 @@
 
   if (!form) return;
 
+  const HIDE_BHK = new Set(['plot', 'land', 'shop', 'office']);
+  const SHOW_BHK = new Set(['apartment', 'flat', 'bungalow', 'house', 'villa']);
+
   const unitLabels = {
-    apartment: 'Apartment Number',
+    apartment: 'Flat / Unit Number',
     villa: 'Villa Number',
     bungalow: 'Bungalow Number',
     plot: 'Plot Number',
     shop: 'Shop Number',
     office: 'Office Number',
+  };
+
+  const areaUnitLabels = {
+    sq_ft: { label: 'Enter the area in sqft *', placeholder: 'Enter the area in sqft' },
+    sq_yard: { label: 'Enter the area in sq. yard *', placeholder: 'Enter the area in sq. yard' },
+    vigha: { label: 'Enter the area in vigha *', placeholder: 'Enter the area in vigha' },
+    sq_meter: { label: 'Enter the area in sq. meter *', placeholder: 'Enter the area in sq. meter' },
   };
 
   const submitterLabels = {
@@ -58,7 +74,9 @@
 
   function setActiveChip(selector, value, attr) {
     document.querySelectorAll(selector).forEach((chip) => {
-      chip.classList.toggle('is-active', chip.getAttribute(attr) === value);
+      const active = chip.getAttribute(attr) === value;
+      chip.classList.toggle('is-active', active);
+      chip.classList.toggle('btn-orange', active);
     });
   }
 
@@ -68,34 +86,53 @@
     if (contactSectionTitle) contactSectionTitle.textContent = config.section;
     if (contactNameLabel) contactNameLabel.textContent = config.label;
     if (contactNameInput) contactNameInput.placeholder = config.placeholder;
+    if (sellerTypeInput) sellerTypeInput.value = type;
     setActiveChip('[data-submitter-type]', type, 'data-submitter-type');
+  }
+
+  function syncListingIntent() {
+    const intent = (listingIntentInput?.value || 'sell').toLowerCase();
+    setActiveChip('[data-listing-intent]', intent, 'data-listing-intent');
+  }
+
+  function syncBhkVisibility() {
+    const type = getPropertyType();
+    const hide = HIDE_BHK.has(type) || (type && !SHOW_BHK.has(type) && HIDE_BHK.has(type));
+    const show = !type || SHOW_BHK.has(type);
+    const shouldShow = show && !HIDE_BHK.has(type);
+    if (bhkWrap) {
+      bhkWrap.classList.toggle('d-none', !shouldShow);
+      bhkWrap.style.opacity = shouldShow ? '1' : '0';
+      bhkWrap.style.transition = 'opacity 180ms ease';
+    }
+    if (bhkInput) {
+      bhkInput.disabled = !shouldShow;
+      if (!shouldShow) bhkInput.value = '';
+    }
   }
 
   function syncUnitFields() {
     if (!unitWrap || !unitInput) return;
     const type = getPropertyType();
-    const isApartment = type === 'apartment';
+    const isApartment = type === 'apartment' || type === 'flat';
 
-    apartmentWrap?.classList.toggle('d-none', !isApartment);
-    flatWrap?.classList.toggle('d-none', !isApartment);
-    unitWrap.classList.toggle('d-none', isApartment);
+    apartmentWrap?.classList.add('d-none');
+    flatWrap?.classList.add('d-none');
+    blockWingWrap?.classList.toggle('d-none', !isApartment);
+    unitWrap.classList.remove('d-none');
 
-    if (isApartment) {
-      unitInput.removeAttribute('name');
-      unitInput.disabled = true;
-    } else {
-      unitInput.setAttribute('name', 'bungalow_number');
-      unitInput.disabled = false;
-      const text = unitLabels[type] || 'Unit Number';
-      if (unitLabel) unitLabel.textContent = text;
-      unitInput.placeholder = text;
-    }
+    unitInput.setAttribute('name', 'unit_number');
+    unitInput.disabled = false;
+    const text = isApartment ? 'Flat / Unit Number' : (unitLabels[type] || 'Unit Number');
+    if (unitLabel) unitLabel.textContent = text;
+    unitInput.placeholder = isApartment ? 'e.g. 101, 903' : text;
   }
 
   function syncPropertyType() {
     const type = getPropertyType();
     setActiveChip('[data-property-type]', type, 'data-property-type');
     syncUnitFields();
+    syncBhkVisibility();
   }
 
   function updateAreaSqFt() {
@@ -103,6 +140,10 @@
     const unit = areaUnitInput?.value || 'sq_ft';
     const factor = AREA_TO_SQ_FT[unit] || 1;
     const sqFt = value > 0 ? value * factor : 0;
+    const labels = areaUnitLabels[unit] || areaUnitLabels.sq_ft;
+
+    if (areaValueLabel) areaValueLabel.textContent = labels.label;
+    if (areaValueInput) areaValueInput.placeholder = labels.placeholder;
 
     if (areaSqFtInput) {
       areaSqFtInput.value = sqFt > 0 ? String(sqFt) : '';
@@ -118,6 +159,13 @@
 
     setActiveChip('[data-area-unit]', unit, 'data-area-unit');
   }
+
+  document.querySelectorAll('[data-listing-intent]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      if (listingIntentInput) listingIntentInput.value = chip.dataset.listingIntent || 'sell';
+      syncListingIntent();
+    });
+  });
 
   document.querySelectorAll('[data-submitter-type]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -144,6 +192,7 @@
 
   form.addEventListener('submit', (e) => {
     updateAreaSqFt();
+    syncSubmitterFields();
 
     if (!getPropertyType()) {
       e.preventDefault();
@@ -165,18 +214,19 @@
     }
   });
 
+  syncListingIntent();
   syncSubmitterFields();
   syncPropertyType();
   updateAreaSqFt();
 
   if (window.MediaFileManager) {
     MediaFileManager.bind(
-      document.getElementById("sellImagesInput"),
-      document.getElementById("sellImagesPreview")
+      document.getElementById('sellImagesInput'),
+      document.getElementById('sellImagesPreview')
     );
     MediaFileManager.bind(
-      document.getElementById("sellVideosInput"),
-      document.getElementById("sellVideosPreview")
+      document.getElementById('sellVideosInput'),
+      document.getElementById('sellVideosPreview')
     );
   }
 })();
