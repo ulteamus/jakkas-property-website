@@ -1,23 +1,34 @@
 {% extends "public/base.html" %}
-{% block title %}Contact - {{ company_name }}{% endblock %}
+{% block title %}{% if intent == 'visit' %}Request Site Visit{% else %}Contact{% endif %} - {{ company_name }}{% endblock %}
 {% block content %}
 <div class="container py-5 jk-flow">
   <div class="row g-5">
     <div class="col-lg-6 reveal-on-scroll">
-      <h1 class="section-title">Contact Us</h1>
+      <h1 class="section-title">{% if intent == 'visit' %}Request Site Visit{% else %}Contact Us{% endif %}</h1>
       <p class="mb-1"><strong>{{ company_name }}</strong></p>
       <p class="mb-1"><i class="bi bi-geo-alt text-warning"></i> {{ company_address }}</p>
       <p class="mb-1"><i class="bi bi-telephone"></i> Mobile: <a href="tel:{{ company_phone_raw }}">{{ company_phone }}</a></p>
       <p class="mb-1"><i class="bi bi-whatsapp text-success"></i> WhatsApp: <a href="https://wa.me/{{ company_whatsapp }}" target="_blank">{{ company_phone }}</a></p>
       <p class="mb-3"><i class="bi bi-envelope"></i> Email: <a href="mailto:{{ company_email }}">{{ company_email }}</a></p>
 
+      {% if linked_property %}
+      <div class="alert alert-light border mb-3">
+        <div class="fw-semibold">{{ linked_property.property_name }}</div>
+        <div class="small text-muted">{{ linked_property.area_name }}, Surat · {{ 'For Rent' if linked_property.listing_intent == 'rent' else 'For Sale' }}</div>
+      </div>
+      {% endif %}
+
       <form id="contactForm" class="mt-4 content-card">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="mb-3"><input class="form-control" name="name" placeholder="Name *" required></div>
+        {% if linked_property %}<input type="hidden" name="property_id" value="{{ linked_property.id }}">{% endif %}
+        <input type="hidden" name="source" value="{{ 'site_visit_request' if intent == 'visit' else 'contact_form' }}">
+        <div class="mb-3"><input class="form-control" name="name" id="contactNameInput" placeholder="Name *" required autofocus></div>
         <div class="mb-3"><input class="form-control" name="mobile" placeholder="Mobile *" required></div>
         <div class="mb-3"><input class="form-control" name="email" type="email" placeholder="Email *" required></div>
-        <div class="mb-3"><textarea class="form-control" name="message" rows="4" placeholder="Your message"></textarea></div>
-        <button class="btn btn-jk-accent">Send Message</button>
+        <div class="mb-3">
+          <textarea class="form-control" name="message" rows="4" placeholder="{% if intent == 'visit' %}Preferred visit date / time and notes{% else %}Your message{% endif %}">{% if linked_property and intent == 'visit' %}I would like to schedule a site visit for {{ linked_property.property_name }}.{% elif linked_property %}Inquiry about {{ linked_property.property_name }}.{% endif %}</textarea>
+        </div>
+        <button class="btn btn-jk-accent">{% if intent == 'visit' %}Submit Visit Request{% else %}Send Message{% endif %}</button>
       </form>
     </div>
     <div class="col-lg-6 reveal-on-scroll">
@@ -37,11 +48,12 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const body = Object.fromEntries(fd);
-  body.source = 'contact_form';
+  if (!body.source) body.source = 'contact_form';
   const r = await apiFetch('/api/inquiry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   const d = await r.json();
   alert(d.message || d.error);
   if(d.success) e.target.reset();
 });
+document.getElementById('contactNameInput')?.focus();
 </script>
 {% endblock %}

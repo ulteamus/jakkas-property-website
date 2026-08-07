@@ -710,6 +710,53 @@ SELL_AREA_FILTER_OPTIONS = [
 ]
 
 
+def _media_paths_from_submission(submission, key):
+    """Normalize images/videos JSON entries to file path strings."""
+    paths = []
+    for item in submission.get(key) or []:
+        if isinstance(item, str) and item.strip():
+            paths.append(item.strip())
+        elif isinstance(item, dict):
+            path = (item.get("file_path") or item.get("path") or item.get("filename") or "").strip()
+            if path:
+                paths.append(path)
+    return paths
+
+
+def _copy_submission_media_to_property(submission, property_id):
+    """Copy submission media filenames onto properties (idempotent; no deletes)."""
+    if not property_id:
+        return
+    media = prop_model.get_media(property_id) or {}
+    existing_imgs = {
+        (row.get("file_path") or "").strip()
+        for row in (media.get("images") or [])
+        if row.get("file_path")
+    }
+    existing_vids = {
+        (row.get("file_path") or "").strip()
+        for row in (media.get("videos") or [])
+        if row.get("file_path")
+    }
+    images = _media_paths_from_submission(submission, "images")
+    videos = _media_paths_from_submission(submission, "videos")
+    for i, path in enumerate(images):
+        if path in existing_imgs:
+            continue
+        prop_model.add_image(
+            property_id,
+            path,
+            is_primary=(not existing_imgs and i == 0),
+            sort_order=len(existing_imgs) + i,
+        )
+        existing_imgs.add(path)
+    for i, path in enumerate(videos):
+        if path in existing_vids:
+            continue
+        prop_model.add_video(property_id, path, sort_order=len(existing_vids) + i)
+        existing_vids.add(path)
+
+
 def _apply_submission_status_change(submission, new_status, review_note=None):
     sid = submission["id"]
     previous = (submission.get("status") or "").lower()
@@ -753,18 +800,21 @@ def _apply_submission_status_change(submission, new_status, review_note=None):
                 or submission.get("apartment_number")
                 or submission.get("bungalow_number"),
                 "creation_source": "user_submission",
+                "primary_image": (_media_paths_from_submission(submission, "images") or [None])[0],
             },
             created_by_admin_id=submission.get("owner_admin_id") or current_user.id,
         )
         property_id = created["id"]
         submission_model.link_property(sid, property_id)
         submission["property_id"] = property_id
+        _copy_submission_media_to_property(submission, property_id)
 
     if property_id:
         existing_prop = prop_model.get_by_id(property_id)
         previous_prop_status = (existing_prop or {}).get("status")
         if clean_status == "approved":
             prop_model.set_status(property_id, "available")
+            _copy_submission_media_to_property(submission, property_id)
             if previous_prop_status != "available":
                 _log_admin_action(
                     "property_status_changed",
@@ -1408,13 +1458,32 @@ def customer_visit_pdf(visit_id):
         f"Client: {visit.get('client_name')} ({visit.get('client_contact')})",
         f"Client Address: {visit.get('client_address') or '-'}",
         f"Requirement: {visit.get('client_requirement') or '-'}",
-        f"Property: {(visit.get('property_name') or '-')}",
-        f"Executive: {visit.get('executive_name') or visit.get('linked_executive_name') or '-'}",
-        f"Executive Contact: {visit.get('executive_contact') or '-'}",
-        f"Executive Address: {visit.get('executive_address') or '-'}",
-        f"Customer Signature Label: {visit.get('customer_signature_label') or 'Pending'}",
-        f"Executive Signature Label: {visit.get('executive_signature_label') or 'Pending'}",
+        "Selected Properties:",
     ]
+    selected = visit.get("selected_properties") or []
+    if selected:
+        for prop in selected:
+            block_unit = " / ".join(
+                x for x in [prop.get("block_wing"), prop.get("unit_number")] if x
+            ) or "-"
+            intent = "Rent" if (prop.get("listing_intent") or "").lower() == "rent" else "Sale"
+            price = prop.get("price") or 0
+            lines.append(
+                f"  - {prop.get('property_name') or 'Property'} | "
+                f"{prop.get('area_name') or '-'} | Block/Unit: {block_unit} | "
+                f"{intent}: Rs {price:,.0f}"
+            )
+    else:
+        lines.append(f"  - {(visit.get('property_names_display') or visit.get('property_name') or '-')}")
+    lines.extend(
+        [
+            f"Executive: {visit.get('executive_name') or visit.get('linked_executive_name') or '-'}",
+            f"Executive Contact: {visit.get('executive_contact') or '-'}",
+            f"Executive Address: {visit.get('executive_address') or '-'}",
+            f"Customer Signature: {visit.get('customer_signature_label') or 'Pending'}",
+            f"Executive / Broker Signature: {visit.get('executive_signature_label') or 'Pending'}",
+        ]
+    )
     _log_admin_action(
         "visit_pdf_downloaded",
         "Downloaded customer visit PDF",

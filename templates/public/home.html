@@ -102,17 +102,12 @@
   </div>
 </section>
 
-<section class="jv-section">
+<section class="jv-section" id="about">
   <div class="container">
-    <div class="jv-about-split scroll-reveal">
+    <div class="jv-about-split scroll-reveal mb-5">
       <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
         <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
-      </div>
-      <div class="jv-about-media">
-        <div class="jv-about-visual">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
-        </div>
       </div>
       <div class="jv-about-body">
         <p class="jv-body-text">
@@ -120,6 +115,27 @@
           whether you are buying, selling, or renting residential and commercial property.
         </p>
         <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
+      </div>
+    </div>
+    <h3 class="section-title section-title-center mb-4 scroll-reveal">Leadership</h3>
+    <div class="row g-4 leadership-row">
+      <div class="col-12 col-md-6">
+        <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="Founder Kalpesh Chunawala" class="founder-photo">
+          <p class="founder-label mb-1">Founder</p>
+          <h4 class="founder-name">Kalpesh Chunawala</h4>
+          <blockquote class="about-quote-card mb-3"><p class="mb-0">"A property is the foundation of dreams, security, and future generations."</p></blockquote>
+          <p class="mb-0 text-muted">Built JAKKASH on verified listings and honest advice. Helps Surat families close homes with clarity and speed.</p>
+        </article>
+      </div>
+      <div class="col-12 col-md-6">
+        <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+          <img src="{{ url_for('static', filename='img/company-logo-mark.webp') }}" alt="Co-Founder" class="founder-photo">
+          <p class="founder-label mb-1">Co-Founder</p>
+          <h4 class="founder-name">JAKKASH Leadership</h4>
+          <blockquote class="about-quote-card mb-3"><p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p></blockquote>
+          <p class="mb-0 text-muted">Drives client success and listing quality so rentals and sales move smoothly from inquiry to handover.</p>
+        </article>
       </div>
     </div>
   </div>

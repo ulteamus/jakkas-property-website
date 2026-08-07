@@ -73,15 +73,17 @@ function syncQuickChips() {
 
 function cardHTML(p) {
   const media = listingMediaHTML(p);
-  const intent = (p.listing_intent || 'buy').toUpperCase();
+  const isRent = (p.listing_intent || '').toLowerCase() === 'rent';
+  const intentLabel = isRent ? 'For Rent' : 'For Sale';
   const type = p.display_type || p.property_type;
   const sqft = p.sq_ft ? Math.round(p.sq_ft) : '-';
+  const slug = encodeURIComponent(p.slug || '');
   return `<div class="${GRID_COL_CLASS}">
     <div class="card property-card">${media}<div class="card-body">
     <div class="d-flex gap-2 mb-2 flex-wrap">
       <span class="badge badge-listed"><i class="bi bi-check-circle"></i> Listed</span>
       <span class="badge badge-type">${type}</span>
-      <span class="badge badge-status ${intent === 'RENT' ? 'badge-rent' : 'badge-buy'}">${intent}</span>
+      <span class="badge badge-status ${isRent ? 'badge-rent bg-info' : 'badge-buy bg-success'}">${intentLabel}</span>
     </div>
     <h5 class="mb-1"><a href="/property/${p.slug}" class="text-decoration-none text-dark">${p.property_name}</a></h5>
     <p class="text-muted mb-1"><i class="bi bi-geo-alt"></i> ${p.area_name}, Surat</p>
@@ -90,8 +92,8 @@ function cardHTML(p) {
     <p class="small text-muted line-clamp-2">${p.description || 'Verified property listing from JAKKASH.'}</p>
     <div class="d-flex gap-2 mt-2 flex-wrap">
       <a href="/property/${p.slug}" class="btn btn-sm btn-jk-primary">View Details</a>
-      <a href="/property/${p.slug}#visitPanel" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
-      <a href="/saved" class="btn btn-sm btn-outline-secondary btn-save" data-id="${p.id}"><i class="bi bi-heart"></i></a>
+      <a href="/contact?intent=visit&property=${slug}" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
+      <a href="/contact?property=${slug}" class="btn btn-sm btn-jk-accent btn-send-inquiry">Send Inquiry</a>
     </div>
   </div></div></div>`;
 }
@@ -150,12 +152,6 @@ async function load(options = {}) {
   if (results.classList.contains('list-mode')) {
     results.querySelectorAll('.listing-card-col').forEach((col) => { col.className = LIST_COL_CLASS; });
   }
-  document.querySelectorAll('.btn-save').forEach(btn => {
-    btn.onclick = (e) => {
-      e.preventDefault();
-      saveProperty(btn.dataset.id);
-    };
-  });
 }
 
 function debounce(fn, wait = 350) {

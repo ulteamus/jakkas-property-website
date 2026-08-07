@@ -1,6 +1,7 @@
 /**
  * Multi-file picker with DataTransfer-backed remove buttons.
- * Usage: MediaFileManager.bind(inputEl, previewEl, { acceptHint: 'image' })
+ * Accumulates selections across picker opens; X removes one file and syncs input.
+ * Usage: MediaFileManager.bind(inputEl, previewEl, { listClass: 'media-file-list--photos' })
  */
 (function (global) {
   function formatSize(bytes) {
@@ -10,13 +11,17 @@
     return (bytes / 1048576).toFixed(1) + " MB";
   }
 
+  function fileKey(file) {
+    return [file.name, file.size, file.lastModified].join(":");
+  }
+
   function syncInput(input, files) {
     const dt = new DataTransfer();
     files.forEach((f) => dt.items.add(f));
     input.files = dt.files;
   }
 
-  function render(input, preview, files) {
+  function render(input, preview, files, state) {
     preview.innerHTML = "";
     if (!files.length) {
       preview.classList.add("d-none");
@@ -54,10 +59,10 @@
       removeBtn.setAttribute("aria-label", "Remove " + file.name);
       removeBtn.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
       removeBtn.addEventListener("click", () => {
-        const next = Array.from(files);
-        next.splice(index, 1);
+        const next = state.files.filter((_, i) => i !== index);
+        state.files = next;
         syncInput(input, next);
-        render(input, preview, next);
+        render(input, preview, next, state);
       });
 
       row.appendChild(thumb);
@@ -70,14 +75,22 @@
   function bind(input, preview, options) {
     if (!input || !preview) return;
     const opts = options || {};
+    const state = { files: Array.from(input.files || []) };
     preview.classList.add("media-file-list");
     if (opts.listClass) preview.classList.add(opts.listClass);
 
     input.addEventListener("change", () => {
-      const files = Array.from(input.files || []);
-      syncInput(input, files);
-      render(input, preview, files);
+      const incoming = Array.from(input.files || []);
+      const map = new Map(state.files.map((f) => [fileKey(f), f]));
+      incoming.forEach((f) => map.set(fileKey(f), f));
+      state.files = Array.from(map.values());
+      syncInput(input, state.files);
+      render(input, preview, state.files, state);
     });
+
+    if (state.files.length) {
+      render(input, preview, state.files, state);
+    }
   }
 
   global.MediaFileManager = { bind, syncInput, render };

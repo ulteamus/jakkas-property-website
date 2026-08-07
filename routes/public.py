@@ -31,6 +31,28 @@ def _attach_listing_media(properties):
 
 public_bp = Blueprint("public", __name__)
 
+# Shown when testimonials table is empty so homepage section never blanks.
+FALLBACK_TESTIMONIALS = [
+    {
+        "client_name": "Mehul Patel",
+        "client_location": "Vesu, Surat",
+        "review_text": "JAKKASH helped us close a clean flat deal in Vesu with clear pricing and fast site visits. Highly professional team.",
+        "rating": 5,
+    },
+    {
+        "client_name": "Priya Shah",
+        "client_location": "Adajan, Surat",
+        "review_text": "Transparent guidance from first call to registration. We rented our Adajan apartment through JAKKASH without stress.",
+        "rating": 5,
+    },
+    {
+        "client_name": "Ravi Desai",
+        "client_location": "Pal, Surat",
+        "review_text": "Verified listings, honest advice, and excellent follow-up. Exactly what you want from a Surat property consultant.",
+        "rating": 5,
+    },
+]
+
 
 @public_bp.before_request
 def track_visitor():
@@ -62,9 +84,12 @@ def home():
         home_stats["clients"] = int(dashboard.get("total_inquiries") or 0)
     except Exception:
         pass
+    testimonials = reviews_model.list_reviews(limit=6)
+    if not testimonials:
+        testimonials = FALLBACK_TESTIMONIALS
     return render_template(
         "public/home.html",
-        testimonials=reviews_model.list_reviews(limit=6),
+        testimonials=testimonials,
         featured_properties=featured_properties,
         home_stats=home_stats,
     )
@@ -139,8 +164,22 @@ def property_map():
 
 
 @public_bp.route("/contact")
+@public_bp.route("/visit-request")
 def contact():
-    return render_template("public/contact.html")
+    intent = (request.args.get("intent") or "").strip().lower()
+    property_slug = (request.args.get("property") or "").strip()
+    linked_property = None
+    if property_slug:
+        linked_property = prop_model.get_by_slug(property_slug)
+    visit_mode = intent in {"visit", "site_visit"} or request.path.rstrip("/").endswith(
+        "visit-request"
+    )
+    return render_template(
+        "public/contact.html",
+        intent="visit" if visit_mode else (intent or "inquiry"),
+        property_slug=property_slug,
+        linked_property=linked_property,
+    )
 
 
 @public_bp.route("/testimonials")

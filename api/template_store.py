@@ -2073,14 +2073,14 @@ TEMPLATES = {
       <label class="form-check-label" for="feat">Featured</label>
     </div>
     <div class="col-md-4">
-      <label>Images</label>
+      <label>Selected Photos List</label>
       <input type="file" class="form-control" id="adminImagesInput" name="images" multiple accept="image/*">
-      <div id="adminImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
+      <div id="adminImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
     </div>
     <div class="col-md-4">
-      <label>Videos</label>
+      <label>Selected Videos List</label>
       <input type="file" class="form-control" id="adminVideosInput" name="videos" multiple accept="video/*">
-      <div id="adminVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
+      <div id="adminVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
     </div>
     <div class="col-md-4">
       <label>Documents (PDF)</label>
@@ -2096,8 +2096,8 @@ TEMPLATES = {
 <script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
 <script>
   if (window.MediaFileManager) {
-    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'));
-    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'));
+    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'), { listClass: 'media-file-list--photos' });
+    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'), { listClass: 'media-file-list--videos' });
     MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
   }
   (function () {
@@ -2293,6 +2293,7 @@ TEMPLATES = {
         <th>#</th>
         <th>Owner / Contact</th>
         <th>Property Details</th>
+        <th>Listing Intent</th>
         <th>Media</th>
         <th>Price</th>
         <th>Status</th>
@@ -2338,6 +2339,13 @@ TEMPLATES = {
           <a href="{{ url_for('admin.property_form', pid=submission.property_id) }}" class="btn btn-sm btn-outline-primary mt-1">
             Open Property #{{ submission.property_id }}
           </a>
+          {% endif %}
+        </td>
+        <td>
+          {% if submission.listing_intent == 'rent' %}
+          <span class="badge bg-info text-dark">For Rent</span>
+          {% else %}
+          <span class="badge bg-success">For Sale</span>
           {% endif %}
         </td>
         <td>
@@ -2923,8 +2931,27 @@ TEMPLATES = {
     .brand { letter-spacing: 0.08em; font-weight: 700; color: #e67e22; }
     .sheet { max-width: 860px; margin: 0 auto; border: 1px solid #ddd; padding: 2rem 2.25rem; }
     .meta-table th { width: 220px; background: #faf7f4; }
-    .signature-box { min-height: 130px; border: 1px dashed #777; border-radius: 6px; padding: 10px; }
-    @media print { .no-print { display: none !important; } body { background: #fff; } .sheet { border: 0; padding: 0; } }
+    .signature-row { display: flex; gap: 2rem; margin-top: 1.5rem; }
+    .signature-col { flex: 1 1 0; min-width: 0; }
+    .signature-line {
+      height: 60px;
+      border-bottom: 1px solid #333;
+      margin-top: 0.35rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    .signature-line img { max-height: 56px; max-width: 100%; object-fit: contain; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .sheet { border: 0; padding: 0; }
+      .signature-row { page-break-inside: avoid; }
+    }
+    @media (max-width: 767.98px) {
+      .signature-row { flex-direction: column; gap: 1.25rem; }
+    }
   </style>
 </head>
 <body class="p-4 bg-light">
@@ -2946,31 +2973,54 @@ TEMPLATES = {
       <tr><th>Client Address</th><td>{{ visit.client_address }}</td></tr>
       <tr><th>Client Contact</th><td>{{ visit.client_contact }}</td></tr>
       <tr><th>Client Requirement</th><td>{{ visit.client_requirement }}</td></tr>
-      <tr><th>Visited Properties</th><td>{{ visit.property_names_display or visit.property_name or ('Property #' ~ visit.property_id) }}</td></tr>
       <tr><th>Executive Name</th><td>{{ visit.executive_name or '-' }}</td></tr>
       <tr><th>Executive Address</th><td>{{ visit.executive_address or '-' }}</td></tr>
       <tr><th>Executive Contact</th><td>{{ visit.executive_contact or '-' }}</td></tr>
     </table>
 
-    <div class="row g-4 mt-2">
-      <div class="col-md-6">
-        <h6>Customer Signature</h6>
-        <div class="signature-box">
+    <h6 class="mt-4 mb-2">Selected Properties</h6>
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Area</th>
+          <th>Block / Unit</th>
+          <th>Price / Rent</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if visit.selected_properties %}
+          {% for p in visit.selected_properties %}
+          <tr>
+            <td>{{ p.property_name }}</td>
+            <td>{{ p.area_name or '-' }}</td>
+            <td>{% if p.block_wing or p.unit_number %}{{ p.block_wing or '' }}{% if p.block_wing and p.unit_number %} / {% endif %}{{ p.unit_number or '' }}{% else %}-{% endif %}</td>
+            <td>₹{{ "{:,.0f}".format(p.price or 0) }}{% if (p.listing_intent or p.listing_type) == 'rent' %}/mo{% endif %}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="4">{{ visit.property_names_display or visit.property_name or ('Property #' ~ visit.property_id) }}</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="signature-row">
+      <div class="signature-col">
+        <strong>Customer Signature</strong>
+        <div class="signature-line">
           {% if visit.customer_signature_data %}
-          <img src="{{ visit.customer_signature_data }}" alt="Customer Signature" class="img-fluid" style="max-height: 110px;">
-          {% else %}
-          <div class="text-muted small">Signature placeholder</div>
+          <img src="{{ visit.customer_signature_data }}" alt="Customer Signature">
           {% endif %}
         </div>
         <div class="small text-muted mt-1">{{ visit.customer_signature_label or 'Customer signature pending' }}</div>
       </div>
-      <div class="col-md-6">
-        <h6>Executive Signature</h6>
-        <div class="signature-box">
+      <div class="signature-col">
+        <strong>Executive / Broker Signature</strong>
+        <div class="signature-line">
           {% if visit.executive_signature_data %}
-          <img src="{{ visit.executive_signature_data }}" alt="Executive Signature" class="img-fluid" style="max-height: 110px;">
-          {% else %}
-          <div class="text-muted small">Signature placeholder</div>
+          <img src="{{ visit.executive_signature_data }}" alt="Executive Signature">
           {% endif %}
         </div>
         <div class="small text-muted mt-1">{{ visit.executive_signature_label or 'Executive signature pending' }}</div>
@@ -3361,8 +3411,8 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <div class="d-flex flex-wrap gap-2 mb-2">
         <span class="badge badge-listed"><i class="bi bi-check-circle"></i> Listed</span>
         <span class="badge badge-type text-uppercase">{{ p.display_type or p.property_type }}</span>
-        <span class="badge badge-status {% if p.listing_intent == 'rent' %}badge-rent{% else %}badge-buy{% endif %}">
-          {{ p.listing_intent|upper }}
+        <span class="badge badge-status {% if p.listing_intent == 'rent' %}badge-rent bg-info{% else %}badge-buy bg-success{% endif %}">
+          {{ 'For Rent' if p.listing_intent == 'rent' else 'For Sale' }}
         </span>
       </div>
       <h5 class="card-title mt-2">
@@ -3376,8 +3426,8 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <p class="small text-muted line-clamp-2">{{ p.description or 'Premium property listing with verified details and expert support.' }}</p>
       <div class="d-flex gap-2 mt-2 flex-wrap">
         <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-primary">View Details</a>
-        <a href="{{ url_for('public.property_detail', slug=p.slug) }}#visitPanel" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
-        <a href="{{ url_for('public.saved') }}" class="btn btn-sm btn-outline-secondary btn-save" data-id="{{ p.id }}"><i class="bi bi-heart"></i></a>
+        <a href="{{ url_for('public.contact', intent='visit', property=p.slug) }}" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
+        <a href="{{ url_for('public.contact', property=p.slug) }}" class="btn btn-sm btn-jk-accent btn-send-inquiry">Send Inquiry</a>
       </div>
     </div>
   </div>
@@ -3390,33 +3440,57 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   <div class="container">
     <article class="about-hero-card premium-hover-card reveal-on-scroll">
       <p class="about-kicker mb-2">About {{ company_name }}</p>
-      <h1 class="about-hero-title">A Premium Real Estate Partner You Can Trust</h1>
+      <h1 class="about-hero-title">Trusted Property Guidance in Surat</h1>
       <p class="about-hero-text mb-0">
-        {{ company_name }} delivers modern, transparent, and customer-focused real estate guidance
-        for buying, selling, and renting properties across Surat.
+        {{ company_name }} helps buyers, sellers, and renters close clearer deals —
+        with verified listings, transparent advice, and end-to-end support.
       </p>
     </article>
   </div>
 </section>
 
-<section class="container pb-5 jk-flow">
-  <article class="founder-card premium-hover-card reveal-on-scroll">
-    <img
-      src="{{ url_for('static', filename='img/founder-photo.webp') }}"
-      alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
-      class="founder-photo"
-    >
-    <p class="founder-label mb-1">Founder</p>
-    <h2 class="founder-name">Kalpesh Chunawala</h2>
-    <p class="founder-role mb-0">Founder - JAKKASH Property Consultancy</p>
-
-    <blockquote class="about-quote-card">
-      <p>
-        "A property is not just a place to live; it is the foundation of dreams, security, and future generations."
-      </p>
-      <footer>- Kalpesh Chunawala</footer>
-    </blockquote>
-  </article>
+<section class="container pb-5 jk-flow" id="leadership">
+  <h2 class="section-title section-title-center mb-4">Leadership</h2>
+  <div class="row g-4 leadership-row">
+    <div class="col-12 col-md-6">
+      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+        <img
+          src="{{ url_for('static', filename='img/founder-photo.webp') }}"
+          alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
+          class="founder-photo"
+        >
+        <p class="founder-label mb-1">Founder</p>
+        <h3 class="founder-name">Kalpesh Chunawala</h3>
+        <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+        <blockquote class="about-quote-card mb-3">
+          <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
+        </blockquote>
+        <p class="mb-0 text-muted">
+          Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
+          His focus on verified inventory and clear communication has helped families close homes with confidence.
+        </p>
+      </article>
+    </div>
+    <div class="col-12 col-md-6">
+      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+        <img
+          src="{{ url_for('static', filename='img/company-logo-mark.webp') }}"
+          alt="Co-Founder - JAKKASH Property Consultancy"
+          class="founder-photo"
+        >
+        <p class="founder-label mb-1">Co-Founder</p>
+        <h3 class="founder-name">JAKKASH Leadership</h3>
+        <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+        <blockquote class="about-quote-card mb-3">
+          <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
+        </blockquote>
+        <p class="mb-0 text-muted">
+          Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
+          Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
+        </p>
+      </article>
+    </div>
+  </div>
 </section>
 
 <section class="container pb-5 jk-flow">
@@ -3427,9 +3501,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
         <div>
           <h3>About Company</h3>
           <p class="mb-0">
-            JAKKASH Property Consultancy is committed to helping clients find the perfect residential and
-            commercial properties with trust, transparency, and professional guidance. Our mission is to
-            simplify property buying, selling, and renting while delivering exceptional customer service.
+            JAKKASH Property Consultancy simplifies buying, selling, and renting across Surat with verified listings and professional guidance.
           </p>
         </div>
       </article>
@@ -3439,9 +3511,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
         <div class="about-info-icon"><i class="bi bi-eye"></i></div>
         <div>
           <h3>Our Vision</h3>
-          <p class="mb-0">
-            To become the most trusted and customer-focused property consultancy in Surat.
-          </p>
+          <p class="mb-0">To be Surat's most trusted, customer-focused property consultancy.</p>
         </div>
       </article>
     </div>
@@ -3450,10 +3520,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
         <div class="about-info-icon"><i class="bi bi-bullseye"></i></div>
         <div>
           <h3>Our Mission</h3>
-          <p class="mb-0">
-            To provide transparent, reliable, and professional real estate services that help clients make
-            confident property decisions.
-          </p>
+          <p class="mb-0">Deliver transparent, reliable real-estate service that helps clients decide with confidence.</p>
         </div>
       </article>
     </div>
@@ -3485,21 +3552,11 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <div class="col-6 col-lg-3">
         <article class="about-stat-card premium-hover-card reveal-on-scroll h-100">
           <p class="about-stat-value" data-counter="{{ about_stats.years_experience }}" data-suffix="+">0</p>
-          <p class="about-stat-label mb-0">Years of Experience</p>
+          <p class="about-stat-label mb-0">Years Experience</p>
         </article>
       </div>
     </div>
   </div>
-</section>
-
-<section class="container py-5">
-  <article class="about-contact-card premium-hover-card reveal-on-scroll">
-    <h3 class="mb-3">Visit Our Office</h3>
-    <p class="mb-1"><strong>{{ company_name }}</strong></p>
-    <p class="mb-1"><i class="bi bi-geo-alt text-warning"></i> {{ company_address }}</p>
-    <p class="mb-1"><i class="bi bi-telephone"></i> {{ company_phone }}</p>
-    <p class="mb-0"><i class="bi bi-envelope"></i> {{ company_email }}</p>
-  </article>
 </section>
 {% endblock %}
 {% block extra_js %}
@@ -3801,25 +3858,36 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% endblock %}
 """,
     "public/contact.html": """{% extends "public/base.html" %}
-{% block title %}Contact - {{ company_name }}{% endblock %}
+{% block title %}{% if intent == 'visit' %}Request Site Visit{% else %}Contact{% endif %} - {{ company_name }}{% endblock %}
 {% block content %}
 <div class="container py-5 jk-flow">
   <div class="row g-5">
     <div class="col-lg-6 reveal-on-scroll">
-      <h1 class="section-title">Contact Us</h1>
+      <h1 class="section-title">{% if intent == 'visit' %}Request Site Visit{% else %}Contact Us{% endif %}</h1>
       <p class="mb-1"><strong>{{ company_name }}</strong></p>
       <p class="mb-1"><i class="bi bi-geo-alt text-warning"></i> {{ company_address }}</p>
       <p class="mb-1"><i class="bi bi-telephone"></i> Mobile: <a href="tel:{{ company_phone_raw }}">{{ company_phone }}</a></p>
       <p class="mb-1"><i class="bi bi-whatsapp text-success"></i> WhatsApp: <a href="https://wa.me/{{ company_whatsapp }}" target="_blank">{{ company_phone }}</a></p>
       <p class="mb-3"><i class="bi bi-envelope"></i> Email: <a href="mailto:{{ company_email }}">{{ company_email }}</a></p>
 
+      {% if linked_property %}
+      <div class="alert alert-light border mb-3">
+        <div class="fw-semibold">{{ linked_property.property_name }}</div>
+        <div class="small text-muted">{{ linked_property.area_name }}, Surat · {{ 'For Rent' if linked_property.listing_intent == 'rent' else 'For Sale' }}</div>
+      </div>
+      {% endif %}
+
       <form id="contactForm" class="mt-4 content-card">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="mb-3"><input class="form-control" name="name" placeholder="Name *" required></div>
+        {% if linked_property %}<input type="hidden" name="property_id" value="{{ linked_property.id }}">{% endif %}
+        <input type="hidden" name="source" value="{{ 'site_visit_request' if intent == 'visit' else 'contact_form' }}">
+        <div class="mb-3"><input class="form-control" name="name" id="contactNameInput" placeholder="Name *" required autofocus></div>
         <div class="mb-3"><input class="form-control" name="mobile" placeholder="Mobile *" required></div>
         <div class="mb-3"><input class="form-control" name="email" type="email" placeholder="Email *" required></div>
-        <div class="mb-3"><textarea class="form-control" name="message" rows="4" placeholder="Your message"></textarea></div>
-        <button class="btn btn-jk-accent">Send Message</button>
+        <div class="mb-3">
+          <textarea class="form-control" name="message" rows="4" placeholder="{% if intent == 'visit' %}Preferred visit date / time and notes{% else %}Your message{% endif %}">{% if linked_property and intent == 'visit' %}I would like to schedule a site visit for {{ linked_property.property_name }}.{% elif linked_property %}Inquiry about {{ linked_property.property_name }}.{% endif %}</textarea>
+        </div>
+        <button class="btn btn-jk-accent">{% if intent == 'visit' %}Submit Visit Request{% else %}Send Message{% endif %}</button>
       </form>
     </div>
     <div class="col-lg-6 reveal-on-scroll">
@@ -3839,12 +3907,13 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const body = Object.fromEntries(fd);
-  body.source = 'contact_form';
+  if (!body.source) body.source = 'contact_form';
   const r = await apiFetch('/api/inquiry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   const d = await r.json();
   alert(d.message || d.error);
   if(d.success) e.target.reset();
 });
+document.getElementById('contactNameInput')?.focus();
 </script>
 {% endblock %}
 """,
@@ -3894,8 +3963,8 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
     <div class="col-lg-5 reveal-on-scroll">
       <div class="d-flex flex-wrap gap-2 mb-2">
         <span class="badge badge-type">{{ property.display_type or property.property_type }}</span>
-        <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent{% else %}badge-buy{% endif %}">
-          {{ property.listing_intent|upper }}
+        <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent bg-info{% else %}badge-buy bg-success{% endif %}">
+          {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}
         </span>
       </div>
       <h1 class="h3 mt-2">{{ property.property_name }}</h1>
@@ -3905,7 +3974,7 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
         <li><strong>Property ID:</strong> #{{ property.id }}</li>
         <li><strong>Property Name:</strong> {{ property.property_name }}</li>
         <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
-        <li><strong>Property Status:</strong> {{ property.listing_intent|upper }}</li>
+        <li><strong>Listing Intent:</strong> {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}</li>
         {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
         <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
         <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
@@ -3924,14 +3993,11 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
           <i class="bi bi-whatsapp"></i> WhatsApp Broker
         </a>
         <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-        <button class="btn btn-jk-accent btn-send-inquiry" type="button" data-action="send-inquiry" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
+        <a class="btn btn-jk-accent btn-send-inquiry" href="{{ url_for('public.contact', property=property.slug) }}">
           <i class="bi bi-send"></i> Send Inquiry
-        </button>
-        <button class="btn btn-jk-outline btn-request-visit" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel" aria-controls="visitPanel">
+        </a>
+        <a class="btn btn-jk-outline btn-request-visit" href="{{ url_for('public.contact', intent='visit', property=property.slug) }}">
           <i class="bi bi-calendar-check"></i> Request Site Visit
-        </button>
-        <a class="btn btn-outline-secondary btn-save" href="{{ url_for('public.saved') }}" data-id="{{ property.id }}" role="button">
-          <i class="bi bi-heart"></i> Save Property
         </a>
         <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
       </div>
@@ -3977,6 +4043,25 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
     <div class="row g-4">{% for p in similar %}{% include "public/_property_card.html" %}{% endfor %}</div>
   </section>
   {% endif %}
+</div>
+
+<div class="modal fade" id="shareFallbackModal" tabindex="-1" aria-labelledby="shareFallbackTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shareFallbackTitle">Share Property</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <img id="shareFallbackImage" src="" alt="" class="img-fluid rounded mb-3 d-none" style="max-height:180px;object-fit:cover;width:100%;">
+        <p class="fw-semibold mb-1" id="shareFallbackName"></p>
+        <input type="text" class="form-control" id="shareFallbackUrl" readonly>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-jk-accent" id="shareFallbackCopy">Copy Link</button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block extra_js %}<script src="{{ url_for('static', filename='js/detail.js') }}"></script>{% endblock %}
@@ -4085,17 +4170,12 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
   </div>
 </section>
 
-<section class="jv-section">
+<section class="jv-section" id="about">
   <div class="container">
-    <div class="jv-about-split scroll-reveal">
+    <div class="jv-about-split scroll-reveal mb-5">
       <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
         <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
-      </div>
-      <div class="jv-about-media">
-        <div class="jv-about-visual">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="JAKKASH team" class="jv-about-photo">
-        </div>
       </div>
       <div class="jv-about-body">
         <p class="jv-body-text">
@@ -4103,6 +4183,27 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
           whether you are buying, selling, or renting residential and commercial property.
         </p>
         <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
+      </div>
+    </div>
+    <h3 class="section-title section-title-center mb-4 scroll-reveal">Leadership</h3>
+    <div class="row g-4 leadership-row">
+      <div class="col-12 col-md-6">
+        <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="Founder Kalpesh Chunawala" class="founder-photo">
+          <p class="founder-label mb-1">Founder</p>
+          <h4 class="founder-name">Kalpesh Chunawala</h4>
+          <blockquote class="about-quote-card mb-3"><p class="mb-0">"A property is the foundation of dreams, security, and future generations."</p></blockquote>
+          <p class="mb-0 text-muted">Built JAKKASH on verified listings and honest advice. Helps Surat families close homes with clarity and speed.</p>
+        </article>
+      </div>
+      <div class="col-12 col-md-6">
+        <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+          <img src="{{ url_for('static', filename='img/company-logo-mark.webp') }}" alt="Co-Founder" class="founder-photo">
+          <p class="founder-label mb-1">Co-Founder</p>
+          <h4 class="founder-name">JAKKASH Leadership</h4>
+          <blockquote class="about-quote-card mb-3"><p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p></blockquote>
+          <p class="mb-0 text-muted">Drives client success and listing quality so rentals and sales move smoothly from inquiry to handover.</p>
+        </article>
       </div>
     </div>
   </div>
@@ -4766,14 +4867,14 @@ document.getElementById('contactForm')?.addEventListener('submit', async e => {
     <h5 class="mt-4 mb-3">Media Upload</h5>
     <div class="row g-3">
       <div class="col-12 col-md-6">
-        <label class="form-label" for="sellImagesInput">Property Images (Multiple)</label>
+        <label class="form-label" for="sellImagesInput">Selected Photos List</label>
         <input class="form-control" id="sellImagesInput" type="file" name="images" accept="image/*" multiple>
-        <div id="sellImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
+        <div id="sellImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
       </div>
       <div class="col-12 col-md-6">
-        <label class="form-label" for="sellVideosInput">Property Videos (Multiple)</label>
+        <label class="form-label" for="sellVideosInput">Selected Videos List</label>
         <input class="form-control" id="sellVideosInput" type="file" name="videos" accept="video/*" multiple>
-        <div id="sellVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
+        <div id="sellVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
       </div>
     </div>
 

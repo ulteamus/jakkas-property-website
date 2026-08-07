@@ -222,11 +222,13 @@
   if (window.MediaFileManager) {
     MediaFileManager.bind(
       document.getElementById('sellImagesInput'),
-      document.getElementById('sellImagesPreview')
+      document.getElementById('sellImagesPreview'),
+      { listClass: 'media-file-list--photos' }
     );
     MediaFileManager.bind(
       document.getElementById('sellVideosInput'),
-      document.getElementById('sellVideosPreview')
+      document.getElementById('sellVideosPreview'),
+      { listClass: 'media-file-list--videos' }
     );
   }
 })();

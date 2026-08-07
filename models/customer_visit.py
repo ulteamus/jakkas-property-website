@@ -145,22 +145,30 @@ def _attach_extra_property_names(rows):
         for pid in row.get("property_id_list") or []:
             all_ids.add(pid)
     if not all_ids:
+        for row in rows:
+            row.setdefault("selected_properties", [])
         return
     placeholders = ",".join(["%s"] * len(all_ids))
-    props = {
-        r["id"]: r["property_name"]
-        for r in query_all(
-            f"SELECT id, property_name FROM properties WHERE id IN ({placeholders})",
-            tuple(all_ids),
-        )
-    }
+    prop_rows = query_all(
+        f"""SELECT id, property_name, area_name, block_wing, unit_number,
+                   price, listing_intent, listing_type
+            FROM properties WHERE id IN ({placeholders})""",
+        tuple(all_ids),
+    )
+    props_by_id = {r["id"]: r for r in prop_rows}
     for row in rows:
         names = []
+        selected = []
         for pid in row.get("property_id_list") or []:
-            name = props.get(pid)
+            prop = props_by_id.get(pid)
+            if not prop:
+                continue
+            name = prop.get("property_name")
             if name:
                 names.append(name)
+            selected.append(prop)
         row["_extra_property_names"] = names
+        row["selected_properties"] = selected
         row["property_names_display"] = ", ".join(names) if names else row.get("property_names_display") or "—"
 
 

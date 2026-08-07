@@ -1249,6 +1249,29 @@ body.drawer-open {
   font-weight: 500;
 }
 
+.leadership-row .leadership-card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+.leadership-row .leadership-card.is-visible,
+.leadership-row .leadership-card.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.media-file-list--photos .media-file-item {
+  border-left: 3px solid #0dcaf0;
+}
+.media-file-list--videos .media-file-item {
+  border-left: 3px solid #6f42c1;
+}
+@media (max-width: 767.98px) {
+  .leadership-row .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
 .about-quote-card {
   max-width: 860px;
   margin: 1.35rem auto 0;

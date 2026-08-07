@@ -5,33 +5,57 @@
   <div class="container">
     <article class="about-hero-card premium-hover-card reveal-on-scroll">
       <p class="about-kicker mb-2">About {{ company_name }}</p>
-      <h1 class="about-hero-title">A Premium Real Estate Partner You Can Trust</h1>
+      <h1 class="about-hero-title">Trusted Property Guidance in Surat</h1>
       <p class="about-hero-text mb-0">
-        {{ company_name }} delivers modern, transparent, and customer-focused real estate guidance
-        for buying, selling, and renting properties across Surat.
+        {{ company_name }} helps buyers, sellers, and renters close clearer deals —
+        with verified listings, transparent advice, and end-to-end support.
       </p>
     </article>
   </div>
 </section>
 
-<section class="container pb-5 jk-flow">
-  <article class="founder-card premium-hover-card reveal-on-scroll">
-    <img
-      src="{{ url_for('static', filename='img/founder-photo.webp') }}"
-      alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
-      class="founder-photo"
-    >
-    <p class="founder-label mb-1">Founder</p>
-    <h2 class="founder-name">Kalpesh Chunawala</h2>
-    <p class="founder-role mb-0">Founder - JAKKASH Property Consultancy</p>
-
-    <blockquote class="about-quote-card">
-      <p>
-        "A property is not just a place to live; it is the foundation of dreams, security, and future generations."
-      </p>
-      <footer>- Kalpesh Chunawala</footer>
-    </blockquote>
-  </article>
+<section class="container pb-5 jk-flow" id="leadership">
+  <h2 class="section-title section-title-center mb-4">Leadership</h2>
+  <div class="row g-4 leadership-row">
+    <div class="col-12 col-md-6">
+      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+        <img
+          src="{{ url_for('static', filename='img/founder-photo.webp') }}"
+          alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
+          class="founder-photo"
+        >
+        <p class="founder-label mb-1">Founder</p>
+        <h3 class="founder-name">Kalpesh Chunawala</h3>
+        <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+        <blockquote class="about-quote-card mb-3">
+          <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
+        </blockquote>
+        <p class="mb-0 text-muted">
+          Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
+          His focus on verified inventory and clear communication has helped families close homes with confidence.
+        </p>
+      </article>
+    </div>
+    <div class="col-12 col-md-6">
+      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+        <img
+          src="{{ url_for('static', filename='img/company-logo-mark.webp') }}"
+          alt="Co-Founder - JAKKASH Property Consultancy"
+          class="founder-photo"
+        >
+        <p class="founder-label mb-1">Co-Founder</p>
+        <h3 class="founder-name">JAKKASH Leadership</h3>
+        <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+        <blockquote class="about-quote-card mb-3">
+          <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
+        </blockquote>
+        <p class="mb-0 text-muted">
+          Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
+          Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
+        </p>
+      </article>
+    </div>
+  </div>
 </section>
 
 <section class="container pb-5 jk-flow">
@@ -42,9 +66,7 @@
         <div>
           <h3>About Company</h3>
           <p class="mb-0">
-            JAKKASH Property Consultancy is committed to helping clients find the perfect residential and
-            commercial properties with trust, transparency, and professional guidance. Our mission is to
-            simplify property buying, selling, and renting while delivering exceptional customer service.
+            JAKKASH Property Consultancy simplifies buying, selling, and renting across Surat with verified listings and professional guidance.
           </p>
         </div>
       </article>
@@ -54,9 +76,7 @@
         <div class="about-info-icon"><i class="bi bi-eye"></i></div>
         <div>
           <h3>Our Vision</h3>
-          <p class="mb-0">
-            To become the most trusted and customer-focused property consultancy in Surat.
-          </p>
+          <p class="mb-0">To be Surat's most trusted, customer-focused property consultancy.</p>
         </div>
       </article>
     </div>
@@ -65,10 +85,7 @@
         <div class="about-info-icon"><i class="bi bi-bullseye"></i></div>
         <div>
           <h3>Our Mission</h3>
-          <p class="mb-0">
-            To provide transparent, reliable, and professional real estate services that help clients make
-            confident property decisions.
-          </p>
+          <p class="mb-0">Deliver transparent, reliable real-estate service that helps clients decide with confidence.</p>
         </div>
       </article>
     </div>
@@ -100,21 +117,11 @@
       <div class="col-6 col-lg-3">
         <article class="about-stat-card premium-hover-card reveal-on-scroll h-100">
           <p class="about-stat-value" data-counter="{{ about_stats.years_experience }}" data-suffix="+">0</p>
-          <p class="about-stat-label mb-0">Years of Experience</p>
+          <p class="about-stat-label mb-0">Years Experience</p>
         </article>
       </div>
     </div>
   </div>
-</section>
-
-<section class="container py-5">
-  <article class="about-contact-card premium-hover-card reveal-on-scroll">
-    <h3 class="mb-3">Visit Our Office</h3>
-    <p class="mb-1"><strong>{{ company_name }}</strong></p>
-    <p class="mb-1"><i class="bi bi-geo-alt text-warning"></i> {{ company_address }}</p>
-    <p class="mb-1"><i class="bi bi-telephone"></i> {{ company_phone }}</p>
-    <p class="mb-0"><i class="bi bi-envelope"></i> {{ company_email }}</p>
-  </article>
 </section>
 {% endblock %}
 {% block extra_js %}

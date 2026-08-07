@@ -69,14 +69,14 @@
       <label class="form-check-label" for="feat">Featured</label>
     </div>
     <div class="col-md-4">
-      <label>Images</label>
+      <label>Selected Photos List</label>
       <input type="file" class="form-control" id="adminImagesInput" name="images" multiple accept="image/*">
-      <div id="adminImagesPreview" class="media-file-list d-none" aria-live="polite"></div>
+      <div id="adminImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
     </div>
     <div class="col-md-4">
-      <label>Videos</label>
+      <label>Selected Videos List</label>
       <input type="file" class="form-control" id="adminVideosInput" name="videos" multiple accept="video/*">
-      <div id="adminVideosPreview" class="media-file-list d-none" aria-live="polite"></div>
+      <div id="adminVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
     </div>
     <div class="col-md-4">
       <label>Documents (PDF)</label>
@@ -92,8 +92,8 @@
 <script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
 <script>
   if (window.MediaFileManager) {
-    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'));
-    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'));
+    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'), { listClass: 'media-file-list--photos' });
+    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'), { listClass: 'media-file-list--videos' });
     MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
   }
   (function () {
