@@ -126,14 +126,27 @@ def public_image_url(path, external=False):
     if not raw:
         url = DEFAULT_PROPERTY_IMAGE_URL
     elif raw.startswith(("http://", "https://")):
-        url = raw
+        # Supabase CDN / Cloudinary / any absolute URL — return unchanged.
+        url = raw.rstrip("?")
     else:
         rel = raw.replace("\\", "/").lstrip("/")
-        if rel.startswith("static/") or rel.startswith("img/"):
+        # Keys already prefixed with the public bucket name.
+        if rel.startswith("property-images/") or rel.startswith("properties/storage/"):
+            from config import SUPABASE_BUCKET, SUPABASE_URL
+
+            if SUPABASE_URL:
+                if rel.startswith(f"{SUPABASE_BUCKET}/"):
+                    url = f"{SUPABASE_URL}/storage/v1/object/public/{rel}"
+                else:
+                    url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{rel}"
+            else:
+                url = f"/uploads/{rel}"
+        elif rel.startswith("static/") or rel.startswith("img/"):
             url = f"/{rel}" if not rel.startswith("/") else rel
         elif rel.startswith("/static/") or rel.startswith("/uploads/"):
             url = rel if rel.startswith("/") else f"/{rel}"
         else:
+            # Legacy local relative paths (properties/<id>/images/...).
             url = f"/uploads/{rel}"
 
     if external and url.startswith("/"):

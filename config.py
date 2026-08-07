@@ -31,7 +31,23 @@ ALLOWED_VIDEO = {"mp4", "mov", "webm"}
 ALLOWED_DOC = {"pdf"}
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
-# Cloudinary persistent media (set CLOUDINARY_URL or the three discrete vars on Vercel)
+# Supabase Storage (preferred for local + Vercel when credentials are set)
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
+SUPABASE_KEY = (
+    os.getenv("SUPABASE_SERVICE_KEY")
+    or os.getenv("SUPABASE_KEY")
+    or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    or os.getenv("SUPABASE_ANON_KEY")
+    or ""
+).strip()
+SUPABASE_BUCKET = (
+    os.getenv("SUPABASE_BUCKET")
+    or os.getenv("SUPABASE_STORAGE_BUCKET")
+    or "property-images"
+).strip()
+SUPABASE_ENABLED = bool(SUPABASE_URL and SUPABASE_KEY)
+
+# Cloudinary persistent media (optional secondary backend)
 CLOUDINARY_URL = (os.getenv("CLOUDINARY_URL") or "").strip()
 CLOUDINARY_CLOUD_NAME = (os.getenv("CLOUDINARY_CLOUD_NAME") or "").strip()
 CLOUDINARY_API_KEY = (os.getenv("CLOUDINARY_API_KEY") or "").strip()
@@ -88,6 +104,10 @@ class Config:
     MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "jakkash_property")
     UPLOAD_ROOT = str(UPLOAD_ROOT)
     MAX_CONTENT_LENGTH = MAX_UPLOAD_BYTES
+    SUPABASE_URL = SUPABASE_URL
+    SUPABASE_KEY = SUPABASE_KEY
+    SUPABASE_BUCKET = SUPABASE_BUCKET
+    SUPABASE_ENABLED = SUPABASE_ENABLED
     CLOUDINARY_URL = CLOUDINARY_URL
     CLOUDINARY_CLOUD_NAME = CLOUDINARY_CLOUD_NAME
     CLOUDINARY_API_KEY = CLOUDINARY_API_KEY

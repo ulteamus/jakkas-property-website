@@ -26,7 +26,7 @@ def property_upload_dir(property_id, media_type="images"):
 
 
 def save_upload(file, property_id, media_type, allowed):
-    """Persist media via Cloudinary when configured, else local disk."""
+    """Persist media via Supabase Storage when configured, else Cloudinary/local."""
     from services.storage_service import save_media
 
     return save_media(file, property_id, media_type, allowed)
