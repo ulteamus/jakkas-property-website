@@ -120,16 +120,31 @@ def _mask_coordinate(value):
 DEFAULT_PROPERTY_IMAGE_URL = "/static/img/default-property.jpg"
 
 
-def public_image_url(path):
-    """Build a browser URL for a stored upload path, or the default placeholder."""
-    rel = (path or "").strip().replace("\\", "/").lstrip("/")
-    if not rel:
-        return DEFAULT_PROPERTY_IMAGE_URL
-    if rel.startswith("static/") or rel.startswith("img/"):
-        return f"/{rel}" if not rel.startswith("/") else rel
-    if rel.startswith("/static/") or rel.startswith("/uploads/"):
-        return rel
-    return f"/uploads/{rel}"
+def public_image_url(path, external=False):
+    """Build a browser URL for a stored upload path, remote URL, or the default placeholder."""
+    raw = (path or "").strip()
+    if not raw:
+        url = DEFAULT_PROPERTY_IMAGE_URL
+    elif raw.startswith(("http://", "https://")):
+        url = raw
+    else:
+        rel = raw.replace("\\", "/").lstrip("/")
+        if rel.startswith("static/") or rel.startswith("img/"):
+            url = f"/{rel}" if not rel.startswith("/") else rel
+        elif rel.startswith("/static/") or rel.startswith("/uploads/"):
+            url = rel if rel.startswith("/") else f"/{rel}"
+        else:
+            url = f"/uploads/{rel}"
+
+    if external and url.startswith("/"):
+        try:
+            from flask import has_request_context, request
+
+            if has_request_context():
+                return request.url_root.rstrip("/") + url
+        except Exception:
+            pass
+    return url
 
 
 def to_dict(row, public=True):

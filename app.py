@@ -76,6 +76,8 @@ def create_app():
 
     @app.context_processor
     def inject_company():
+        from models.property import public_image_url
+
         return {
             "company_name": COMPANY_NAME,
             "company_owner": COMPANY_OWNER,
@@ -86,6 +88,7 @@ def create_app():
             "company_whatsapp": COMPANY_WHATSAPP,
             "company_lat": COMPANY_LAT,
             "company_lng": COMPANY_LNG,
+            "media_url": public_image_url,
         }
 
     @app.before_request
@@ -106,9 +109,6 @@ def create_app():
         ):
             if name.startswith(prefix):
                 name = name[len(prefix) :]
-        # Repair accidental double "properties/properties/" from older url_for rules.
-        while name.startswith("properties/properties/"):
-            name = name[len("properties/") :]
         return name
 
     def _upload_candidate_roots():
@@ -136,32 +136,20 @@ def create_app():
         for path in candidates:
             try:
                 if path.is_file():
-                    resp = send_from_directory(str(path.parent), path.name)
-                    resp.headers["Cache-Control"] = "public, max-age=86400"
-                    return resp
+                    return send_from_directory(str(path.parent), path.name)
             except OSError:
                 continue
-        # Absolute last resort: 1x1 JPEG bytes so clients never get an empty 404 body.
-        import io
-        from flask import send_file
-        try:
-            from PIL import Image as _Image
-            buf = io.BytesIO()
-            _Image.new("RGB", (1200, 800), (40, 40, 40)).save(buf, format="JPEG", quality=70)
-            buf.seek(0)
-            return send_file(buf, mimetype="image/jpeg")
-        except Exception:
-            return "placeholder unavailable", 404
-
-    @app.route("/static/img/default-property.jpg")
-    @app.route("/static/img/placeholder.jpg")
-    def default_property_image():
-        return _serve_default_property_image()
+        return send_from_directory(app.static_folder, "img/default-property.jpg")
 
     def _serve_upload_file(filename):
         rel = _normalize_upload_relpath(filename)
         if not rel or ".." in rel.split("/"):
             return _serve_default_property_image()
+        # Remote Cloudinary (or other) URLs stored in DB should not hit local disk.
+        if rel.startswith("http://") or rel.startswith("https://"):
+            from flask import redirect
+
+            return redirect(rel, code=302)
 
         # Also try without a leading "properties/" when searching UPLOAD_ROOT.
         alt_rel = rel[len("properties/") :] if rel.startswith("properties/") else None
@@ -186,10 +174,17 @@ def create_app():
         return _serve_default_property_image()
 
     @app.route("/uploads/<path:filename>")
+    @app.route("/uploads/properties/<path:filename>")
     def uploads(filename):
-        # Single route so url_for('uploads', filename='properties/...') stays
-        # /uploads/properties/... (not /uploads/properties/properties/...).
-        return _serve_upload_file(filename)
+        # Dedicated /uploads/properties/<rel> omits the "properties/" prefix in <rel>.
+        # The generic /uploads/<path> usually already includes properties/...
+        rel = _normalize_upload_relpath(filename)
+        if (
+            request.path.startswith("/uploads/properties/")
+            and not rel.startswith("properties/")
+        ):
+            rel = f"properties/{rel}"
+        return _serve_upload_file(rel)
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(exc):

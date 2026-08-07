@@ -1,14 +1,23 @@
+function mediaSrc(path) {
+  if (!path) return '/static/img/default-property.jpg';
+  const value = String(path).trim();
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('/')) return value;
+  return `/uploads/${value}`;
+}
+
 function listingMediaPaths(p) {
   const images = [];
   (p.images || []).forEach((img) => {
-    const path = typeof img === 'string' ? img : img.file_path;
+    const path = typeof img === 'string' ? img : (img.url || img.file_path);
     if (path && !images.includes(path)) images.push(path);
   });
-  if (p.primary_image && !images.includes(p.primary_image)) {
-    images.unshift(p.primary_image);
+  const primary = p.primary_image_url || p.primary_image;
+  if (primary && !images.includes(primary)) {
+    images.unshift(primary);
   }
   const videos = (p.videos || [])
-    .map((v) => (typeof v === 'string' ? v : v.file_path))
+    .map((v) => (typeof v === 'string' ? v : (v.url || v.file_path)))
     .filter(Boolean);
   return { images, videos };
 }
@@ -37,7 +46,7 @@ function listingMediaHTML(p, options = {}) {
   const photoSlides = images
     .map(
       (path, idx) =>
-        `<img src="/uploads/${path}" alt="" class="listing-media-slide${idx === 0 ? ' is-active' : ''}" loading="lazy" ${fallbackAttr}>`
+        `<img src="${mediaSrc(path)}" alt="" class="listing-media-slide${idx === 0 ? ' is-active' : ''}" loading="lazy" ${fallbackAttr}>`
     )
     .join('');
 
@@ -57,7 +66,7 @@ function listingMediaHTML(p, options = {}) {
     .map(
       (path, idx) =>
         `<div class="listing-media-video${idx === 0 ? ' is-active' : ''}">
-          <video controls playsinline preload="metadata" src="/uploads/${path}"></video>
+          <video controls playsinline preload="metadata" src="${mediaSrc(path)}"></video>
         </div>`
     )
     .join('');

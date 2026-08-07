@@ -1605,6 +1605,7 @@ def _form_property(form):
 
 
 def _upload_media(request, pid):
+    """Persist property media through storage_service (Cloudinary or local)."""
     for i, f in enumerate(request.files.getlist("images")):
         path = save_upload(f, pid, "images", ALLOWED_IMAGE)
         if path:

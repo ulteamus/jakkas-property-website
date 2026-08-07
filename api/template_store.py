@@ -3360,10 +3360,11 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
     "public/_listing_media.html": """{% macro render_listing_media(p, height=220, badge_text=None) %}
 {% set image_paths = p.listing_images if p.listing_images is defined else [] %}
 {% set video_paths = p.listing_videos if p.listing_videos is defined else [] %}
+{% set img_fallback = "this.onerror=null;this.src='/static/img/default-property.jpg';" %}
 
 {% if not image_paths and not video_paths %}
 <div class="listing-media listing-media--empty" style="--listing-media-height: {{ height }}px">
-  <img src="/static/img/default-property.jpg" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+  <img src="/static/img/default-property.jpg" alt="" loading="lazy" onerror="{{ img_fallback }}">
 </div>
 {% else %}
 <div class="listing-media" style="--listing-media-height: {{ height }}px" data-default-tab="{{ 'photos' if image_paths else 'videos' }}">
@@ -3380,7 +3381,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   {% endif %}
   <div class="listing-media-panel listing-media-panel--photos{% if not image_paths %} d-none{% endif %}">
     {% for path in image_paths %}
-    <img src="{{ url_for('uploads', filename=path) }}" alt="" class="listing-media-slide{% if loop.first %} is-active{% endif %}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+    <img src="{{ media_url(path) }}" alt="" class="listing-media-slide{% if loop.first %} is-active{% endif %}" loading="lazy" onerror="{{ img_fallback }}">
     {% endfor %}
     {% if image_paths|length > 1 %}
     <button type="button" class="listing-media-nav listing-media-prev" aria-label="Previous photo"><i class="bi bi-chevron-left"></i></button>
@@ -3395,7 +3396,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   <div class="listing-media-panel listing-media-panel--videos{% if not video_paths %} d-none{% endif %}">
     {% for path in video_paths %}
     <div class="listing-media-video{% if loop.first %} is-active{% endif %}">
-      <video controls playsinline preload="metadata" src="{{ url_for('uploads', filename=path) }}"></video>
+      <video controls playsinline preload="metadata" src="{{ media_url(path) }}"></video>
     </div>
     {% endfor %}
   </div>
@@ -3922,9 +3923,9 @@ document.getElementById('contactNameInput')?.focus();
 {% block head_meta %}
 {% set cover = None %}
 {% if media.images and media.images|length %}
-  {% set cover = url_for('uploads', filename=media.images[0].file_path, _external=True) %}
+  {% set cover = media_url(media.images[0].file_path, external=True) %}
 {% elif property.primary_image %}
-  {% set cover = url_for('uploads', filename=property.primary_image, _external=True) %}
+  {% set cover = media_url(property.primary_image, external=True) %}
 {% else %}
   {% set cover = url_for('static', filename='img/default-property.jpg', _external=True) %}
 {% endif %}
@@ -3942,23 +3943,24 @@ document.getElementById('contactNameInput')?.focus();
   <div class="row g-4">
     <div class="col-lg-7 reveal-on-scroll">
       {% set imgs = media.images %}
+      {% set img_fallback = "this.onerror=null;this.src='/static/img/default-property.jpg';" %}
       {% if imgs %}
-      <img id="mainImg" class="gallery-main mb-2" src="{{ url_for('uploads', filename=imgs[0].file_path) }}" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+      <img id="mainImg" class="gallery-main mb-2" src="{{ media_url(imgs[0].file_path) }}" alt="" onerror="{{ img_fallback }}">
       <div class="d-flex gap-2 flex-wrap">
         {% for img in imgs %}
-        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ url_for('uploads', filename=img.file_path) }}" data-full="{{ url_for('uploads', filename=img.file_path) }}" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ media_url(img.file_path) }}" data-full="{{ media_url(img.file_path) }}" onerror="{{ img_fallback }}">
         {% endfor %}
       </div>
       {% elif property.primary_image %}
-      <img class="gallery-main" src="{{ url_for('uploads', filename=property.primary_image) }}" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+      <img class="gallery-main" src="{{ media_url(property.primary_image) }}" alt="" onerror="{{ img_fallback }}">
       {% else %}
-      <img class="gallery-main" src="/static/img/default-property.jpg" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+      <img class="gallery-main" src="/static/img/default-property.jpg" alt="" onerror="{{ img_fallback }}">
       {% endif %}
 
       {% if media.videos %}
       <h5 class="mt-4">Videos</h5>
       {% for v in media.videos %}
-      <video class="w-100 rounded mb-2" controls src="{{ url_for('uploads', filename=v.file_path) }}"></video>
+      <video class="w-100 rounded mb-2" controls src="{{ media_url(v.file_path) }}"></video>
       {% endfor %}
       {% endif %}
     </div>
@@ -4006,7 +4008,7 @@ document.getElementById('contactNameInput')?.focus();
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
       {% for d in media.documents %}
-      <a href="{{ url_for('uploads', filename=d.file_path) }}" target="_blank" class="d-block"><i class="bi bi-file-pdf"></i> {{ d.doc_name }}</a>
+      <a href="{{ media_url(d.file_path) }}" target="_blank" class="d-block"><i class="bi bi-file-pdf"></i> {{ d.doc_name }}</a>
       {% endfor %}
       {% endif %}
     </div>

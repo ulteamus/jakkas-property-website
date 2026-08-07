@@ -26,16 +26,10 @@ def property_upload_dir(property_id, media_type="images"):
 
 
 def save_upload(file, property_id, media_type, allowed):
-    if not file or not file.filename:
-        return None
-    ext = file.filename.rsplit(".", 1)[-1].lower()
-    if ext not in allowed:
-        return None
-    folder = property_upload_dir(property_id, media_type)
-    name = f"{uuid.uuid4().hex[:12]}.{ext}"
-    path = folder / name
-    file.save(path)
-    return f"properties/{property_id}/{media_type}/{name}"
+    """Persist media via Cloudinary when configured, else local disk."""
+    from services.storage_service import save_media
+
+    return save_media(file, property_id, media_type, allowed)
 
 
 def whatsapp_url(message):

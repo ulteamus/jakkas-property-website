@@ -27,11 +27,19 @@ def _serialize_property(p, media=None, public=True):
     videos = []
     if media:
         images = [
-            {"file_path": i["file_path"], "is_primary": bool(i.get("is_primary"))}
+            {
+                "file_path": i["file_path"],
+                "url": prop_model.public_image_url(i.get("file_path")),
+                "is_primary": bool(i.get("is_primary")),
+            }
             for i in media.get("images", [])
         ]
         videos = [
-            {"file_path": v["file_path"], "title": v.get("title")}
+            {
+                "file_path": v["file_path"],
+                "url": prop_model.public_image_url(v.get("file_path")),
+                "title": v.get("title"),
+            }
             for v in media.get("videos", [])
         ]
     return {
@@ -673,3 +681,61 @@ def api_chat():
     except Exception:
         pass
     return jsonify(payload)
+
+
+@api_bp.route("/media/upload", methods=["POST"])
+def api_media_upload():
+    """Upload property media via Cloudinary (when configured) or local disk."""
+    from config import ALLOWED_DOC, ALLOWED_IMAGE, ALLOWED_VIDEO
+    from utils.helpers import save_upload
+
+    try:
+        property_id = int(request.form.get("property_id") or request.args.get("property_id") or 0)
+    except (TypeError, ValueError):
+        property_id = 0
+    if property_id < 1:
+        return jsonify({"success": False, "error": "property_id required"}), 400
+    if not prop_model.get_by_id(property_id):
+        return jsonify({"success": False, "error": "Property not found"}), 404
+
+    media_type = (request.form.get("media_type") or "images").strip().lower()
+    allowed_map = {
+        "images": ALLOWED_IMAGE,
+        "videos": ALLOWED_VIDEO,
+        "documents": ALLOWED_DOC,
+    }
+    allowed = allowed_map.get(media_type)
+    if not allowed:
+        return jsonify({"success": False, "error": "Invalid media_type"}), 400
+
+    upload = (
+        request.files.get("file")
+        or request.files.get("image")
+        or request.files.get("media")
+    )
+    if not upload:
+        batch = request.files.getlist("files") or request.files.getlist(media_type)
+        upload = batch[0] if batch else None
+    if not upload:
+        return jsonify({"success": False, "error": "No file uploaded"}), 400
+
+    stored = save_upload(upload, property_id, media_type, allowed)
+    if not stored:
+        return jsonify({"success": False, "error": "Upload failed or file type not allowed"}), 400
+
+    is_primary = (request.form.get("is_primary") or "").strip() in {"1", "true", "on", "yes"}
+    if media_type == "images":
+        prop_model.add_image(property_id, stored, is_primary=is_primary)
+    elif media_type == "videos":
+        prop_model.add_video(property_id, stored)
+    else:
+        prop_model.add_document(property_id, stored, upload.filename)
+
+    return jsonify(
+        {
+            "success": True,
+            "path": stored,
+            "url": prop_model.public_image_url(stored),
+            "media_type": media_type,
+        }
+    )
