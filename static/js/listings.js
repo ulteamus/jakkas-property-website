@@ -92,8 +92,8 @@ function cardHTML(p) {
     <p class="small text-muted line-clamp-2">${p.description || 'Verified property listing from JAKKASH.'}</p>
     <div class="d-flex gap-2 mt-2 flex-wrap">
       <a href="/property/${p.slug}" class="btn btn-sm btn-jk-primary">View Details</a>
-      <a href="/contact?intent=visit&property=${slug}" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
-      <a href="/contact?property=${slug}" class="btn btn-sm btn-jk-accent btn-send-inquiry">Send Inquiry</a>
+      <a href="/property/${slug}#visitPanel" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
+      <a href="/property/${slug}#inquiryPanel" class="btn btn-sm btn-jk-accent btn-send-inquiry">Send Inquiry</a>
     </div>
   </div></div></div>`;
 }

@@ -757,13 +757,85 @@ def _copy_submission_media_to_property(submission, property_id):
         existing_vids.add(path)
 
 
+def _create_property_from_submission(submission):
+    """Create a public listing from a sell submission (status=available)."""
+    listing_intent = (submission.get("listing_intent") or "sell").lower()
+    listing_type = "rent" if listing_intent == "rent" else "sale"
+    created = prop_model.create(
+        {
+            "property_name": submission.get("property_title") or "Untitled Property",
+            "property_type": submission.get("property_type") or "flat",
+            "area_name": submission.get("location_area") or submission.get("city") or "Surat",
+            "address": submission.get("property_address"),
+            "price": float(submission.get("price") or 0),
+            "bhk": int(submission.get("bhk") or 0),
+            "sq_ft": float(submission.get("area_sq_ft") or 1),
+            "description": submission.get("description"),
+            "amenities": submission.get("amenities") or [],
+            "status": "available",
+            "is_featured": False,
+            "listing_type": listing_type,
+            "listing_intent": "rent" if listing_intent == "rent" else "sell",
+            "seller_type": submission.get("seller_type") or submission.get("submitter_type"),
+            "block_wing": submission.get("block_wing"),
+            "unit_number": submission.get("unit_number")
+            or submission.get("apartment_number")
+            or submission.get("bungalow_number"),
+            "creation_source": "user_submission",
+            "primary_image": (_media_paths_from_submission(submission, "images") or [None])[0],
+        },
+        created_by_admin_id=submission.get("owner_admin_id") or current_user.id,
+    )
+    property_id = created["id"]
+    submission_model.link_property(submission["id"], property_id)
+    submission["property_id"] = property_id
+    _copy_submission_media_to_property(submission, property_id)
+    return property_id
+
+
+def _ensure_submission_property_published(submission):
+    """
+    Guarantee an approved submission has a live property row with status=available.
+    Heals orphan property_id links (ID set but row missing) so listings appear publicly.
+    Returns True when a create or status publish occurred.
+    """
+    property_id = submission.get("property_id")
+    existing_prop = prop_model.get_by_id(property_id) if property_id else None
+    changed = False
+    if not existing_prop:
+        property_id = _create_property_from_submission(submission)
+        existing_prop = prop_model.get_by_id(property_id)
+        changed = True
+        previous_prop_status = None
+    else:
+        previous_prop_status = (existing_prop or {}).get("status")
+
+    if property_id and previous_prop_status != "available":
+        prop_model.set_status(property_id, "available")
+        changed = True
+        _log_admin_action(
+            "property_status_changed",
+            "Changed property status",
+            entity_type="property",
+            entity_id=property_id,
+            meta={"from_status": previous_prop_status, "to_status": "available"},
+        )
+    if property_id:
+        _copy_submission_media_to_property(submission, property_id)
+        _ensure_submission_lead(submission)
+    return changed
+
+
 def _apply_submission_status_change(submission, new_status, review_note=None):
     sid = submission["id"]
     previous = (submission.get("status") or "").lower()
     clean_status = (new_status or "").strip().lower()
     if clean_status not in {"pending", "approved", "rejected"}:
         raise ValueError("Invalid submission status.")
+    # Re-approve must still publish orphan/missing properties to the public panel.
     if previous == clean_status:
+        if clean_status == "approved":
+            return _ensure_submission_property_published(submission)
         return False
 
     # Permanent persistence: never delete owner_submissions on approve/reject.
@@ -775,56 +847,13 @@ def _apply_submission_status_change(submission, new_status, review_note=None):
     )
     property_id = submission.get("property_id")
 
-    if clean_status == "approved" and not property_id:
-        # Create linked property if missing, keep submission row forever.
-        listing_intent = (submission.get("listing_intent") or "sell").lower()
-        listing_type = "rent" if listing_intent == "rent" else "sale"
-        created = prop_model.create(
-            {
-                "property_name": submission.get("property_title") or "Untitled Property",
-                "property_type": submission.get("property_type") or "flat",
-                "area_name": submission.get("location_area") or submission.get("city") or "Surat",
-                "address": submission.get("property_address"),
-                "price": float(submission.get("price") or 0),
-                "bhk": int(submission.get("bhk") or 0),
-                "sq_ft": float(submission.get("area_sq_ft") or 1),
-                "description": submission.get("description"),
-                "amenities": submission.get("amenities") or [],
-                "status": "available",
-                "is_featured": False,
-                "listing_type": listing_type,
-                "listing_intent": "rent" if listing_intent == "rent" else "sell",
-                "seller_type": submission.get("seller_type") or submission.get("submitter_type"),
-                "block_wing": submission.get("block_wing"),
-                "unit_number": submission.get("unit_number")
-                or submission.get("apartment_number")
-                or submission.get("bungalow_number"),
-                "creation_source": "user_submission",
-                "primary_image": (_media_paths_from_submission(submission, "images") or [None])[0],
-            },
-            created_by_admin_id=submission.get("owner_admin_id") or current_user.id,
-        )
-        property_id = created["id"]
-        submission_model.link_property(sid, property_id)
-        submission["property_id"] = property_id
-        _copy_submission_media_to_property(submission, property_id)
-
-    if property_id:
+    if clean_status == "approved":
+        _ensure_submission_property_published(submission)
+        property_id = submission.get("property_id")
+    elif property_id:
         existing_prop = prop_model.get_by_id(property_id)
         previous_prop_status = (existing_prop or {}).get("status")
-        if clean_status == "approved":
-            prop_model.set_status(property_id, "available")
-            _copy_submission_media_to_property(submission, property_id)
-            if previous_prop_status != "available":
-                _log_admin_action(
-                    "property_status_changed",
-                    "Changed property status",
-                    entity_type="property",
-                    entity_id=property_id,
-                    meta={"from_status": previous_prop_status, "to_status": "available"},
-                )
-            _ensure_submission_lead(submission)
-        else:
+        if existing_prop:
             prop_model.set_status(property_id, "reserved")
             if previous_prop_status != "reserved":
                 _log_admin_action(
@@ -1061,12 +1090,14 @@ def approve_submission(sid):
     submission = submission_model.get_submission(sid, owner_admin_id=_owner_scope_admin_id())
     if not submission:
         abort(404)
-    if submission.get("status") != "approved":
-        _apply_submission_status_change(
-            submission,
-            "approved",
-            review_note=request.form.get("review_note"),
-        )
+    # Always run status change: re-approve heals missing/orphan properties so they
+    # surface on the public listings panel (status=available).
+    changed = _apply_submission_status_change(
+        submission,
+        "approved",
+        review_note=request.form.get("review_note"),
+    )
+    if changed:
         flash("Submission approved and property published.", "success")
     else:
         flash("Submission is already approved.", "info")

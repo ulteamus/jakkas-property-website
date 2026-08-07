@@ -3426,8 +3426,8 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <p class="small text-muted line-clamp-2">{{ p.description or 'Premium property listing with verified details and expert support.' }}</p>
       <div class="d-flex gap-2 mt-2 flex-wrap">
         <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-primary">View Details</a>
-        <a href="{{ url_for('public.contact', intent='visit', property=p.slug) }}" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
-        <a href="{{ url_for('public.contact', property=p.slug) }}" class="btn btn-sm btn-jk-accent btn-send-inquiry">Send Inquiry</a>
+        <a href="{{ url_for('public.property_detail', slug=p.slug) }}#visitPanel" class="btn btn-sm btn-jk-outline btn-request-visit">Request Site Visit</a>
+        <a href="{{ url_for('public.property_detail', slug=p.slug) }}#inquiryPanel" class="btn btn-sm btn-jk-accent btn-send-inquiry">Send Inquiry</a>
       </div>
     </div>
   </div>
@@ -3936,7 +3936,7 @@ document.getElementById('contactNameInput')?.focus();
 {% if cover %}<meta name="twitter:image" content="{{ cover }}">{% endif %}
 {% endblock %}
 {% block content %}
-<div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}">
+<div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}" data-property-area="{{ property.area_name }}, Surat">
   <div class="row g-4">
     <div class="col-lg-7 reveal-on-scroll">
       {% set imgs = media.images %}
@@ -3993,10 +3993,10 @@ document.getElementById('contactNameInput')?.focus();
           <i class="bi bi-whatsapp"></i> WhatsApp Broker
         </a>
         <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-        <a class="btn btn-jk-accent btn-send-inquiry" href="{{ url_for('public.contact', property=property.slug) }}">
+        <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </a>
-        <a class="btn btn-jk-outline btn-request-visit" href="{{ url_for('public.contact', intent='visit', property=property.slug) }}">
+        <a class="btn btn-jk-outline btn-request-visit" href="#visitPanel">
           <i class="bi bi-calendar-check"></i> Request Site Visit
         </a>
         <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
