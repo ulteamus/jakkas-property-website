@@ -106,6 +106,9 @@ def create_app():
         ):
             if name.startswith(prefix):
                 name = name[len(prefix) :]
+        # Repair accidental double "properties/properties/" from older url_for rules.
+        while name.startswith("properties/properties/"):
+            name = name[len("properties/") :]
         return name
 
     def _upload_candidate_roots():
@@ -183,17 +186,10 @@ def create_app():
         return _serve_default_property_image()
 
     @app.route("/uploads/<path:filename>")
-    @app.route("/uploads/properties/<path:filename>")
     def uploads(filename):
-        # Dedicated /uploads/properties/<rel> omits the "properties/" prefix in <rel>.
-        # The generic /uploads/<path> usually already includes properties/...
-        rel = _normalize_upload_relpath(filename)
-        if (
-            request.path.startswith("/uploads/properties/")
-            and not rel.startswith("properties/")
-        ):
-            rel = f"properties/{rel}"
-        return _serve_upload_file(rel)
+        # Single route so url_for('uploads', filename='properties/...') stays
+        # /uploads/properties/... (not /uploads/properties/properties/...).
+        return _serve_upload_file(filename)
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(exc):
