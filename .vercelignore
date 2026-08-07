@@ -5,16 +5,13 @@ venv/
 uploads/
 api/uploads/
 api/seed/uploads/
-api/static/
 static/preview/
-static/property-uploads/
 deploy-media/
 __pycache__/
 *.pyc
 *.log
 .env
 .git/
-data/
 cookies.txt
 headers*.txt
 login_*.html
