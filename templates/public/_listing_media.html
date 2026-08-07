@@ -1,11 +1,10 @@
 {% macro render_listing_media(p, height=220, badge_text=None) %}
 {% set image_paths = p.listing_images if p.listing_images is defined else [] %}
 {% set video_paths = p.listing_videos if p.listing_videos is defined else [] %}
-{% set img_fallback = "this.onerror=null;this.src='/static/img/default-property.jpg';" %}
 
 {% if not image_paths and not video_paths %}
 <div class="listing-media listing-media--empty" style="--listing-media-height: {{ height }}px">
-  <img src="/static/img/default-property.jpg" alt="" loading="lazy" onerror="{{ img_fallback }}">
+  <img src="/static/img/default-property.jpg" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
 </div>
 {% else %}
 <div class="listing-media" style="--listing-media-height: {{ height }}px" data-default-tab="{{ 'photos' if image_paths else 'videos' }}">
@@ -22,7 +21,7 @@
   {% endif %}
   <div class="listing-media-panel listing-media-panel--photos{% if not image_paths %} d-none{% endif %}">
     {% for path in image_paths %}
-    <img src="{{ url_for('uploads', filename=path) }}" alt="" class="listing-media-slide{% if loop.first %} is-active{% endif %}" loading="lazy" onerror="{{ img_fallback }}">
+    <img src="{{ url_for('uploads', filename=path) }}" alt="" class="listing-media-slide{% if loop.first %} is-active{% endif %}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
     {% endfor %}
     {% if image_paths|length > 1 %}
     <button type="button" class="listing-media-nav listing-media-prev" aria-label="Previous photo"><i class="bi bi-chevron-left"></i></button>

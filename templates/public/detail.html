@@ -23,18 +23,17 @@
   <div class="row g-4">
     <div class="col-lg-7 reveal-on-scroll">
       {% set imgs = media.images %}
-      {% set img_fallback = "this.onerror=null;this.src='/static/img/default-property.jpg';" %}
       {% if imgs %}
-      <img id="mainImg" class="gallery-main mb-2" src="{{ url_for('uploads', filename=imgs[0].file_path) }}" alt="" onerror="{{ img_fallback }}">
+      <img id="mainImg" class="gallery-main mb-2" src="{{ url_for('uploads', filename=imgs[0].file_path) }}" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
       <div class="d-flex gap-2 flex-wrap">
         {% for img in imgs %}
-        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ url_for('uploads', filename=img.file_path) }}" data-full="{{ url_for('uploads', filename=img.file_path) }}" onerror="{{ img_fallback }}">
+        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ url_for('uploads', filename=img.file_path) }}" data-full="{{ url_for('uploads', filename=img.file_path) }}" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
         {% endfor %}
       </div>
       {% elif property.primary_image %}
-      <img class="gallery-main" src="{{ url_for('uploads', filename=property.primary_image) }}" alt="" onerror="{{ img_fallback }}">
+      <img class="gallery-main" src="{{ url_for('uploads', filename=property.primary_image) }}" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
       {% else %}
-      <img class="gallery-main" src="/static/img/default-property.jpg" alt="" onerror="{{ img_fallback }}">
+      <img class="gallery-main" src="/static/img/default-property.jpg" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
       {% endif %}
 
       {% if media.videos %}

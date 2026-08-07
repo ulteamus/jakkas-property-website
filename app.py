@@ -133,10 +133,27 @@ def create_app():
         for path in candidates:
             try:
                 if path.is_file():
-                    return send_from_directory(str(path.parent), path.name)
+                    resp = send_from_directory(str(path.parent), path.name)
+                    resp.headers["Cache-Control"] = "public, max-age=86400"
+                    return resp
             except OSError:
                 continue
-        return send_from_directory(app.static_folder, "img/default-property.jpg")
+        # Absolute last resort: 1x1 JPEG bytes so clients never get an empty 404 body.
+        import io
+        from flask import send_file
+        try:
+            from PIL import Image as _Image
+            buf = io.BytesIO()
+            _Image.new("RGB", (1200, 800), (40, 40, 40)).save(buf, format="JPEG", quality=70)
+            buf.seek(0)
+            return send_file(buf, mimetype="image/jpeg")
+        except Exception:
+            return "placeholder unavailable", 404
+
+    @app.route("/static/img/default-property.jpg")
+    @app.route("/static/img/placeholder.jpg")
+    def default_property_image():
+        return _serve_default_property_image()
 
     def _serve_upload_file(filename):
         rel = _normalize_upload_relpath(filename)
