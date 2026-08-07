@@ -96,19 +96,87 @@ def create_app():
         if "visitor_id" not in session:
             session["visitor_id"] = str(uuid.uuid4())
 
-    @app.route("/uploads/<path:filename>")
-    def uploads(filename):
-        upload_roots = [
-            os.path.join(app.root_path, "uploads"),
-            os.path.join(app.root_path, "public", "uploads"),
-            os.path.join(app.root_path, "static", "property-uploads"),
+    def _normalize_upload_relpath(filename):
+        name = (filename or "").replace("\\", "/").lstrip("/")
+        for prefix in (
+            "uploads/",
+            "static/property-uploads/",
+            "property-uploads/",
+            "api/static/property-uploads/",
+        ):
+            if name.startswith(prefix):
+                name = name[len(prefix) :]
+        return name
+
+    def _upload_candidate_roots():
+        upload_root = Path(app.config.get("UPLOAD_ROOT") or UPLOAD_ROOT)
+        return [
+            upload_root.parent,  # .../uploads  (paths like properties/ID/images/x.jpg)
+            upload_root,  # .../uploads/properties (paths like ID/images/x.jpg)
+            Path(app.root_path) / "uploads",
+            Path(app.root_path) / "public" / "uploads",
+            Path(app.root_path) / "static" / "property-uploads",
+            Path(app.root_path) / "api" / "static" / "property-uploads",
+            Path(app.static_folder or "") / "property-uploads",
         ]
-        for root in upload_roots:
-            directory = os.path.abspath(root)
-            full_path = os.path.abspath(os.path.join(directory, filename))
-            if full_path.startswith(directory) and os.path.isfile(full_path):
-                return send_from_directory(directory, filename)
-        return "File not found", 404
+
+    def _serve_default_property_image():
+        """Serve a clean placeholder when an upload path is missing (no broken 404)."""
+        candidates = [
+            Path(app.root_path) / "static" / "img" / "default-property.jpg",
+            Path(app.root_path) / "static" / "img" / "placeholder.jpg",
+            Path(app.root_path) / "api" / "static" / "img" / "default-property.jpg",
+            Path(app.root_path) / "api" / "static" / "img" / "placeholder.jpg",
+            Path(app.static_folder or "") / "img" / "default-property.jpg",
+            Path(app.static_folder or "") / "img" / "placeholder.jpg",
+        ]
+        for path in candidates:
+            try:
+                if path.is_file():
+                    return send_from_directory(str(path.parent), path.name)
+            except OSError:
+                continue
+        return send_from_directory(app.static_folder, "img/default-property.jpg")
+
+    def _serve_upload_file(filename):
+        rel = _normalize_upload_relpath(filename)
+        if not rel or ".." in rel.split("/"):
+            return _serve_default_property_image()
+
+        # Also try without a leading "properties/" when searching UPLOAD_ROOT.
+        alt_rel = rel[len("properties/") :] if rel.startswith("properties/") else None
+
+        for root in _upload_candidate_roots():
+            try:
+                directory = root.resolve()
+            except OSError:
+                continue
+            if not directory.is_dir():
+                continue
+            for candidate in (rel, alt_rel):
+                if not candidate:
+                    continue
+                full_path = (directory / candidate).resolve()
+                try:
+                    full_path.relative_to(directory)
+                except ValueError:
+                    continue
+                if full_path.is_file():
+                    return send_from_directory(str(directory), candidate)
+        return _serve_default_property_image()
+
+    @app.route("/uploads/<path:filename>")
+    @app.route("/uploads/properties/<path:filename>")
+    def uploads(filename):
+        # Dedicated /uploads/properties/<rel> omits the "properties/" prefix in <rel>.
+        # The generic /uploads/<path> usually already includes properties/...
+        rel = _normalize_upload_relpath(filename)
+        if (
+            request.path.startswith("/uploads/properties/")
+            and not rel.startswith("properties/")
+        ):
+            rel = f"properties/{rel}"
+        return _serve_upload_file(rel)
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(exc):

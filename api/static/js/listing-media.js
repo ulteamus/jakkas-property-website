@@ -17,10 +17,12 @@ function listingMediaHTML(p, options = {}) {
   const { images, videos } = listingMediaPaths(p);
   const wrapClass = options.wrapClass || 'listing-media';
   const height = options.height || 220;
+  const fallbackAttr = "onerror=\"this.onerror=null;this.src='/static/img/default-property.jpg';\"";
+  const defaultImg = `/static/img/default-property.jpg`;
 
   if (!images.length && !videos.length) {
     return `<div class="${wrapClass} ${wrapClass}--empty" style="height:${height}px">
-      <i class="bi bi-building"></i>
+      <img src="${defaultImg}" alt="" loading="lazy" ${fallbackAttr}>
     </div>`;
   }
 
@@ -35,7 +37,7 @@ function listingMediaHTML(p, options = {}) {
   const photoSlides = images
     .map(
       (path, idx) =>
-        `<img src="/uploads/${path}" alt="" class="listing-media-slide${idx === 0 ? ' is-active' : ''}" loading="lazy">`
+        `<img src="/uploads/${path}" alt="" class="listing-media-slide${idx === 0 ? ' is-active' : ''}" loading="lazy" ${fallbackAttr}>`
     )
     .join('');
 

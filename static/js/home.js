@@ -6,9 +6,8 @@ const smartSuggest = document.getElementById('smartSuggest');
 let activeIntent = '';
 
 function propertyCard(p) {
-  const img = p.primary_image
-    ? `<div class="property-image-wrap"><img src="/uploads/${p.primary_image}" alt=""></div>`
-    : `<div class="property-image-wrap bg-secondary d-flex align-items-center justify-content-center" style="height:220px"><i class="bi bi-building text-white fs-1"></i></div>`;
+  const src = p.primary_image_url || (p.primary_image ? `/uploads/${p.primary_image}` : '/static/img/default-property.jpg');
+  const img = `<div class="property-image-wrap"><img src="${src}" alt="" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';"></div>`;
   return `
     <div class="col-md-6 col-lg-4">
       <div class="card property-card h-100">

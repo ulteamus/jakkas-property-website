@@ -116,6 +116,22 @@ def _mask_coordinate(value):
         return None
 
 
+# Public fallback when primary_image is missing or blank (served from static/).
+DEFAULT_PROPERTY_IMAGE_URL = "/static/img/default-property.jpg"
+
+
+def public_image_url(path):
+    """Build a browser URL for a stored upload path, or the default placeholder."""
+    rel = (path or "").strip().replace("\\", "/").lstrip("/")
+    if not rel:
+        return DEFAULT_PROPERTY_IMAGE_URL
+    if rel.startswith("static/") or rel.startswith("img/"):
+        return f"/{rel}" if not rel.startswith("/") else rel
+    if rel.startswith("/static/") or rel.startswith("/uploads/"):
+        return rel
+    return f"/uploads/{rel}"
+
+
 def to_dict(row, public=True):
     """
     Serialize a property row for API/templates.
@@ -135,6 +151,9 @@ def to_dict(row, public=True):
         parsed = _parse(dict(data))
         if parsed:
             data = parsed
+    primary = (data.get("primary_image") or "").strip() or None
+    data["primary_image"] = primary
+    data["primary_image_url"] = public_image_url(primary)
     if not public:
         return data
     data["address"] = _public_locality_address(data.get("area_name"))

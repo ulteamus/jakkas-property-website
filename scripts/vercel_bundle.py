@@ -60,7 +60,8 @@ def _copy_seed_db() -> None:
 
 
 def _copy_static() -> None:
-    ignore_assets = shutil.ignore_patterns("preview", "__pycache__", "*.pyc", "property-uploads")
+    # Keep property-uploads in api/static so Flask /uploads can resolve them on Vercel.
+    ignore_assets = shutil.ignore_patterns("preview", "__pycache__", "*.pyc")
     if PUBLIC.exists():
         shutil.rmtree(PUBLIC)
     if API_STATIC.exists():
