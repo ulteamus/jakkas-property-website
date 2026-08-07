@@ -8,15 +8,12 @@
     },
     {
       "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "excludeFiles": "{static/property-uploads/**,public/**,api/static/**,ml/**,**/*.mp4,**/*.pkl}"
-      }
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/uploads/(.*)", "dest": "/static/property-uploads/$1" },
+    { "src": "/uploads/(.*)", "dest": "api/index.py" },
     { "src": "/(.*)", "dest": "api/index.py" }
   ]
 }
