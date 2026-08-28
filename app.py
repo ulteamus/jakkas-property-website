@@ -44,11 +44,22 @@ def create_app():
     try:
         from api.template_store import loader as template_loader
 
-        app.jinja_loader = ChoiceLoader([template_loader(), app.jinja_loader])
+        # On Vercel, prefer the embedded DictLoader. Locally prefer on-disk templates
+        # so newer api/templates/* win over a stale template_store snapshot.
+        if os.getenv("VERCEL"):
+            app.jinja_loader = ChoiceLoader([template_loader(), app.jinja_loader])
+        else:
+            app.jinja_loader = ChoiceLoader([app.jinja_loader, template_loader()])
     except Exception:
         pass
     app.config.from_object(Config)
     app.config["UPLOAD_ROOT"] = str(UPLOAD_ROOT)
+
+    # Macros imported without "with context" cannot see context_processor vars.
+    # Expose media_url as a Jinja global so listing/detail macros always resolve.
+    from models.property import public_image_url
+
+    app.jinja_env.globals["media_url"] = public_image_url
 
     for folder in (UPLOAD_ROOT, Path("ml/models"), Path("static/img")):
         try:

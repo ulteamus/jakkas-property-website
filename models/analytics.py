@@ -49,8 +49,8 @@ def record_search(area=None, property_type=None, min_budget=None, max_budget=Non
 def dashboard_stats():
     props = query_one(
         """SELECT COUNT(*) AS total,
-                  SUM(status='available') AS available,
-                  SUM(status='sold') AS sold
+                  SUM(CASE WHEN status='available' THEN 1 ELSE 0 END) AS available,
+                  SUM(CASE WHEN status='sold' THEN 1 ELSE 0 END) AS sold
            FROM properties"""
     )
     visitors = query_one("SELECT COUNT(*) AS total FROM visitors")

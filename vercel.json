@@ -8,11 +8,21 @@
     },
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.12"
+      }
     }
   ],
   "routes": [
     { "handle": "filesystem" },
+    {
+      "src": "/static/(.*)",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
+    },
     { "src": "/uploads/(.*)", "dest": "api/index.py" },
     { "src": "/(.*)", "dest": "api/index.py" }
   ]

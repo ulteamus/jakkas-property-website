@@ -10,7 +10,7 @@ from flask import current_app
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
-DEFAULT_SUPABASE_BUCKET = "property-images"
+DEFAULT_SUPABASE_BUCKET = "property-media"
 
 
 def _env(*names: str) -> str:
@@ -19,6 +19,11 @@ def _env(*names: str) -> str:
         if value:
             return value
     return ""
+
+
+def storage_backend_preference() -> str:
+    """local | supabase | cloudinary | auto (empty)."""
+    return (_env("STORAGE_BACKEND") or "auto").lower()
 
 
 def supabase_configured() -> bool:
@@ -41,6 +46,26 @@ def cloudinary_configured() -> bool:
 
 def supabase_bucket_name() -> str:
     return _env("SUPABASE_BUCKET", "SUPABASE_STORAGE_BUCKET") or DEFAULT_SUPABASE_BUCKET
+
+
+def _use_supabase_storage() -> bool:
+    pref = storage_backend_preference()
+    if pref in {"local", "cloudinary"}:
+        return False
+    if pref in {"supabase", "auto", ""}:
+        return supabase_configured()
+    return supabase_configured()
+
+
+def _use_cloudinary_storage() -> bool:
+    pref = storage_backend_preference()
+    if pref == "local":
+        return False
+    if pref == "cloudinary":
+        return cloudinary_configured()
+    if pref == "supabase":
+        return False
+    return cloudinary_configured()
 
 
 def _supabase_client():
@@ -197,7 +222,8 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
     """
     Persist an uploaded file.
 
-    Prefer Supabase Storage (CDN public URL), then Cloudinary, then local disk.
+    Backend order (unless STORAGE_BACKEND forces one):
+    Supabase Storage (CDN public URL) → Cloudinary → local disk.
     """
     if not file_storage or not getattr(file_storage, "filename", None):
         return None
@@ -208,7 +234,11 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
     if ext not in allowed:
         return None
 
-    if supabase_configured():
+    pref = storage_backend_preference()
+    if pref == "local":
+        return _local_save(file_storage, property_id, media_type, ext)
+
+    if _use_supabase_storage():
         try:
             return _supabase_save(file_storage, property_id, media_type, ext)
         except Exception as exc:
@@ -218,8 +248,10 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
                 )
             except Exception:
                 pass
+            if pref == "supabase":
+                raise
 
-    if cloudinary_configured():
+    if _use_cloudinary_storage():
         try:
             return _cloudinary_save(file_storage, property_id, media_type, ext)
         except Exception as exc:
@@ -229,6 +261,8 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
                 )
             except Exception:
                 pass
+            if pref == "cloudinary":
+                raise
 
     return _local_save(file_storage, property_id, media_type, ext)
 

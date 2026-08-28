@@ -1,16 +1,39 @@
 import os
 import logging
 import sqlite3
-import mysql.connector
-from mysql.connector import Error
 from flask import g, current_app
 
 _using_sqlite = None
 logger = logging.getLogger(__name__)
 
 
+def _mysql_connector():
+    """Lazy import — omitted from Vercel serverless bundle (Supabase-only)."""
+    import mysql.connector
+    from mysql.connector import Error as MySQLError
+
+    return mysql.connector, MySQLError
+
+
+def use_postgres():
+    """True when SUPABASE_DB_URL is set and SQLite is not forced on."""
+    try:
+        from database.supabase_client import postgres_configured
+
+        return postgres_configured()
+    except Exception:
+        return False
+
+
+def skip_runtime_ddl():
+    """Postgres schema is applied via database/supabase_schema.sql — skip ALTER/CREATE probes."""
+    return use_postgres()
+
+
 def use_sqlite():
     global _using_sqlite
+    if use_postgres():
+        return False
     if _using_sqlite is not None:
         return _using_sqlite
     env = os.getenv("USE_SQLITE", "0").strip().lower()
@@ -28,11 +51,12 @@ def use_sqlite():
 
     # Explicit auto mode: try MySQL, then controlled SQLite fallback.
     try:
+        mysql, MySQLError = _mysql_connector()
         cfg = _mysql_config()
-        conn = mysql.connector.connect(**cfg)
+        conn = mysql.connect(**cfg)
         conn.close()
         _using_sqlite = False
-    except Error as exc:
+    except Exception as exc:
         if os.getenv("FLASK_ENV", "").strip().lower() == "production":
             raise RuntimeError(
                 "MySQL is unavailable and production fallback to SQLite is blocked. "
@@ -56,6 +80,10 @@ def _mysql_config():
 
 
 def _adapt_sql(sql):
+    if use_postgres():
+        from database.supabase_client import adapt_sql_postgres
+
+        return adapt_sql_postgres(sql)
     if not use_sqlite():
         return sql
     from database.sqlite_init import adapt_sql
@@ -63,6 +91,14 @@ def _adapt_sql(sql):
 
 
 def get_connection():
+    if use_postgres():
+        # Pool borrow — must be returned via close_connection / putconn
+        if "db_conn" not in g or g.get("db_backend") != "postgres":
+            from database.supabase_client import get_pg_connection
+
+            g.db_conn = get_pg_connection()
+            g.db_backend = "postgres"
+        return g.db_conn
     if use_sqlite():
         if "db_conn" not in g:
             from database.sqlite_init import init_db, DB_PATH
@@ -70,11 +106,14 @@ def get_connection():
             conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
             conn.row_factory = sqlite3.Row
             g.db_conn = conn
+            g.db_backend = "sqlite"
         return g.db_conn
     if "db_conn" not in g:
         try:
-            g.db_conn = mysql.connector.connect(**_mysql_config())
-        except Error as exc:
+            mysql, _ = _mysql_connector()
+            g.db_conn = mysql.connect(**_mysql_config())
+            g.db_backend = "mysql"
+        except Exception as exc:
             if os.getenv("FLASK_ENV", "").strip().lower() == "production":
                 raise
             global _using_sqlite
@@ -87,16 +126,24 @@ def get_connection():
             conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
             conn.row_factory = sqlite3.Row
             g.db_conn = conn
+            g.db_backend = "sqlite"
     return g.db_conn
 
 
 def close_connection(_exc=None):
     conn = g.pop("db_conn", None)
-    if conn is not None:
-        if use_sqlite():
-            conn.close()
-        elif conn.is_connected():
-            conn.close()
+    backend = g.pop("db_backend", None)
+    if conn is None:
+        return
+    if backend == "postgres":
+        from database.supabase_client import put_pg_connection
+
+        put_pg_connection(conn)
+        return
+    if use_sqlite() or backend == "sqlite":
+        conn.close()
+    elif hasattr(conn, "is_connected") and conn.is_connected():
+        conn.close()
 
 
 def _rows_to_dict(rows):
@@ -108,6 +155,10 @@ def _rows_to_dict(rows):
 
 
 def query_all(sql, params=None):
+    if use_postgres():
+        from database.supabase_client import pg_query_all
+
+        return pg_query_all(sql, params)
     sql = _adapt_sql(sql)
     conn = get_connection()
     if use_sqlite():
@@ -127,6 +178,10 @@ def query_one(sql, params=None):
 
 
 def execute(sql, params=None):
+    if use_postgres():
+        from database.supabase_client import pg_execute
+
+        return pg_execute(sql, params)
     sql = _adapt_sql(sql)
     conn = get_connection()
     if use_sqlite():
@@ -143,6 +198,10 @@ def execute(sql, params=None):
 
 
 def execute_many(sql, params_list):
+    if use_postgres():
+        from database.supabase_client import pg_execute_many
+
+        return pg_execute_many(sql, params_list)
     sql = _adapt_sql(sql)
     conn = get_connection()
     if use_sqlite():
@@ -158,13 +217,17 @@ def execute_many(sql, params_list):
 
 def test_connection():
     try:
+        if use_postgres():
+            row = query_one("SELECT 1 AS ok")
+            return bool(row and row.get("ok") == 1)
         if use_sqlite():
             from database.sqlite_init import init_db
             init_db()
             return True
-        conn = mysql.connector.connect(**_mysql_config())
+        mysql, _ = _mysql_connector()
+        conn = mysql.connect(**_mysql_config())
         ok = conn.is_connected()
         conn.close()
         return ok
-    except Error:
+    except Exception:
         return False

@@ -283,7 +283,7 @@ def sell_property():
 
             image_paths = []
             for i, upload in enumerate(request.files.getlist("images")):
-                # Cloudinary HTTPS URL when configured; else local relative path.
+                # Supabase public URL when STORAGE_BACKEND=supabase; else Cloudinary/local.
                 stored = save_upload(upload, created_property["id"], "images", ALLOWED_IMAGE)
                 if stored:
                     prop_model.add_image(created_property["id"], stored, is_primary=(i == 0), sort_order=i)

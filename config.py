@@ -40,12 +40,19 @@ SUPABASE_KEY = (
     or os.getenv("SUPABASE_ANON_KEY")
     or ""
 ).strip()
+SUPABASE_DB_URL = (
+    os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL") or ""
+).strip()
 SUPABASE_BUCKET = (
     os.getenv("SUPABASE_BUCKET")
     or os.getenv("SUPABASE_STORAGE_BUCKET")
-    or "property-images"
+    or "property-media"
 ).strip()
+STORAGE_BACKEND = (os.getenv("STORAGE_BACKEND") or "").strip().lower()
 SUPABASE_ENABLED = bool(SUPABASE_URL and SUPABASE_KEY)
+SUPABASE_DB_ENABLED = bool(SUPABASE_DB_URL.startswith("postgres")) and (
+    (os.getenv("USE_SQLITE") or "0").strip().lower() not in {"1", "true", "yes", "on"}
+)
 
 # Cloudinary persistent media (optional secondary backend)
 CLOUDINARY_URL = (os.getenv("CLOUDINARY_URL") or "").strip()
@@ -106,8 +113,11 @@ class Config:
     MAX_CONTENT_LENGTH = MAX_UPLOAD_BYTES
     SUPABASE_URL = SUPABASE_URL
     SUPABASE_KEY = SUPABASE_KEY
+    SUPABASE_DB_URL = SUPABASE_DB_URL
     SUPABASE_BUCKET = SUPABASE_BUCKET
     SUPABASE_ENABLED = SUPABASE_ENABLED
+    SUPABASE_DB_ENABLED = SUPABASE_DB_ENABLED
+    STORAGE_BACKEND = STORAGE_BACKEND
     CLOUDINARY_URL = CLOUDINARY_URL
     CLOUDINARY_CLOUD_NAME = CLOUDINARY_CLOUD_NAME
     CLOUDINARY_API_KEY = CLOUDINARY_API_KEY

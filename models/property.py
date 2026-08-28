@@ -2,7 +2,7 @@ import json
 import math
 import uuid
 from database import execute, query_all, query_one
-from database.db import use_sqlite
+from database.db import skip_runtime_ddl, use_sqlite
 from utils.helpers import slugify
 
 
@@ -26,6 +26,8 @@ def _ensure_schema():
     if _schema_checked:
         return
     _schema_checked = True
+    if skip_runtime_ddl():
+        return
     from database.db import get_connection, use_sqlite
 
     get_connection()
@@ -439,7 +441,7 @@ def create(data, created_by_admin_id=None):
             data.get("address"), data["price"], data.get("bhk", 0), data["sq_ft"],
             data.get("description"), amenities, data.get("latitude", 21.1702),
             data.get("longitude", 72.8311), data.get("status", "available"),
-            1 if data.get("is_featured") else 0, listing_type,
+            bool(data.get("is_featured")), listing_type,
             data.get("primary_image"), created_by_admin_id or _default_owner_admin_id(), creation_source,
             block_wing, unit_number, listing_intent, seller_type,
         ),
@@ -477,7 +479,7 @@ def update(pid, data):
             data["property_name"], property_type, data["area_name"],
             data.get("address"), data["price"], data.get("bhk", 0), data["sq_ft"],
             data.get("description"), amenities, data.get("latitude"),
-            data.get("longitude"), data.get("status"), 1 if data.get("is_featured") else 0,
+            data.get("longitude"), data.get("status"), bool(data.get("is_featured")),
             listing_type, block_wing, unit_number, listing_intent, seller_type, pid,
         ),
     )
@@ -562,7 +564,7 @@ def add_image(pid, path, is_primary=False, sort_order=0):
         execute("UPDATE properties SET primary_image=%s WHERE id=%s", (path, pid))
     execute(
         "INSERT INTO property_images (property_id,file_path,is_primary,sort_order) VALUES (%s,%s,%s,%s)",
-        (pid, path, 1 if is_primary else 0, sort_order),
+        (pid, path, bool(is_primary), sort_order),
     )
 
 

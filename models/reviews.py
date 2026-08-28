@@ -1,9 +1,11 @@
 from database import execute, query_all, query_one
-from database.db import use_sqlite
+from database.db import skip_runtime_ddl, use_sqlite
 
 
 def _ensure_tables():
     """Create testimonials + review_comments if missing. Never drop or truncate."""
+    if skip_runtime_ddl():
+        return
     if use_sqlite():
         execute(
             """CREATE TABLE IF NOT EXISTS testimonials (

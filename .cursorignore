@@ -1,0 +1,19 @@
+﻿# Agent / Cursor noise — keep indexing off heavy or stale trees
+_ARCHIVE_nested_clone_july2026/
+.mysql-data/
+.mysql84-*/
+.mysql84-alt2/
+.mysql84-instance/
+.mysql84-undo/
+.venv/
+venv/
+__pycache__/
+.vercel/
+.vercel.bak-stale/
+uploads/
+api/static/property-uploads/
+static/property-uploads/
+public/property-uploads/
+graphify-out/
+*.pkl
+*.joblib

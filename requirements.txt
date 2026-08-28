@@ -1,16 +1,18 @@
-supabase>=2.4.0
-cloudinary>=1.41.0
+# Vercel serverless + local Supabase (Python 3.11/3.12)
 Flask==3.0.3
 Flask-Login==0.6.3
 Flask-WTF==1.2.1
 WTForms==3.1.2
 Werkzeug==3.0.3
-mysql-connector-python==8.4.0
 python-dotenv==1.0.1
+supabase==2.10.0
+psycopg2-binary==2.9.9
+cloudinary==1.41.0
 Pillow==10.4.0
+pyotp==2.9.0
+# ML (optional on cold start — models lazy-loaded)
 joblib==1.4.2
-numpy>=1.26.0
-pandas>=2.2.0
-scikit-learn>=1.4.0
-xgboost>=2.0.0; python_version < "3.13"
-pyotp
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.1
+xgboost==2.1.1; python_version < "3.13"

@@ -18,21 +18,6 @@ function apiFetch(url, options = {}) {
 
 window.apiFetch = apiFetch;
 
-/** Swap broken property/media images to the shared placeholder (no black boxes). */
-document.addEventListener(
-  'error',
-  (event) => {
-    const el = event.target;
-    if (!el || el.tagName !== 'IMG') return;
-    const fallback = '/static/img/default-property.jpg';
-    if (el.dataset.fallbackApplied === '1') return;
-    if ((el.getAttribute('src') || '').includes('default-property.jpg')) return;
-    el.dataset.fallbackApplied = '1';
-    el.src = fallback;
-  },
-  true
-);
-
 function formatINR(n) {
   return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 }

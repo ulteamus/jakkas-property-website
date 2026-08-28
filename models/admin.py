@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import COMPANY_NAME, COMPANY_PHONE_RAW
 from database import execute, query_all, query_one
-from database.db import use_sqlite
+from database.db import skip_runtime_ddl, use_sqlite
 from services.mobile_otp import send_mobile_otp_code
 
 ROLE_SUPER_ADMIN = "super_admin"
@@ -232,6 +232,8 @@ def _ensure_schema():
     if _schema_checked:
         return
     _schema_checked = True
+    if skip_runtime_ddl():
+        return
 
     if use_sqlite():
         _ensure_sqlite_schema()

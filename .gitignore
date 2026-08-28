@@ -5,5 +5,16 @@ venv/
 .mysql-data/
 .mysql84-*/
 __pycache__/
+_ARCHIVE_nested_clone_july2026/
+data/*.db
+graphify-out/
+uploads/
+scripts/_last_*.json
+scripts/smoke_test_results.json
+vercel-deploy*.log
+vercel-preview*.log
+.vercel.bak-stale/
 
 .vercel
+scripts/_last_migration_report.json
+scripts/_last_verify_report.json

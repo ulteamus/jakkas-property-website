@@ -1,5 +1,5 @@
 from database import execute, query_all, query_one
-from database.db import use_sqlite
+from database.db import skip_runtime_ddl, use_sqlite
 
 INQUIRY_STATUSES = ["new", "contacted", "in_progress", "closed"]
 INQUIRY_TYPES = ["site_visit", "general", "property"]
@@ -30,6 +30,8 @@ def _ensure_schema():
     if _schema_checked:
         return
     _schema_checked = True
+    if skip_runtime_ddl():
+        return
     if use_sqlite():
         execute(
             """CREATE TABLE IF NOT EXISTS inquiries (
