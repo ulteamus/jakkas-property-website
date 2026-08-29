@@ -15,6 +15,7 @@ from database.schema import (
     DEFAULT_BOOTSTRAP_ADMIN_EMAIL,
     DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME,
     DEFAULT_BOOTSTRAP_ADMIN_USERNAME,
+    _read_admin_initial_password,
     bootstrap_password_hash,
     resolve_bootstrap_admin_password,
 )
@@ -957,12 +958,14 @@ class Admin(UserMixin):
                     existing_admin["id"],
                 ),
             )
-            # Vercel ephemeral SQLite copies a seed DB whose password may not match admin123.
+            # Sync password from env when explicitly configured (never hardcode admin123 on Vercel).
             if os.getenv("VERCEL") and use_sqlite():
-                execute(
-                    "UPDATE admins SET password_hash=%s, is_active=1 WHERE id=%s",
-                    (bootstrap_password_hash(password), existing_admin["id"]),
-                )
+                env_pw = _read_admin_initial_password()
+                if env_pw:
+                    execute(
+                        "UPDATE admins SET password_hash=%s, is_active=1 WHERE id=%s",
+                        (bootstrap_password_hash(env_pw), existing_admin["id"]),
+                    )
             return
 
         pw = bootstrap_password_hash(password)

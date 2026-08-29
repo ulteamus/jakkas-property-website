@@ -1,8 +1,10 @@
 import re
 import uuid
 from collections import Counter
+from functools import wraps
 
 from flask import Blueprint, jsonify, request, session
+from flask_login import current_user
 
 from database import execute, query_all
 from models import property as prop_model
@@ -16,9 +18,58 @@ from services.lead_scoring import increment_lead_signal
 from utils.helpers import format_inr
 from utils.rate_limit import rate_limit
 from utils.safe_cast import safe_float, safe_int, safe_str
+from models.admin import ROLE_BROKER, ROLE_MANAGER
 from config import COMPANY_ADDRESS, COMPANY_NAME, COMPANY_PHONE, COMPANY_WHATSAPP
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+
+
+def _api_login_required(fn):
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({"success": False, "error": "authentication_required"}), 401
+        if not getattr(current_user, "is_active", True):
+            return jsonify({"success": False, "error": "forbidden"}), 403
+        if not getattr(current_user, "is_admin", False):
+            return jsonify({"success": False, "error": "forbidden"}), 403
+        return fn(*args, **kwargs)
+
+    return wrapped
+
+
+def _api_permission_required(permission_key: str):
+    def decorator(fn):
+        @wraps(fn)
+        @_api_login_required
+        def wrapped(*args, **kwargs):
+            has_permission = getattr(current_user, "has_permission", None)
+            if not callable(has_permission):
+                return jsonify({"success": False, "error": "forbidden"}), 403
+            if not current_user.is_super_admin and not has_permission(permission_key):
+                return jsonify({"success": False, "error": "forbidden"}), 403
+            return fn(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
+def _ensure_api_property_owner(prop) -> tuple[dict | None, tuple | None]:
+    if not prop:
+        return None, (jsonify({"success": False, "error": "Property not found"}), 404)
+    if getattr(current_user, "is_super_admin", False):
+        return prop, None
+    if getattr(current_user, "role", None) == ROLE_MANAGER:
+        return prop, None
+    owner_id = int(prop.get("owner_admin_id") or 0)
+    if getattr(current_user, "role", None) == ROLE_BROKER:
+        if owner_id != int(current_user.id):
+            return None, (jsonify({"success": False, "error": "forbidden"}), 403)
+        return prop, None
+    if owner_id != int(current_user.id):
+        return None, (jsonify({"success": False, "error": "forbidden"}), 403)
+    return prop, None
 
 
 def _strip_script_payloads(text: str) -> str:
@@ -751,19 +802,22 @@ def api_chat():
 
 
 @api_bp.route("/media/upload", methods=["POST"])
+@_api_permission_required("manage_properties")
 def api_media_upload():
-    """Upload property media via Cloudinary (when configured) or local disk."""
+    """Upload property media — admin-only with broker ownership scoping."""
     from config import ALLOWED_DOC, ALLOWED_IMAGE, ALLOWED_VIDEO
     from utils.helpers import save_upload
 
-    try:
-        property_id = int(request.form.get("property_id") or request.args.get("property_id") or 0)
-    except (TypeError, ValueError):
-        property_id = 0
+    property_id = safe_int(
+        request.form.get("property_id") or request.args.get("property_id"),
+        default=0,
+        minimum=0,
+    )
     if property_id < 1:
         return jsonify({"success": False, "error": "property_id required"}), 400
-    if not prop_model.get_by_id(property_id):
-        return jsonify({"success": False, "error": "Property not found"}), 404
+    prop, denied = _ensure_api_property_owner(prop_model.get_by_id(property_id))
+    if denied:
+        return denied
 
     media_type = (request.form.get("media_type") or "images").strip().lower()
     allowed_map = {

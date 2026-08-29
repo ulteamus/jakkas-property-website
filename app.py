@@ -10,6 +10,7 @@ import uuid
 from config import (
     Config,
     UPLOAD_ROOT,
+    resolve_secret_key,
     COMPANY_NAME,
     COMPANY_OWNER,
     COMPANY_ADDRESS,
@@ -25,6 +26,7 @@ from models.admin import Admin
 
 
 def create_app():
+    resolve_secret_key()
     root = Path(__file__).resolve().parent
     api_root = root / "api"
     if (api_root / "templates").exists():

@@ -19,3 +19,5 @@ vercel-preview*.log
 scripts/_last_migration_report.json
 scripts/_last_verify_report.json
 .env*
+
+strix_runs/**/*.generated.txt

@@ -100,9 +100,32 @@ MARKER_ICONS = {
     "plot": "plot",
 }
 
+_DEV_SECRET_FALLBACK = "jakkash-dev-secret-change-me"
+
+
+def is_production_runtime() -> bool:
+    if os.getenv("VERCEL"):
+        return True
+    if os.getenv("ENV", "").strip().lower() == "production":
+        return True
+    return False
+
+
+def resolve_secret_key() -> str:
+    """Return Flask secret key; fail closed in production when unset or default."""
+    key = (os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY") or "").strip()
+    if not key or key == _DEV_SECRET_FALLBACK:
+        if is_production_runtime():
+            raise RuntimeError(
+                "SECRET_KEY or FLASK_SECRET_KEY must be set in production "
+                "(Vercel/ENV=production). The dev fallback secret is not allowed."
+            )
+        return _DEV_SECRET_FALLBACK
+    return key
+
 
 class Config:
-    SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "jakkash-dev-secret-change-me")
+    SECRET_KEY = resolve_secret_key()
     DEBUG = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))
@@ -126,5 +149,11 @@ class Config:
     WTF_CSRF_ENABLED = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = is_production_runtime() or os.getenv("HTTPS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     PERMANENT_SESSION_LIFETIME = 86400 * 7
     USE_SQLITE = os.getenv("USE_SQLITE", "0").lower()
