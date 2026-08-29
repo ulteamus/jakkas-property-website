@@ -14,9 +14,22 @@ from services import recommendation, price_prediction, whatsapp as wa_service
 from services import india_property_predictor
 from services.lead_scoring import increment_lead_signal
 from utils.helpers import format_inr
+from utils.rate_limit import rate_limit
+from utils.safe_cast import safe_float, safe_int, safe_str
 from config import COMPANY_ADDRESS, COMPANY_NAME, COMPANY_PHONE, COMPANY_WHATSAPP
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+
+
+def _strip_script_payloads(text: str) -> str:
+    """Neutralize common XSS script injections before persistence (backend only)."""
+    import re
+
+    cleaned = safe_str(text, max_len=4000)
+    cleaned = re.sub(r"(?is)<\s*script[^>]*>.*?<\s*/\s*script\s*>", "", cleaned)
+    cleaned = re.sub(r"(?i)javascript\s*:", "", cleaned)
+    cleaned = re.sub(r"(?i)\bon\w+\s*=", "", cleaned)
+    return cleaned
 
 
 def _serialize_property(p, media=None, public=True):
@@ -43,20 +56,27 @@ def _serialize_property(p, media=None, public=True):
             for v in media.get("videos", [])
         ]
     return {
-        "id": p["id"], "property_name": p["property_name"], "slug": p.get("slug"),
-        "property_type": p["property_type"], "area_name": p["area_name"],
-        "price": float(p["price"]), "bhk": p["bhk"], "sq_ft": float(p["sq_ft"]),
-        "description": p.get("description"), "amenities": p.get("amenities") or [],
-        "latitude": float(p["latitude"]) if p.get("latitude") is not None else None,
-        "longitude": float(p["longitude"]) if p.get("longitude") is not None else None,
-        "status": p["status"], "is_featured": bool(p.get("is_featured")),
+        "id": p.get("id"),
+        "slug": p.get("slug"),
+        "property_name": p.get("property_name"),
+        "property_type": p.get("property_type"),
+        "area_name": p.get("area_name"),
+        "address": p.get("address"),
+        "price": safe_float(p.get("price")),
+        "bhk": safe_int(p.get("bhk")),
+        "sq_ft": safe_float(p.get("sq_ft")),
+        "description": p.get("description"),
+        "amenities": p.get("amenities") or [],
+        "latitude": safe_float(p["latitude"]) if p.get("latitude") is not None else None,
+        "longitude": safe_float(p["longitude"]) if p.get("longitude") is not None else None,
+        "status": p.get("status"),
+        "is_featured": bool(p.get("is_featured")),
         "primary_image": p.get("primary_image"),
         "primary_image_url": p.get("primary_image_url") or prop_model.public_image_url(p.get("primary_image")),
-        "view_count": p.get("view_count", 0),
+        "view_count": safe_int(p.get("view_count")),
         "listing_type": p.get("listing_type"),
         "listing_intent": p.get("listing_intent", "buy"),
         "display_type": p.get("display_type"),
-        "address": p.get("address"),
         "images": images,
         "videos": videos,
     }
@@ -195,55 +215,81 @@ def _match_percentage(prop, prefs):
 
 @api_bp.route("/properties")
 def api_properties():
-    keyword = (request.args.get("q") or "").strip()
-    property_id = request.args.get("property_id", type=int)
-    if property_id is not None and property_id <= 0:
-        property_id = None
-    if property_id is None and keyword.isdigit():
-        property_id = int(keyword)
-        keyword = ""
-
-    listing_intent = (request.args.get("listing_intent") or "").strip().lower()
-    if listing_intent == "sell":
-        listing_intent = "buy"
-
-    limit = request.args.get("limit", type=int) or 100
-    limit = min(limit, 120)
-    props = prop_model.search(
-        area=request.args.get("area"),
-        location=request.args.get("location"),
-        city=request.args.get("city"),
-        property_type=request.args.get("type"),
-        min_price=request.args.get("min_price", type=float),
-        max_price=request.args.get("max_price", type=float),
-        min_sq_ft=request.args.get("min_sq_ft", type=float),
-        max_sq_ft=request.args.get("max_sq_ft", type=float),
-        bhk=request.args.get("bhk", type=int),
-        status=request.args.get("status", "available"),
-        property_id=property_id,
-        keyword=keyword,
-        listing_intent=listing_intent or None,
-        sort=request.args.get("sort", "newest"),
-        limit=limit,
-    )
     try:
-        analytics_model.record_search(
-            area=request.args.get("area"), property_type=request.args.get("type"),
-            min_budget=request.args.get("min_price", type=float),
-            max_budget=request.args.get("max_price", type=float),
-            bhk=request.args.get("bhk", type=int), session_id=session.get("session_id"),
+        keyword = safe_str(request.args.get("q"), max_len=200)
+        property_id = safe_int(request.args.get("property_id"), default=0, minimum=0) or None
+        if property_id is None and keyword.isdigit():
+            property_id = safe_int(keyword, default=0, minimum=1) or None
+            keyword = ""
+
+        listing_intent = safe_str(request.args.get("listing_intent"), max_len=20).lower()
+        if listing_intent == "sell":
+            listing_intent = "buy"
+
+        limit = safe_int(request.args.get("limit"), default=100, minimum=1, maximum=120)
+        props = prop_model.search(
+            area=safe_str(request.args.get("area"), max_len=120) or None,
+            location=safe_str(request.args.get("location"), max_len=120) or None,
+            city=safe_str(request.args.get("city"), max_len=120) or None,
+            property_type=safe_str(request.args.get("type"), max_len=80) or None,
+            min_price=(
+                safe_float(request.args.get("min_price"), default=0.0, minimum=0.0, maximum=1e12)
+                if request.args.get("min_price") not in (None, "")
+                else None
+            ),
+            max_price=(
+                safe_float(request.args.get("max_price"), default=0.0, minimum=0.0, maximum=1e12)
+                if request.args.get("max_price") not in (None, "")
+                else None
+            ),
+            min_sq_ft=(
+                safe_float(request.args.get("min_sq_ft"), default=0.0, minimum=0.0, maximum=1e8)
+                if request.args.get("min_sq_ft") not in (None, "")
+                else None
+            ),
+            max_sq_ft=(
+                safe_float(request.args.get("max_sq_ft"), default=0.0, minimum=0.0, maximum=1e8)
+                if request.args.get("max_sq_ft") not in (None, "")
+                else None
+            ),
+            bhk=safe_int(request.args.get("bhk"), default=0, minimum=0) or None,
+            status=safe_str(request.args.get("status"), "available", max_len=40),
+            property_id=property_id,
+            keyword=keyword,
+            listing_intent=listing_intent or None,
+            sort=safe_str(request.args.get("sort"), "newest", max_len=40),
+            limit=limit,
         )
+        # Coerce sentinel -1 from missing float args back to None
+        # (search already received None when arg absent)
+        try:
+            analytics_model.record_search(
+                area=request.args.get("area"),
+                property_type=request.args.get("type"),
+                min_budget=request.args.get("min_price"),
+                max_budget=request.args.get("max_price"),
+                bhk=request.args.get("bhk"),
+                session_id=session.get("session_id"),
+            )
+        except Exception:
+            pass
+        return jsonify({"success": True, "properties": _serialize_properties(props), "count": len(props)})
     except Exception:
-        pass
-    return jsonify({"success": True, "properties": _serialize_properties(props)})
+        return jsonify({"success": False, "error": "Unable to list properties", "properties": [], "count": 0}), 503
 
 
 @api_bp.route("/properties/map")
 def api_map():
-    markers = prop_model.map_markers()
-    for m in markers:
-        m["price_fmt"] = format_inr(m["price"])
-    return jsonify({"success": True, "markers": markers})
+    try:
+        markers = prop_model.map_markers()
+        for m in markers:
+            m["price_fmt"] = format_inr(m.get("price"))
+            m["price"] = safe_float(m.get("price"))
+            m["latitude"] = safe_float(m.get("latitude")) if m.get("latitude") is not None else None
+            m["longitude"] = safe_float(m.get("longitude")) if m.get("longitude") is not None else None
+        return jsonify({"success": True, "markers": markers})
+    except Exception:
+        return jsonify({"success": False, "error": "Unable to load map markers", "markers": []}), 503
 
 
 @api_bp.route("/properties/<int:pid>/similar")
@@ -253,13 +299,19 @@ def api_similar(pid):
 
 @api_bp.route("/properties/nearby")
 def api_properties_nearby():
-    lat = request.args.get("lat", type=float)
-    lng = request.args.get("lng", type=float)
-    if lat is None or lng is None:
+    if request.args.get("lat") in (None, "") or request.args.get("lng") in (None, ""):
         return jsonify({"success": False, "error": "Latitude and longitude are required"}), 400
-    radius_km = request.args.get("radius_km", default=10.0, type=float)
-    limit = min(request.args.get("limit", default=8, type=int), 20)
-    rows = prop_model.nearby_properties(lat, lng, radius_km=radius_km, limit=limit)
+    lat = safe_float(request.args.get("lat"), default=0.0)
+    lng = safe_float(request.args.get("lng"), default=0.0)
+    # Reject absurd coordinates from overflow payloads
+    if abs(lat) > 90 or abs(lng) > 180:
+        return jsonify({"success": False, "error": "Invalid coordinates"}), 400
+    radius_km = safe_float(request.args.get("radius_km"), default=10.0, minimum=0.1, maximum=100.0)
+    limit = safe_int(request.args.get("limit"), default=8, minimum=1, maximum=20)
+    try:
+        rows = prop_model.nearby_properties(lat, lng, radius_km=radius_km, limit=limit)
+    except Exception:
+        return jsonify({"success": False, "error": "Unable to search nearby", "properties": []}), 503
     media_map = prop_model.get_media_bulk([row["id"] for row in rows])
     serialized = []
     for row in rows:
@@ -320,22 +372,37 @@ def api_smart_search():
 
 
 @api_bp.route("/inquiry", methods=["POST"])
+@rate_limit("api_inquiry", limit=30, window=60)
 def api_inquiry():
-    data = request.get_json() or request.form
-    required = ["name", "mobile"]
-    if not all(data.get(k) for k in required):
+    data = request.get_json(silent=True) or request.form or {}
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "error": "Invalid payload"}), 400
+    name = _strip_script_payloads(data.get("name"))
+    mobile = safe_str(data.get("mobile"), max_len=20)
+    if not name or not mobile:
         return jsonify({"success": False, "error": "Name and mobile required"}), 400
-    payload = dict(data)
+    # Reject obvious SQL metacharacter-only mobiles / garbage
+    if not any(ch.isdigit() for ch in mobile):
+        return jsonify({"success": False, "error": "Invalid mobile"}), 400
+    payload = {k: data.get(k) for k in data.keys()}
+    payload["name"] = name
+    payload["mobile"] = mobile
+    payload["email"] = _strip_script_payloads(data.get("email") or "")
+    payload["message"] = _strip_script_payloads(data.get("message") or "")
+    payload["property_id"] = safe_int(data.get("property_id"), default=0, minimum=0) or None
     if not payload.get("inquiry_type"):
-        intent = (payload.get("intent") or "").strip().lower()
+        intent = safe_str(payload.get("intent"), max_len=40).lower()
         if intent in {"site_visit", "visit"}:
             payload["inquiry_type"] = "site_visit"
         elif payload.get("property_id"):
             payload["inquiry_type"] = "property"
         else:
             payload["inquiry_type"] = "general"
-    iid = inquiry_model.create(payload)
-    lead_model.create_from_inquiry(payload, inquiry_id=iid)
+    try:
+        iid = inquiry_model.create(payload)
+        lead_model.create_from_inquiry(payload, inquiry_id=iid)
+    except Exception:
+        return jsonify({"success": False, "error": "Unable to save inquiry"}), 503
     return jsonify({"success": True, "message": "Inquiry submitted. We will contact you soon."})
 
 

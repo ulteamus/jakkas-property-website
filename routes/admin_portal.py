@@ -219,16 +219,26 @@ def _build_mock_clause(columns):
 
 
 def _count_with_clause(table_name, clause, params):
+    from utils.sql_safe import safe_table
+
+    table = safe_table(table_name)
+    if not table:
+        return 0
     try:
-        row = query_one(f"SELECT COUNT(*) AS c FROM {table_name} WHERE {clause}", tuple(params))
+        row = query_one(f"SELECT COUNT(*) AS c FROM {table} WHERE {clause}", tuple(params))
         return int((row or {}).get("c") or 0)
     except Exception:
         return 0
 
 
 def _delete_with_clause(table_name, clause, params):
+    from utils.sql_safe import safe_table
+
+    table = safe_table(table_name)
+    if not table:
+        return
     try:
-        execute(f"DELETE FROM {table_name} WHERE {clause}", tuple(params))
+        execute(f"DELETE FROM {table} WHERE {clause}", tuple(params))
     except Exception:
         return
 

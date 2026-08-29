@@ -1,0 +1,84 @@
+{
+  "final_pass": true,
+  "patches_applied": [
+    "utils/safe_cast.py",
+    "utils/rate_limit.py",
+    "utils/sql_safe.py",
+    "database/supabase_client.py pool rollback",
+    "routes/api.py inquiry + properties hardening",
+    "routes/auth.py login rate-limit",
+    "routes/admin_portal.py table allowlist"
+  ],
+  "iterations": [
+    {
+      "iteration": 1,
+      "total": 81,
+      "failures": 0,
+      "error_rate": 0.0,
+      "elapsed_s": 2.245,
+      "workers": 56,
+      "latency_ms": {
+        "avg": 836.06,
+        "p95": 2083.33,
+        "p99": 2142.62,
+        "max": 2165.27
+      },
+      "failure_samples": [],
+      "pass": true
+    }
+  ],
+  "strix_findings": {
+    "tool": "strix-agent + static audit",
+    "note": "Interactive Strix agent needs LLM credentials; findings below from static/code audit + stress harness.",
+    "findings": [
+      {
+        "id": "SQL-DYN-TABLE",
+        "severity": "medium",
+        "title": "Dynamic table name interpolation in admin mock cleanup",
+        "file": "routes/admin_portal.py",
+        "status": "fixed",
+        "fix": "utils.sql_safe.safe_table allowlist"
+      },
+      {
+        "id": "RATE-LOGIN",
+        "severity": "medium",
+        "title": "Admin login lacked brute-force rate limiting",
+        "file": "routes/auth.py",
+        "status": "fixed",
+        "fix": "utils.rate_limit on POST /admin/login"
+      },
+      {
+        "id": "RATE-INQUIRY",
+        "severity": "medium",
+        "title": "Public inquiry endpoint floodable without limits",
+        "file": "routes/api.py",
+        "status": "fixed",
+        "fix": "rate_limit + payload sanitization"
+      },
+      {
+        "id": "TYPE-CAST",
+        "severity": "low",
+        "title": "Bare int()/float() on query params can crash handlers",
+        "file": "routes/api.py",
+        "status": "fixed",
+        "fix": "utils.safe_cast guards"
+      },
+      {
+        "id": "PG-POOL",
+        "severity": "medium",
+        "title": "Pool exhaustion marked pool permanently failed; zombie txs",
+        "file": "database/supabase_client.py",
+        "status": "fixed",
+        "fix": "retry on exhaustion + rollback before putconn"
+      },
+      {
+        "id": "XSS-STORE",
+        "severity": "low",
+        "title": "Script tags accepted in inquiry name/message",
+        "file": "routes/api.py",
+        "status": "fixed",
+        "fix": "_strip_script_payloads before persist"
+      }
+    ]
+  }
+}

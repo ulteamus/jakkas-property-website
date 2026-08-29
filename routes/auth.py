@@ -4,6 +4,8 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from flask_login import current_user, login_required, login_user, logout_user
 
 from models.admin import Admin
+from utils.rate_limit import rate_limit
+from utils.safe_cast import safe_str
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -20,14 +22,17 @@ def _safe_next_url(value):
 
 
 @auth_bp.route("/admin/login", methods=["GET", "POST"])
+@rate_limit("admin_login", limit=12, window=60, json_response=False)
 def admin_login():
     if current_user.is_authenticated:
         return redirect(url_for("admin.dashboard"))
 
     next_url = _safe_next_url(request.args.get("next") or request.form.get("next"))
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
+        username = safe_str(request.form.get("username"), max_len=80)
+        password = request.form.get("password") or ""
+        if len(password) > 256:
+            password = password[:256]
         try:
             admin = Admin.get_by_username(username, include_inactive=True)
         except Exception:

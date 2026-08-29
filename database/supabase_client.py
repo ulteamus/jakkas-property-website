@@ -261,28 +261,81 @@ def _get_pg_pool():
 
 def get_pg_connection():
     """Borrow a connection from the pool (caller must putconn)."""
-    try:
-        return _get_pg_pool().getconn()
-    except DatabaseUnavailableError:
-        raise
-    except Exception as exc:
-        global _pg_pool_failed, _pg_pool_error
-        _pg_pool_failed = True
-        _pg_pool_error = str(exc)
-        logger.error("Postgres getconn failed: %s", exc)
-        raise DatabaseUnavailableError(f"PostgreSQL connection failed: {exc}") from exc
+    import time
+
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            pool = _get_pg_pool()
+            conn = pool.getconn()
+            if getattr(conn, "closed", 0):
+                try:
+                    pool.putconn(conn, close=True)
+                except Exception:
+                    pass
+                continue
+            return conn
+        except DatabaseUnavailableError:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            # Pool exhaustion is transient — do not permanently kill the pool
+            msg = str(exc).lower()
+            if "exhausted" in msg or "connection pool" in msg:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            logger.error("Postgres getconn failed: %s", exc)
+            raise DatabaseUnavailableError(f"PostgreSQL connection failed: {exc}") from exc
+    raise DatabaseUnavailableError(
+        f"PostgreSQL pool exhausted after retries: {last_exc}"
+    )
 
 
 def put_pg_connection(conn) -> None:
     if conn is None:
         return
     try:
+        # Roll back any abandoned transaction before returning to the pool
+        try:
+            if getattr(conn, "status", None) is not None:
+                conn.rollback()
+        except Exception:
+            try:
+                _get_pg_pool().putconn(conn, close=True)
+                return
+            except Exception:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                return
         _get_pg_pool().putconn(conn)
     except Exception:
         try:
             conn.close()
         except Exception:
             pass
+
+
+def _pg_retry(op_name: str, fn):
+    """Retry once on deadlock / serialization failure, always rollback on error."""
+    import time
+
+    last: Exception | None = None
+    for attempt in range(2):
+        try:
+            return fn()
+        except DatabaseUnavailableError:
+            raise
+        except Exception as exc:
+            last = exc
+            msg = str(exc).lower()
+            if attempt == 0 and ("deadlock" in msg or "serialization" in msg or "could not serialize" in msg):
+                time.sleep(0.05)
+                continue
+            logger.error("%s failed: %s", op_name, exc)
+            raise DatabaseUnavailableError(f"PostgreSQL {op_name} failed: {exc}") from exc
+    raise DatabaseUnavailableError(f"PostgreSQL {op_name} failed: {last}")
 
 
 def _row_to_dict(cursor, row) -> Optional[dict]:

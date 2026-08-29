@@ -152,8 +152,13 @@ def get_connection():
         if "db_conn" not in g or g.get("db_backend") != "sqlite":
             from database.sqlite_init import init_db, DB_PATH
             init_db()
-            conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+            conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
             conn.row_factory = sqlite3.Row
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=30000")
+            except Exception:
+                pass
             g.db_conn = conn
             g.db_backend = "sqlite"
         return g.db_conn
@@ -172,8 +177,13 @@ def get_connection():
             _using_sqlite = True
             from database.sqlite_init import init_db, DB_PATH
             init_db()
-            conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+            conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
             conn.row_factory = sqlite3.Row
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=30000")
+            except Exception:
+                pass
             g.db_conn = conn
             g.db_backend = "sqlite"
     return g.db_conn
@@ -255,18 +265,31 @@ def execute(sql, params=None):
                 _set_last_db_error(str(exc))
                 raise DatabaseUnavailableError(str(exc)) from exc
     sql = _adapt_sql(sql)
-    conn = get_connection()
-    if use_sqlite() or g.get("db_backend") == "sqlite":
-        cur = conn.cursor()
-        cur.execute(sql, params or ())
-        conn.commit()
-        return cur.lastrowid
-    cursor = conn.cursor()
-    cursor.execute(sql, params or ())
-    conn.commit()
-    last_id = cursor.lastrowid
-    cursor.close()
-    return last_id
+    last_exc = None
+    for attempt in range(4):
+        try:
+            conn = get_connection()
+            if use_sqlite() or g.get("db_backend") == "sqlite":
+                cur = conn.cursor()
+                cur.execute(sql, params or ())
+                conn.commit()
+                return cur.lastrowid
+            cursor = conn.cursor()
+            cursor.execute(sql, params or ())
+            conn.commit()
+            last_id = cursor.lastrowid
+            cursor.close()
+            return last_id
+        except Exception as exc:
+            last_exc = exc
+            msg = str(exc).lower()
+            if "locked" in msg or "busy" in msg:
+                import time
+
+                time.sleep(0.02 * (attempt + 1))
+                continue
+            raise
+    raise last_exc
 
 
 def execute_many(sql, params_list):
