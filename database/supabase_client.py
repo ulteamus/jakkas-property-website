@@ -21,8 +21,15 @@ _client_lock = threading.Lock()
 _supabase_client = None
 _pg_pool = None
 _pg_lock = threading.Lock()
+_pg_pool_failed = False
+_pg_pool_error: Optional[str] = None
+_loopback_warned = False
 
 DEFAULT_STORAGE_BUCKET = "property-media"
+
+
+class DatabaseUnavailableError(RuntimeError):
+    """Raised when Postgres cannot be reached; callers should degrade gracefully."""
 
 
 def _env(*names: str, default: str = "") -> str:
@@ -63,6 +70,14 @@ def api_configured() -> bool:
     return bool(supabase_url() and supabase_key())
 
 
+def _is_loopback_db_url(url: str) -> bool:
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        return False
+    return host in {"127.0.0.1", "localhost", "::1"}
+
+
 def postgres_configured() -> bool:
     url = supabase_db_url()
     if not url:
@@ -73,7 +88,22 @@ def postgres_configured() -> bool:
         return False
     if _env("USE_SQLITE", default="0").lower() in {"1", "true", "yes", "on"}:
         return False
-    return url.startswith("postgres")
+    if not url.startswith("postgres"):
+        return False
+    # Vercel cannot reach local Docker Supabase — refuse loopback DSNs
+    if os.getenv("VERCEL") and _is_loopback_db_url(url):
+        global _loopback_warned
+        if not _loopback_warned:
+            _loopback_warned = True
+            logger.warning(
+                "Ignoring loopback SUPABASE_DB_URL on Vercel (%s). "
+                "Set a cloud Postgres URL or USE_SQLITE=1.",
+                mask_db_url(url),
+            )
+        return False
+    if _pg_pool_failed:
+        return False
+    return True
 
 
 def get_supabase_client():
@@ -97,7 +127,7 @@ def get_supabase_client():
 
 def reset_clients() -> None:
     """Test helper — clear cached client/pool."""
-    global _supabase_client, _pg_pool
+    global _supabase_client, _pg_pool, _pg_pool_failed, _pg_pool_error, _loopback_warned
     with _client_lock:
         _supabase_client = None
     with _pg_lock:
@@ -107,6 +137,13 @@ def reset_clients() -> None:
             except Exception:
                 pass
         _pg_pool = None
+        _pg_pool_failed = False
+        _pg_pool_error = None
+        _loopback_warned = False
+
+
+def last_pg_error() -> Optional[str]:
+    return _pg_pool_error
 
 
 def public_storage_url(object_path: str, bucket: Optional[str] = None) -> str:
@@ -177,25 +214,63 @@ def adapt_sql_postgres(sql: str) -> str:
 
 
 def _get_pg_pool():
-    global _pg_pool
+    global _pg_pool, _pg_pool_failed, _pg_pool_error
+    if _pg_pool_failed:
+        raise DatabaseUnavailableError(
+            _pg_pool_error or "PostgreSQL pool previously failed to initialize."
+        )
     if _pg_pool is not None:
         return _pg_pool
     with _pg_lock:
+        if _pg_pool_failed:
+            raise DatabaseUnavailableError(
+                _pg_pool_error or "PostgreSQL pool previously failed to initialize."
+            )
         if _pg_pool is not None:
             return _pg_pool
+        import psycopg2
         import psycopg2.pool
 
         url = supabase_db_url()
         if not url:
-            raise RuntimeError("SUPABASE_DB_URL is not configured.")
-        # Prefer connection string; pool size kept small for Flask sync workers
-        _pg_pool = psycopg2.pool.ThreadedConnectionPool(1, 8, dsn=url)
-        return _pg_pool
+            raise DatabaseUnavailableError("SUPABASE_DB_URL is not configured.")
+        if os.getenv("VERCEL") and _is_loopback_db_url(url):
+            msg = (
+                "SUPABASE_DB_URL points to localhost which is unreachable from Vercel. "
+                "Configure a cloud Supabase Postgres URL."
+            )
+            _pg_pool_failed = True
+            _pg_pool_error = msg
+            raise DatabaseUnavailableError(msg)
+        try:
+            # Prefer connection string; pool size kept small for Flask sync workers
+            _pg_pool = psycopg2.pool.ThreadedConnectionPool(1, 8, dsn=url)
+            return _pg_pool
+        except Exception as exc:
+            _pg_pool_failed = True
+            _pg_pool_error = str(exc)
+            logger.error(
+                "Failed to create Postgres pool for %s: %s",
+                mask_db_url(url),
+                exc,
+            )
+            raise DatabaseUnavailableError(
+                f"Cannot connect to PostgreSQL ({mask_db_url(url)}): {exc}"
+            ) from exc
 
 
 def get_pg_connection():
     """Borrow a connection from the pool (caller must putconn)."""
-    return _get_pg_pool().getconn()
+    try:
+        return _get_pg_pool().getconn()
+    except DatabaseUnavailableError:
+        raise
+    except Exception as exc:
+        global _pg_pool_failed, _pg_pool_error
+        _pg_pool_failed = True
+        _pg_pool_error = str(exc)
+        logger.error("Postgres getconn failed: %s", exc)
+        raise DatabaseUnavailableError(f"PostgreSQL connection failed: {exc}") from exc
 
 
 def put_pg_connection(conn) -> None:
@@ -227,6 +302,11 @@ def pg_query_all(sql: str, params=None) -> list[dict]:
                 return []
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, row)) for row in cur.fetchall()]
+    except DatabaseUnavailableError:
+        raise
+    except Exception as exc:
+        logger.error("pg_query_all failed: %s", exc)
+        raise DatabaseUnavailableError(f"PostgreSQL query failed: {exc}") from exc
     finally:
         put_pg_connection(conn)
 
@@ -259,9 +339,15 @@ def pg_execute(sql: str, params=None) -> Any:
                 except Exception:
                     pass
                 return None
-    except Exception:
-        conn.rollback()
+    except DatabaseUnavailableError:
         raise
+    except Exception as exc:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        logger.error("pg_execute failed: %s", exc)
+        raise DatabaseUnavailableError(f"PostgreSQL execute failed: {exc}") from exc
     finally:
         put_pg_connection(conn)
 

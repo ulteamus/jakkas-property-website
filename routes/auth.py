@@ -28,12 +28,32 @@ def admin_login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        admin = Admin.get_by_username(username, include_inactive=True)
+        try:
+            admin = Admin.get_by_username(username, include_inactive=True)
+        except Exception:
+            flash(
+                "Database is unavailable — cannot verify credentials. "
+                "Check SUPABASE_DB_URL (cloud host, not 127.0.0.1) or start local Supabase.",
+                "danger",
+            )
+            return render_template("admin/login.html")
         if admin and admin.is_active and admin.check_password(password):
             login_user(admin)
             flash("Welcome back!", "success")
             return redirect(next_url or url_for("admin.dashboard"))
         flash("Invalid credentials.", "danger")
+    else:
+        try:
+            from database.db import test_connection, last_db_error
+
+            if not test_connection():
+                detail = last_db_error() or "connection check failed"
+                flash(
+                    f"DB diagnostic: {detail}. Login may fail until Postgres/SQLite is reachable.",
+                    "warning",
+                )
+        except Exception as exc:
+            flash(f"DB diagnostic: {exc}", "warning")
     return render_template("admin/login.html")
 
 

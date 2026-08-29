@@ -4,7 +4,12 @@ import sqlite3
 from flask import g, current_app
 
 _using_sqlite = None
+_last_db_error = None
 logger = logging.getLogger(__name__)
+
+
+class DatabaseUnavailableError(RuntimeError):
+    """Re-exported / local alias for graceful route handling."""
 
 
 def _mysql_connector():
@@ -13,6 +18,15 @@ def _mysql_connector():
     from mysql.connector import Error as MySQLError
 
     return mysql.connector, MySQLError
+
+
+def last_db_error():
+    return _last_db_error
+
+
+def _set_last_db_error(msg):
+    global _last_db_error
+    _last_db_error = msg
 
 
 def use_postgres():
@@ -37,12 +51,23 @@ def use_sqlite():
     if _using_sqlite is not None:
         return _using_sqlite
     env = os.getenv("USE_SQLITE", "0").strip().lower()
+    # Vercel with invalid/placeholder USE_SQLITE from env pull → treat as auto
+    if env in {"[sensitive]", "sensitive"}:
+        env = "auto" if os.getenv("VERCEL") else "0"
     if env in ("1", "true", "yes"):
         _using_sqlite = True
         return True
     if os.getenv("VERCEL") and env in ("auto", ""):
         _using_sqlite = True
         return True
+    # On Vercel, unreachable cloud Postgres config → SQLite so pages still render
+    if os.getenv("VERCEL") and env in ("0", "false", "no"):
+        if not use_postgres():
+            logger.warning(
+                "Postgres unavailable on Vercel; falling back to ephemeral SQLite."
+            )
+            _using_sqlite = True
+            return True
     if env in ("0", "false", "no"):
         _using_sqlite = False
         return False
@@ -90,17 +115,41 @@ def _adapt_sql(sql):
     return adapt_sql(sql)
 
 
+def _force_sqlite_fallback(reason: str):
+    global _using_sqlite
+    _using_sqlite = True
+    _set_last_db_error(reason)
+    logger.warning("Falling back to SQLite: %s", reason)
+    if "db_conn" in g:
+        try:
+            close_connection()
+        except Exception:
+            g.pop("db_conn", None)
+            g.pop("db_backend", None)
+
+
 def get_connection():
     if use_postgres():
         # Pool borrow — must be returned via close_connection / putconn
         if "db_conn" not in g or g.get("db_backend") != "postgres":
-            from database.supabase_client import get_pg_connection
+            from database.supabase_client import (
+                DatabaseUnavailableError as PgUnavailable,
+                get_pg_connection,
+            )
 
-            g.db_conn = get_pg_connection()
-            g.db_backend = "postgres"
-        return g.db_conn
+            try:
+                g.db_conn = get_pg_connection()
+                g.db_backend = "postgres"
+            except PgUnavailable as exc:
+                if os.getenv("VERCEL"):
+                    _force_sqlite_fallback(str(exc))
+                else:
+                    _set_last_db_error(str(exc))
+                    raise DatabaseUnavailableError(str(exc)) from exc
+        if g.get("db_backend") == "postgres":
+            return g.db_conn
     if use_sqlite():
-        if "db_conn" not in g:
+        if "db_conn" not in g or g.get("db_backend") != "sqlite":
             from database.sqlite_init import init_db, DB_PATH
             init_db()
             conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
@@ -114,7 +163,7 @@ def get_connection():
             g.db_conn = mysql.connect(**_mysql_config())
             g.db_backend = "mysql"
         except Exception as exc:
-            if os.getenv("FLASK_ENV", "").strip().lower() == "production":
+            if os.getenv("FLASK_ENV", "").strip().lower() == "production" and not os.getenv("VERCEL"):
                 raise
             global _using_sqlite
             logger.warning(
@@ -156,12 +205,25 @@ def _rows_to_dict(rows):
 
 def query_all(sql, params=None):
     if use_postgres():
-        from database.supabase_client import pg_query_all
+        from database.supabase_client import (
+            DatabaseUnavailableError as PgUnavailable,
+            pg_query_all,
+        )
 
-        return pg_query_all(sql, params)
+        try:
+            return pg_query_all(sql, params)
+        except PgUnavailable as exc:
+            if os.getenv("VERCEL"):
+                _force_sqlite_fallback(str(exc))
+            else:
+                _set_last_db_error(str(exc))
+                raise DatabaseUnavailableError(str(exc)) from exc
     sql = _adapt_sql(sql)
-    conn = get_connection()
-    if use_sqlite():
+    try:
+        conn = get_connection()
+    except DatabaseUnavailableError:
+        raise
+    if use_sqlite() or g.get("db_backend") == "sqlite":
         cur = conn.cursor()
         cur.execute(sql, params or ())
         return _rows_to_dict(cur.fetchall())
@@ -179,12 +241,22 @@ def query_one(sql, params=None):
 
 def execute(sql, params=None):
     if use_postgres():
-        from database.supabase_client import pg_execute
+        from database.supabase_client import (
+            DatabaseUnavailableError as PgUnavailable,
+            pg_execute,
+        )
 
-        return pg_execute(sql, params)
+        try:
+            return pg_execute(sql, params)
+        except PgUnavailable as exc:
+            if os.getenv("VERCEL"):
+                _force_sqlite_fallback(str(exc))
+            else:
+                _set_last_db_error(str(exc))
+                raise DatabaseUnavailableError(str(exc)) from exc
     sql = _adapt_sql(sql)
     conn = get_connection()
-    if use_sqlite():
+    if use_sqlite() or g.get("db_backend") == "sqlite":
         cur = conn.cursor()
         cur.execute(sql, params or ())
         conn.commit()
@@ -199,12 +271,22 @@ def execute(sql, params=None):
 
 def execute_many(sql, params_list):
     if use_postgres():
-        from database.supabase_client import pg_execute_many
+        from database.supabase_client import (
+            DatabaseUnavailableError as PgUnavailable,
+            pg_execute_many,
+        )
 
-        return pg_execute_many(sql, params_list)
+        try:
+            return pg_execute_many(sql, params_list)
+        except PgUnavailable as exc:
+            if os.getenv("VERCEL"):
+                _force_sqlite_fallback(str(exc))
+            else:
+                _set_last_db_error(str(exc))
+                raise DatabaseUnavailableError(str(exc)) from exc
     sql = _adapt_sql(sql)
     conn = get_connection()
-    if use_sqlite():
+    if use_sqlite() or g.get("db_backend") == "sqlite":
         cur = conn.cursor()
         cur.executemany(sql, params_list)
         conn.commit()
@@ -229,5 +311,6 @@ def test_connection():
         ok = conn.is_connected()
         conn.close()
         return ok
-    except Exception:
+    except Exception as exc:
+        _set_last_db_error(str(exc))
         return False
