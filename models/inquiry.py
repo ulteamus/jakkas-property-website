@@ -223,7 +223,9 @@ def delete(inquiry_id):
 
 def delete_many(inquiry_ids):
     _ensure_schema()
-    ids = [int(x) for x in (inquiry_ids or []) if str(x).isdigit() or isinstance(x, int)]
+    from utils.safe_cast import clamp_ids
+
+    ids = clamp_ids(inquiry_ids)
     if not ids:
         return 0
     placeholders = ",".join(["%s"] * len(ids))
