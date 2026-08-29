@@ -11,6 +11,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from config import COMPANY_NAME, COMPANY_PHONE_RAW
 from database import execute, query_all, query_one
 from database.db import skip_runtime_ddl, use_sqlite
+from database.schema import (
+    DEFAULT_BOOTSTRAP_ADMIN_EMAIL,
+    DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME,
+    DEFAULT_BOOTSTRAP_ADMIN_USERNAME,
+    bootstrap_password_hash,
+    resolve_bootstrap_admin_password,
+)
 from services.mobile_otp import send_mobile_otp_code
 
 ROLE_SUPER_ADMIN = "super_admin"
@@ -29,11 +36,7 @@ ROLE_KEYS = [
     ROLE_BROKER,
 ]
 
-DEFAULT_BOOTSTRAP_ADMIN_USERNAME = "sam"
 LEGACY_BOOTSTRAP_ADMIN_USERNAME = "admin"
-DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME = "Sam"
-DEFAULT_BOOTSTRAP_ADMIN_EMAIL = "Jakkashproperty@gmail.com"
-DEFAULT_BOOTSTRAP_ADMIN_PASSWORD = "jodika"
 
 PERMISSION_KEYS = [
     "manage_properties",
@@ -352,19 +355,9 @@ def _normalize_existing_roles_and_permissions():
 
 
 def _resolve_bootstrap_password(explicit_password=None):
-    if explicit_password and str(explicit_password).strip():
-        return str(explicit_password).strip()
-    env_password = (os.getenv("DEFAULT_ADMIN_PASSWORD") or "").strip()
-    if env_password:
-        return env_password
-    if os.getenv("FLASK_ENV", "").strip().lower() == "production":
-        raise RuntimeError(
-            "DEFAULT_ADMIN_PASSWORD must be configured before bootstrapping admin credentials."
-        )
-    print(
-        "[SECURITY] DEFAULT_ADMIN_PASSWORD not set; using local bootstrap default password."
+    return resolve_bootstrap_admin_password(
+        str(explicit_password).strip() if explicit_password else None
     )
-    return DEFAULT_BOOTSTRAP_ADMIN_PASSWORD
 
 
 class Admin(UserMixin):
@@ -924,7 +917,7 @@ class Admin(UserMixin):
                 (
                     DEFAULT_BOOTSTRAP_ADMIN_USERNAME,
                     DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME,
-                    generate_password_hash(_resolve_bootstrap_password(password)),
+                    bootstrap_password_hash(password),
                     legacy_admin["id"],
                 ),
             )
@@ -964,9 +957,15 @@ class Admin(UserMixin):
                     existing_admin["id"],
                 ),
             )
+            # Vercel ephemeral SQLite copies a seed DB whose password may not match admin123.
+            if os.getenv("VERCEL") and use_sqlite():
+                execute(
+                    "UPDATE admins SET password_hash=%s, is_active=1 WHERE id=%s",
+                    (bootstrap_password_hash(password), existing_admin["id"]),
+                )
             return
 
-        pw = generate_password_hash(_resolve_bootstrap_password(password))
+        pw = bootstrap_password_hash(password)
         execute(
             """INSERT INTO admins
                (username, email, password_hash, full_name, role, permissions_json, require_otp, mobile_otp_enabled, phone)

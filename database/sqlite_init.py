@@ -3,30 +3,13 @@ import os
 import shutil
 import sqlite3
 from pathlib import Path
-from werkzeug.security import generate_password_hash
+
+from database.schema import seed_default_admin_if_empty
 
 if os.getenv("VERCEL"):
     DB_PATH = Path("/tmp/jakkash.db")
 else:
     DB_PATH = Path(__file__).resolve().parent.parent / "data" / "jakkash.db"
-DEFAULT_BOOTSTRAP_ADMIN_USERNAME = "sam"
-DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME = "Sam"
-DEFAULT_BOOTSTRAP_ADMIN_EMAIL = "Jakkashproperty@gmail.com"
-DEFAULT_BOOTSTRAP_ADMIN_PASSWORD = "jodika"
-
-
-def _resolve_bootstrap_admin_password():
-    env_password = (os.getenv("DEFAULT_ADMIN_PASSWORD") or "").strip()
-    if env_password:
-        return env_password
-    if os.getenv("FLASK_ENV", "").strip().lower() == "production":
-        raise RuntimeError(
-            "DEFAULT_ADMIN_PASSWORD must be configured before bootstrapping admin credentials."
-        )
-    print(
-        "[SECURITY] DEFAULT_ADMIN_PASSWORD not set; using local bootstrap default password."
-    )
-    return DEFAULT_BOOTSTRAP_ADMIN_PASSWORD
 
 
 def _connect():
@@ -361,18 +344,7 @@ def init_db():
     if cur.execute("SELECT COUNT(*) FROM properties").fetchone()[0] == 0:
         _seed(cur)
 
-    if cur.execute("SELECT COUNT(*) FROM admins").fetchone()[0] == 0:
-        pw = generate_password_hash(_resolve_bootstrap_admin_password())
-        cur.execute(
-            "INSERT INTO admins (username, email, password_hash, full_name, role) VALUES (?,?,?,?,?)",
-            (
-                DEFAULT_BOOTSTRAP_ADMIN_USERNAME,
-                DEFAULT_BOOTSTRAP_ADMIN_EMAIL,
-                pw,
-                DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME,
-                "super_admin",
-            ),
-        )
+    seed_default_admin_if_empty(cur)
 
     conn.commit()
     conn.close()
