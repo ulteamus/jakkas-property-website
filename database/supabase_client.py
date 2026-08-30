@@ -106,6 +106,35 @@ def postgres_configured() -> bool:
     return True
 
 
+def _create_client_compat(url: str, key: str):
+    """
+    supabase-py 2.10 validates keys as JWTs only.
+    New platform keys (sb_secret_ / sb_publishable_) are valid HTTP API keys —
+    temporarily relax the JWT regex for those formats.
+    """
+    from supabase import create_client
+    from supabase._sync import client as sync_client
+
+    if not key.startswith(("sb_secret_", "sb_publishable_")):
+        return create_client(url, key)
+
+    jwt_pat = r"^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$"
+    _orig_match = sync_client.re.match
+
+    def _match_allow_sb(pattern, string, flags=0):
+        if pattern == jwt_pat and isinstance(string, str) and string.startswith(
+            ("sb_secret_", "sb_publishable_")
+        ):
+            return _orig_match(r".+", string)
+        return _orig_match(pattern, string, flags)
+
+    sync_client.re.match = _match_allow_sb  # type: ignore[method-assign]
+    try:
+        return create_client(url, key)
+    finally:
+        sync_client.re.match = _orig_match  # type: ignore[method-assign]
+
+
 def get_supabase_client():
     """Lazy singleton Supabase Python client. Raises if credentials missing."""
     global _supabase_client
@@ -119,9 +148,7 @@ def get_supabase_client():
                 "Supabase API credentials missing. Set SUPABASE_URL and "
                 "SUPABASE_KEY (or SUPABASE_SERVICE_KEY) in .env."
             )
-        from supabase import create_client
-
-        _supabase_client = create_client(supabase_url(), supabase_key())
+        _supabase_client = _create_client_compat(supabase_url(), supabase_key())
         return _supabase_client
 
 
@@ -243,8 +270,16 @@ def _get_pg_pool():
             _pg_pool_error = msg
             raise DatabaseUnavailableError(msg)
         try:
-            # Prefer connection string; pool size kept small for Flask sync workers
-            _pg_pool = psycopg2.pool.ThreadedConnectionPool(1, 8, dsn=url)
+            # Serverless-safe pool: 1–2 conns per worker, hard connect timeout.
+            # connect_timeout / options are passed through to psycopg2.connect().
+            max_conn = 2 if os.getenv("VERCEL") else 3
+            _pg_pool = psycopg2.pool.ThreadedConnectionPool(
+                1,
+                max_conn,
+                dsn=url,
+                connect_timeout=3,
+                options="-c statement_timeout=8000",
+            )
             return _pg_pool
         except Exception as exc:
             _pg_pool_failed = True
@@ -260,8 +295,27 @@ def _get_pg_pool():
 
 
 def get_pg_connection():
-    """Borrow a connection from the pool (caller must putconn)."""
+    """Borrow a connection from the pool (caller must putconn).
+
+    Within a Flask app/request context the same connection is reused for the
+    whole request so we avoid getconn/putconn/rollback on every query
+    (critical when Postgres is cross-region from the serverless worker).
+    """
     import time
+
+    try:
+        from flask import g, has_app_context
+
+        if has_app_context():
+            existing = g.get("db_conn")
+            if (
+                g.get("db_backend") == "postgres"
+                and existing is not None
+                and not getattr(existing, "closed", 1)
+            ):
+                return existing
+    except Exception:
+        pass
 
     last_exc: Exception | None = None
     for attempt in range(3):
@@ -274,6 +328,14 @@ def get_pg_connection():
                 except Exception:
                     pass
                 continue
+            try:
+                from flask import g, has_app_context
+
+                if has_app_context():
+                    g.db_conn = conn
+                    g.db_backend = "postgres"
+            except Exception:
+                pass
             return conn
         except DatabaseUnavailableError:
             raise
@@ -291,11 +353,11 @@ def get_pg_connection():
     )
 
 
-def put_pg_connection(conn) -> None:
+def _return_pg_to_pool(conn) -> None:
+    """Actually return a connection to the pool (rollback + putconn)."""
     if conn is None:
         return
     try:
-        # Roll back any abandoned transaction before returning to the pool
         try:
             if getattr(conn, "status", None) is not None:
                 conn.rollback()
@@ -315,6 +377,25 @@ def put_pg_connection(conn) -> None:
             conn.close()
         except Exception:
             pass
+
+
+def put_pg_connection(conn, force: bool = False) -> None:
+    """Return a connection to the pool.
+
+    During a Flask request, intermediate puts are no-ops so the request-scoped
+    connection stays open. Pass force=True from teardown to release it.
+    """
+    if conn is None:
+        return
+    if not force:
+        try:
+            from flask import g, has_app_context
+
+            if has_app_context() and g.get("db_conn") is conn:
+                return
+        except Exception:
+            pass
+    _return_pg_to_pool(conn)
 
 
 def _pg_retry(op_name: str, fn):
@@ -358,6 +439,10 @@ def pg_query_all(sql: str, params=None) -> list[dict]:
     except DatabaseUnavailableError:
         raise
     except Exception as exc:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         logger.error("pg_query_all failed: %s", exc)
         raise DatabaseUnavailableError(f"PostgreSQL query failed: {exc}") from exc
     finally:

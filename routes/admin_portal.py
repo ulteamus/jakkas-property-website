@@ -24,7 +24,6 @@ from models.admin import (
     Admin,
     role_options_for_ui,
 )
-from services import follow_up
 from utils.pdf_export import (
     build_simple_pdf,
     generate_leads_list_pdf,
@@ -281,10 +280,12 @@ def _flush_mock_rows():
 @admin_bp.route("/")
 @admin_required
 def dashboard():
-    follow_up.check_follow_ups()
+    # Side-effect only: mark stale leads. Do NOT fetch urgent list (return was unused).
+    try:
+        lead_model.mark_urgent_stale()
+    except Exception:
+        pass
     stats = analytics_model.dashboard_stats()
-    stats.update(lead_model.stats())
-    stats["conversion_rate"] = analytics_model.conversion_rate()
     stats["pending_submissions"] = submission_model.count_by_status(
         "pending", owner_admin_id=_owner_scope_admin_id()
     )
@@ -304,10 +305,17 @@ def dashboard():
 @permission_required("manage_properties")
 def properties():
     status = request.args.get("status") or None
+    try:
+        page = max(1, int(request.args.get("page") or 1))
+    except (TypeError, ValueError):
+        page = 1
+    limit = 20
+    offset = (page - 1) * limit
     props = prop_model.to_dict_list(
         prop_model.search(
             status=status or "available",
-            limit=500,
+            limit=limit,
+            offset=offset,
             all_statuses=(status is None),
             owner_admin_id=_owner_scope_admin_id(),
         ),
@@ -323,6 +331,9 @@ def properties():
         statuses=["available", "sold", "rented", "reserved"],
         selected_status=status or "all",
         submission_map=submission_map,
+        page=page,
+        page_size=limit,
+        has_more=len(props) >= limit,
     )
 
 
@@ -523,7 +534,7 @@ def inquiries():
     if selected_type not in {"all", "site_visit", "general", "property"}:
         selected_type = "all"
     rows = inquiry_model.get_all(
-        limit=500,
+        limit=20,
         start_date=start_date,
         end_date=end_date,
         status=selected_status or None,
@@ -1402,7 +1413,7 @@ def activity_logs_dashboard():
     start_date = _coerce_iso_date(request.args.get("start_date"))
     end_date = _coerce_iso_date(request.args.get("end_date"))
     logs = activity_model.list_logs(
-        limit=600,
+        limit=20,
         admin_id=request.args.get("admin_id", type=int),
         action_key=(request.args.get("action_key") or "").strip() or None,
         start_date=start_date,

@@ -90,10 +90,12 @@ def _vercel_cors(response):
         response.headers.setdefault("Access-Control-Allow-Origin", "*")
     response.headers.setdefault("Access-Control-Allow-Methods", _CORS_METHODS)
     response.headers.setdefault("Access-Control-Allow-Headers", _CORS_HEADERS)
-    # Soft diagnostic header when DB degraded
+    # Soft diagnostic header when DB degraded (must be single-line for HTTP)
     err = last_db_error()
     if err:
-        response.headers.setdefault("X-Jakkas-DB-Warning", err[:200])
+        safe = " ".join(str(err).splitlines()).strip()[:180]
+        if safe:
+            response.headers.setdefault("X-Jakkas-DB-Warning", safe)
     return response
 
 

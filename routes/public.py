@@ -56,19 +56,30 @@ FALLBACK_TESTIMONIALS = [
 
 @public_bp.before_request
 def track_visitor():
-    if request.endpoint and request.endpoint.startswith("static"):
+    if request.endpoint and (
+        request.endpoint.startswith("static")
+        or request.path.startswith("/static/")
+        or request.path.startswith("/uploads/")
+    ):
         return
     if "visitor_id" not in session:
         session["visitor_id"] = str(uuid.uuid4())
     if "session_id" not in session:
         session["session_id"] = str(uuid.uuid4())
+    # At most one visitor touch + one page_view event per browser session load
+    # (avoids SELECT+UPDATE+INSERT on every navigation — major TTFB cost to Tokyo PG).
     try:
-        analytics_model.record_visitor(
-            session["visitor_id"], session["session_id"],
-            user_agent=request.headers.get("User-Agent", "")[:300],
-        )
-        if request.endpoint:
-            analytics_model.record_event(session["visitor_id"], "page_view", meta={"path": request.path})
+        if not session.get("_visitor_tracked"):
+            analytics_model.record_visitor(
+                session["visitor_id"], session["session_id"],
+                user_agent=request.headers.get("User-Agent", "")[:300],
+            )
+            session["_visitor_tracked"] = True
+        if request.endpoint and not session.get("_pageview_logged"):
+            analytics_model.record_event(
+                session["visitor_id"], "page_view", meta={"path": request.path}
+            )
+            session["_pageview_logged"] = True
     except Exception:
         pass
 
@@ -78,10 +89,7 @@ def home():
     featured_properties = _attach_listing_media(prop_model.search(limit=9, sort="newest"))
     home_stats = {"properties": 0, "clients": 0, "years": 10}
     try:
-        from models import analytics as analytics_model
-        dashboard = analytics_model.dashboard_stats()
-        home_stats["properties"] = int(dashboard.get("total_properties") or 0)
-        home_stats["clients"] = int(dashboard.get("total_inquiries") or 0)
+        home_stats = analytics_model.home_kpi_counts()
     except Exception:
         pass
     # Public feed: approved testimonials only (is_active=1). Static FALLBACK only if empty.

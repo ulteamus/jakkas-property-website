@@ -102,9 +102,16 @@ def hot_leads(limit=10):
 
 
 def stats():
+    row = query_one(
+        """SELECT COUNT(*) AS total,
+                  SUM(CASE WHEN status='new' THEN 1 ELSE 0 END) AS new,
+                  SUM(CASE WHEN lead_tier='hot' THEN 1 ELSE 0 END) AS hot,
+                  SUM(CASE WHEN is_urgent=1 THEN 1 ELSE 0 END) AS urgent
+           FROM leads"""
+    ) or {}
     return {
-        "total": query_one("SELECT COUNT(*) AS c FROM leads")["c"],
-        "new": query_one("SELECT COUNT(*) AS c FROM leads WHERE status='new'")["c"],
-        "hot": query_one("SELECT COUNT(*) AS c FROM leads WHERE lead_tier='hot'")["c"],
-        "urgent": query_one("SELECT COUNT(*) AS c FROM leads WHERE is_urgent=1")["c"],
+        "total": int(row.get("total") or 0),
+        "new": int(row.get("new") or 0),
+        "hot": int(row.get("hot") or 0),
+        "urgent": int(row.get("urgent") or 0),
     }

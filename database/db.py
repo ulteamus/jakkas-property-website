@@ -197,7 +197,8 @@ def close_connection(_exc=None):
     if backend == "postgres":
         from database.supabase_client import put_pg_connection
 
-        put_pg_connection(conn)
+        # force=True: end of request — return the request-scoped conn to the pool
+        put_pg_connection(conn, force=True)
         return
     if use_sqlite() or backend == "sqlite":
         conn.close()

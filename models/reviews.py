@@ -101,6 +101,12 @@ def get_review(review_id):
     return query_one("SELECT * FROM testimonials WHERE id=%s", (review_id,))
 
 
+def _active_param(is_active) -> bool | int:
+    from database.db import use_postgres
+
+    return bool(is_active) if use_postgres() else (1 if is_active else 0)
+
+
 def create_review(name, location, text, rating=5, is_active=True):
     _ensure_tables()
     final_rating = max(1, min(5, int(rating or 5)))
@@ -112,7 +118,7 @@ def create_review(name, location, text, rating=5, is_active=True):
             (location or "Surat").strip()[:120],
             (text or "").strip(),
             final_rating,
-            1 if is_active else 0,
+            _active_param(is_active),
         ),
     )
 
@@ -143,7 +149,7 @@ def update_review(review_id, name, location, text, rating, is_active=None):
             (location or "Surat").strip()[:120],
             (text or "").strip(),
             final_rating,
-            1 if is_active else 0,
+            _active_param(is_active),
             review_id,
         ),
     )
@@ -158,7 +164,10 @@ def delete_review(review_id):
 
 def set_review_active(review_id, is_active):
     _ensure_tables()
-    execute("UPDATE testimonials SET is_active=%s WHERE id=%s", (1 if is_active else 0, review_id))
+    execute(
+        "UPDATE testimonials SET is_active=%s WHERE id=%s",
+        (_active_param(is_active), review_id),
+    )
 
 
 def create_comment(review_id, commenter_name, comment_text, commenter_email=None, is_active=True, admin_id=None):
@@ -172,7 +181,7 @@ def create_comment(review_id, commenter_name, comment_text, commenter_email=None
             (commenter_name or "Visitor").strip()[:140],
             (commenter_email or "").strip()[:180] or None,
             (comment_text or "").strip(),
-            1 if is_active else 0,
+            _active_param(is_active),
             admin_id,
         ),
     )

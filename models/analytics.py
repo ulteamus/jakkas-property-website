@@ -2,6 +2,34 @@ from database import execute, query_all, query_one
 
 
 def record_visitor(visitor_id, session_id, ip_hash=None, user_agent=None):
+    # Single round-trip upsert (Postgres + SQLite). Fallback to select/update on failure.
+    try:
+        from database.db import use_postgres, use_sqlite
+
+        if use_postgres():
+            execute(
+                """INSERT INTO visitors (visitor_id,session_id,ip_hash,user_agent,visit_count,last_visit)
+                   VALUES (%s,%s,%s,%s,1,NOW())
+                   ON CONFLICT (visitor_id) DO UPDATE SET
+                     last_visit=NOW(),
+                     visit_count=visitors.visit_count+1,
+                     session_id=EXCLUDED.session_id""",
+                (visitor_id, session_id, ip_hash, user_agent),
+            )
+            return
+        if use_sqlite():
+            execute(
+                """INSERT INTO visitors (visitor_id,session_id,ip_hash,user_agent,visit_count,last_visit)
+                   VALUES (%s,%s,%s,%s,1,CURRENT_TIMESTAMP)
+                   ON CONFLICT(visitor_id) DO UPDATE SET
+                     last_visit=CURRENT_TIMESTAMP,
+                     visit_count=visit_count+1,
+                     session_id=excluded.session_id""",
+                (visitor_id, session_id, ip_hash, user_agent),
+            )
+            return
+    except Exception:
+        pass
     existing = query_one("SELECT id, visit_count FROM visitors WHERE visitor_id=%s", (visitor_id,))
     if existing:
         execute(
@@ -47,24 +75,58 @@ def record_search(area=None, property_type=None, min_budget=None, max_budget=Non
 
 
 def dashboard_stats():
-    props = query_one(
-        """SELECT COUNT(*) AS total,
-                  SUM(CASE WHEN status='available' THEN 1 ELSE 0 END) AS available,
-                  SUM(CASE WHEN status='sold' THEN 1 ELSE 0 END) AS sold
-           FROM properties"""
-    )
-    visitors = query_one("SELECT COUNT(*) AS total FROM visitors")
-    returning = query_one("SELECT COUNT(*) AS c FROM visitors WHERE visit_count>1")
-    views = query_one("SELECT COUNT(*) AS c FROM property_views")
-    inquiries = query_one("SELECT COUNT(*) AS c FROM inquiries")
+    """Single round-trip aggregation for admin/home KPI cards."""
+    row = query_one(
+        """SELECT
+             (SELECT COUNT(*) FROM properties) AS total_properties,
+             (SELECT COUNT(*) FROM properties WHERE status='available') AS available_properties,
+             (SELECT COUNT(*) FROM properties WHERE status='sold') AS sold_properties,
+             (SELECT COUNT(*) FROM visitors) AS total_visitors,
+             (SELECT COUNT(*) FROM visitors WHERE visit_count>1) AS returning_visitors,
+             (SELECT COUNT(*) FROM property_views) AS property_views,
+             (SELECT COUNT(*) FROM inquiries) AS total_inquiries,
+             (SELECT COUNT(*) FROM leads) AS lead_total,
+             (SELECT COUNT(*) FROM leads WHERE status='new') AS lead_new,
+             (SELECT COUNT(*) FROM leads WHERE lead_tier='hot') AS lead_hot,
+             (SELECT COUNT(*) FROM leads WHERE is_urgent=1) AS lead_urgent
+        """
+    ) or {}
+    total_visitors = int(row.get("total_visitors") or 0)
+    lead_total = int(row.get("lead_total") or 0)
     return {
-        "total_properties": props["total"] or 0,
-        "available_properties": props["available"] or 0,
-        "sold_properties": props["sold"] or 0,
-        "total_visitors": visitors["total"] or 0,
-        "returning_visitors": returning["c"] or 0,
-        "property_views": views["c"] or 0,
-        "total_inquiries": inquiries["c"] or 0,
+        "total_properties": int(row.get("total_properties") or 0),
+        "available_properties": int(row.get("available_properties") or 0),
+        "sold_properties": int(row.get("sold_properties") or 0),
+        "total_visitors": total_visitors,
+        "returning_visitors": int(row.get("returning_visitors") or 0),
+        "property_views": int(row.get("property_views") or 0),
+        "total_inquiries": int(row.get("total_inquiries") or 0),
+        "total": lead_total,
+        "new": int(row.get("lead_new") or 0),
+        "hot": int(row.get("lead_hot") or 0),
+        "urgent": int(row.get("lead_urgent") or 0),
+        "conversion_rate": round((lead_total / total_visitors) * 100, 2) if total_visitors else 0,
+    }
+
+
+def home_property_count():
+    """Lightweight count for the public homepage (avoids full dashboard_stats)."""
+    row = query_one("SELECT COUNT(*) AS c FROM properties WHERE status='available'")
+    return int((row or {}).get("c") or 0)
+
+
+def home_kpi_counts():
+    """One round-trip for homepage KPI strip."""
+    row = query_one(
+        """SELECT
+             (SELECT COUNT(*) FROM properties WHERE status='available') AS properties,
+             (SELECT COUNT(*) FROM inquiries) AS clients
+        """
+    ) or {}
+    return {
+        "properties": int(row.get("properties") or 0),
+        "clients": int(row.get("clients") or 0),
+        "years": 10,
     }
 
 
@@ -107,8 +169,14 @@ def budget_distribution():
 
 
 def conversion_rate():
-    visitors = query_one("SELECT COUNT(*) AS c FROM visitors")["c"] or 1
-    leads = query_one("SELECT COUNT(*) AS c FROM leads")["c"] or 0
+    row = query_one(
+        """SELECT
+             (SELECT COUNT(*) FROM visitors) AS visitors,
+             (SELECT COUNT(*) FROM leads) AS leads
+        """
+    ) or {}
+    visitors = int(row.get("visitors") or 0) or 1
+    leads = int(row.get("leads") or 0)
     return round((leads / visitors) * 100, 2) if visitors else 0
 
 
