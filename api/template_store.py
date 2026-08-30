@@ -2349,15 +2349,24 @@ TEMPLATES = {
           {% endif %}
         </td>
         <td>
-          {% if submission.images %}
+          {% set preview_images = submission.property_images or submission.images or [] %}
+          {% set preview_videos = submission.property_videos or submission.videos or [] %}
+          {% if preview_images %}
           <div class="d-flex flex-wrap gap-1 mb-1">
-            {% for img in submission.images[:3] %}
-            <img src="{{ url_for('static', filename=img) }}" alt="Property image" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
+            {% for img in preview_images[:3] %}
+            <img src="{{ media_url(img) }}" alt="Property image" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if preview_videos %}
+          <div class="d-flex flex-wrap gap-1 mb-1">
+            {% for vid in preview_videos[:2] %}
+            <video controls preload="metadata" class="rounded border" style="width: 96px; height: 54px; object-fit: cover;" src="{{ media_url(vid) }}"></video>
             {% endfor %}
           </div>
           {% endif %}
           <div class="small text-muted">
-            {{ submission.images|length }} image(s), {{ submission.videos|length }} video(s)
+            {{ preview_images|length }} image(s), {{ preview_videos|length }} video(s)
           </div>
         </td>
         <td>₹{{ "{:,.0f}".format(submission.price or 0) }}</td>
@@ -2512,6 +2521,21 @@ TEMPLATES = {
     </div>
 
     <div class="col-12 mt-2"><h5 class="mb-0">Property Details</h5></div>
+    {% set preview_images = submission.property_images or submission.images or [] %}
+    {% set preview_videos = submission.property_videos or submission.videos or [] %}
+    {% if preview_images or preview_videos %}
+    <div class="col-12">
+      <label class="form-label">Uploaded Media</label>
+      <div class="d-flex flex-wrap gap-2 align-items-start">
+        {% for img in preview_images %}
+        <img src="{{ media_url(img) }}" alt="Property image" class="rounded border" style="width: 120px; height: 90px; object-fit: cover;">
+        {% endfor %}
+        {% for vid in preview_videos %}
+        <video controls preload="metadata" class="rounded border" style="width: 180px; height: 120px; object-fit: cover;" src="{{ media_url(vid) }}"></video>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div class="col-md-8">
       <label class="form-label">Property Title *</label>
       <input class="form-control" name="property_title" value="{{ submission.property_title }}" required>
@@ -3436,6 +3460,45 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 """,
     "public/about.html": """{% extends "public/base.html" %}
 {% block title %}About Us - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+  /* Page-local only: keep leadership photo + copy stacked (do not edit global CSS). */
+  #leadership .leadership-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    overflow: visible;
+    position: relative;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  #leadership .leadership-card::after {
+    display: none !important;
+  }
+  #leadership .founder-photo-wrap {
+    width: min(220px, 72%);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin: 0 auto 0.25rem;
+    background: #f3f4f6;
+  }
+  #leadership .founder-photo-wrap .founder-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #leadership .leadership-copy {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+</style>
+{% endblock %}
 {% block content %}
 <section class="about-hero jk-flow py-5">
   <div class="container">
@@ -3455,40 +3518,49 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   <div class="row g-4 leadership-row">
     <div class="col-12 col-md-6">
       <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-        <img
-          src="{{ url_for('static', filename='img/founder-photo.webp') }}"
-          alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
-          class="founder-photo"
-        >
-        <p class="founder-label mb-1">Founder</p>
-        <h3 class="founder-name">Kalpesh Chunawala</h3>
-        <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
-        <blockquote class="about-quote-card mb-3">
-          <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
-        </blockquote>
-        <p class="mb-0 text-muted">
-          Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
-          His focus on verified inventory and clear communication has helped families close homes with confidence.
-        </p>
+        <div class="founder-photo-wrap">
+          <img
+            src="{{ url_for('static', filename='img/founder-photo.webp') }}"
+            alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
+            class="founder-photo"
+          >
+        </div>
+        <div class="leadership-copy">
+          <p class="founder-label mb-1">Founder</p>
+          <h3 class="founder-name">Kalpesh Chunawala</h3>
+          <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+          <blockquote class="about-quote-card mb-3">
+            <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
+          </blockquote>
+          <p class="mb-0 text-muted">
+            Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
+            His focus on verified inventory and clear communication has helped families close homes with confidence.
+          </p>
+        </div>
       </article>
     </div>
     <div class="col-12 col-md-6">
       <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-        <img
-          src="{{ url_for('static', filename='img/company-logo-mark.webp') }}"
-          alt="Co-Founder - JAKKASH Property Consultancy"
-          class="founder-photo"
-        >
-        <p class="founder-label mb-1">Co-Founder</p>
-        <h3 class="founder-name">JAKKASH Leadership</h3>
-        <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
-        <blockquote class="about-quote-card mb-3">
-          <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
-        </blockquote>
-        <p class="mb-0 text-muted">
-          Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
-          Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
-        </p>
+        <div class="founder-photo-wrap">
+          <img
+            src="{{ url_for('static', filename='images/team/co-founder.jpg') }}"
+            alt="Co-Founder - JAKKASH Property Consultancy"
+            class="founder-photo"
+            onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/founder-photo.webp') }}';"
+          >
+        </div>
+        <div class="leadership-copy">
+          <p class="founder-label mb-1">Co-Founder</p>
+          <h3 class="founder-name">JAKKASH Leadership</h3>
+          <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+          <blockquote class="about-quote-card mb-3">
+            <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
+          </blockquote>
+          <p class="mb-0 text-muted">
+            Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
+            Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
+          </p>
+        </div>
       </article>
     </div>
   </div>
@@ -3859,7 +3931,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% endblock %}
 """,
     "public/contact.html": """{% extends "public/base.html" %}
-{% block title %}{% if intent == 'visit' %}Request Site Visit{% else %}Contact{% endif %} - {{ company_name }}{% endblock %}
+{% block title %}{% if intent == 'visit' %}Request Site Visit{% else %}Contact Us{% endif %} - {{ company_name }}{% endblock %}
 {% block content %}
 <div class="container py-5 jk-flow">
   <div class="row g-5">
@@ -4262,7 +4334,7 @@ document.getElementById('contactNameInput')?.focus();
       {% for t in testimonials %}
       <div class="col-12 col-md-6 col-lg-4">
         <article class="testimonial-card jv-testimonial h-100">
-          <div class="text-warning mb-2">{% for _ in range(t.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
+          <div class="text-warning mb-2">{% for _ in range(t.rating|int) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
           <p class="mb-3">"{{ t.review_text }}"</p>
           <strong>{{ t.client_name }}</strong><br><small class="text-muted">{{ t.client_location }}</small>
         </article>
@@ -4957,7 +5029,7 @@ document.getElementById('contactNameInput')?.focus();
     {% for t in testimonials %}
     <div class="col-md-6 col-lg-4">
       <article class="testimonial-card h-100">
-        <div class="text-warning mb-2">{% for _ in range(t.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
+        <div class="text-warning mb-2">{% for _ in range(t.rating|int) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
         <p class="mb-3">"{{ t.review_text }}"</p>
         <h6 class="mb-1">{{ t.client_name }}</h6>
         <small class="text-muted">{{ t.client_location }}</small>
