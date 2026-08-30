@@ -1,5 +1,37 @@
 {% extends "public/base.html" %}
 {% block title %}About Us - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+  #leadership .leadership-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    overflow: visible;
+    position: relative;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  #leadership .leadership-card::after { display: none !important; }
+  #leadership .founder-photo-wrap {
+    width: min(220px, 72%);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin: 0 auto 0.25rem;
+    background: #f3f4f6;
+  }
+  #leadership .founder-photo-wrap .founder-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #leadership .leadership-copy { width: 100%; position: relative; z-index: 1; }
+</style>
+{% endblock %}
 {% block content %}
 <section class="about-hero jk-flow py-5">
   <div class="container">
@@ -14,24 +46,52 @@
   </div>
 </section>
 
-<section class="container pb-5 jk-flow">
-  <article class="founder-card premium-hover-card reveal-on-scroll">
-    <img
-      src="{{ url_for('static', filename='img/founder-photo.webp') }}"
-      alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
-      class="founder-photo"
-    >
-    <p class="founder-label mb-1">Founder</p>
-    <h2 class="founder-name">Kalpesh Chunawala</h2>
-    <p class="founder-role mb-0">Founder - JAKKASH Property Consultancy</p>
-
-    <blockquote class="about-quote-card">
-      <p>
-        "A property is not just a place to live; it is the foundation of dreams, security, and future generations."
-      </p>
-      <footer>- Kalpesh Chunawala</footer>
-    </blockquote>
-  </article>
+<section class="container pb-5 jk-flow" id="leadership">
+  <h2 class="section-title section-title-center mb-4">Leadership</h2>
+  <div class="row g-4 leadership-row">
+    <div class="col-12 col-md-6">
+      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+        <div class="founder-photo-wrap">
+          <img
+            src="{{ url_for('static', filename='img/founder-photo.webp') }}"
+            alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
+            class="founder-photo"
+          >
+        </div>
+        <div class="leadership-copy">
+          <p class="founder-label mb-1">Founder</p>
+          <h2 class="founder-name">Kalpesh Chunawala</h2>
+          <p class="founder-role mb-0">Founder - JAKKASH Property Consultancy</p>
+          <blockquote class="about-quote-card">
+            <p>
+              "A property is not just a place to live; it is the foundation of dreams, security, and future generations."
+            </p>
+            <footer>- Kalpesh Chunawala</footer>
+          </blockquote>
+        </div>
+      </article>
+    </div>
+    <div class="col-12 col-md-6">
+      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
+        <div class="founder-photo-wrap">
+          <img
+            src="{{ url_for('static', filename='images/team/co-founder.jpg') }}"
+            alt="Co-Founder - JAKKASH Property Consultancy"
+            class="founder-photo"
+            onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/founder-photo.webp') }}';"
+          >
+        </div>
+        <div class="leadership-copy">
+          <p class="founder-label mb-1">Co-Founder</p>
+          <h2 class="founder-name">JAKKASH Leadership</h2>
+          <p class="founder-role mb-0">Co-Founder · Operations &amp; Client Success</p>
+          <blockquote class="about-quote-card">
+            <p>"Great brokerage is measured by trust delivered after the handshake."</p>
+          </blockquote>
+        </div>
+      </article>
+    </div>
+  </div>
 </section>
 
 <section class="container pb-5 jk-flow">

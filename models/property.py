@@ -38,6 +38,8 @@ def _ensure_schema():
         "unit_number": "TEXT",
         "listing_intent": "TEXT DEFAULT 'sell'",
         "seller_type": "TEXT",
+        "is_active": "INTEGER DEFAULT 1",
+        "approval_status": "TEXT DEFAULT 'approved'",
     }
     extra_mysql = {
         "owner_admin_id": "INT NULL",
@@ -46,6 +48,8 @@ def _ensure_schema():
         "unit_number": "VARCHAR(80)",
         "listing_intent": "VARCHAR(20) DEFAULT 'sell'",
         "seller_type": "VARCHAR(20)",
+        "is_active": "TINYINT(1) DEFAULT 1",
+        "approval_status": "VARCHAR(30) DEFAULT 'approved'",
     }
     if use_sqlite():
         cols = {str(row.get("name", "")).lower() for row in query_all("PRAGMA table_info(properties)")}
@@ -493,6 +497,23 @@ def delete(pid):
 def set_status(pid, status):
     _ensure_schema()
     execute("UPDATE properties SET status=%s WHERE id=%s", (status, pid))
+
+
+def publish_approved(pid):
+    """
+    Mark a listing live for the public panel.
+    Always sets status='available'. Best-effort also sets is_active / approval_status
+    when those columns exist (never fails the approve flow if they do not).
+    """
+    _ensure_schema()
+    execute("UPDATE properties SET status=%s WHERE id=%s", ("available", pid))
+    try:
+        execute(
+            "UPDATE properties SET is_active=%s, approval_status=%s WHERE id=%s",
+            (True, "approved", pid),
+        )
+    except Exception:
+        pass
 
 
 def increment_views(pid):

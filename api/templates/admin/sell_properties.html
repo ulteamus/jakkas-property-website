@@ -105,15 +105,24 @@
           {% endif %}
         </td>
         <td>
-          {% if submission.images %}
+          {% set preview_images = submission.property_images or submission.images or [] %}
+          {% set preview_videos = submission.property_videos or submission.videos or [] %}
+          {% if preview_images %}
           <div class="d-flex flex-wrap gap-1 mb-1">
-            {% for img in submission.images[:3] %}
-            <img src="{{ url_for('static', filename=img) }}" alt="Property image" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
+            {% for img in preview_images[:3] %}
+            <img src="{{ media_url(img) }}" alt="Property image" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if preview_videos %}
+          <div class="d-flex flex-wrap gap-1 mb-1">
+            {% for vid in preview_videos[:2] %}
+            <video controls preload="metadata" class="rounded border" style="width: 96px; height: 54px; object-fit: cover;" src="{{ media_url(vid) }}"></video>
             {% endfor %}
           </div>
           {% endif %}
           <div class="small text-muted">
-            {{ submission.images|length }} image(s), {{ submission.videos|length }} video(s)
+            {{ preview_images|length }} image(s), {{ preview_videos|length }} video(s)
           </div>
         </td>
         <td>₹{{ "{:,.0f}".format(submission.price or 0) }}</td>

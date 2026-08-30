@@ -733,6 +733,37 @@ def _media_paths_from_submission(submission, key):
     return paths
 
 
+def _enrich_submission_media(submission):
+    """Attach property_images / property_videos for admin previews (view-layer only)."""
+    if not submission:
+        return submission
+    images = list(_media_paths_from_submission(submission, "images"))
+    videos = list(_media_paths_from_submission(submission, "videos"))
+    pid = submission.get("property_id")
+    if pid:
+        try:
+            media = prop_model.get_media(pid) or {}
+            if not images:
+                images = [
+                    (row.get("file_path") or "").strip()
+                    for row in (media.get("images") or [])
+                    if row.get("file_path")
+                ]
+            if not videos:
+                videos = [
+                    (row.get("file_path") or "").strip()
+                    for row in (media.get("videos") or [])
+                    if row.get("file_path")
+                ]
+        except Exception:
+            pass
+    submission["images"] = images
+    submission["videos"] = videos
+    submission["property_images"] = images
+    submission["property_videos"] = videos
+    return submission
+
+
 def _copy_submission_media_to_property(submission, property_id):
     """Copy submission media filenames onto properties (idempotent; no deletes)."""
     if not property_id:
@@ -799,6 +830,7 @@ def _create_property_from_submission(submission):
     property_id = created["id"]
     submission_model.link_property(submission["id"], property_id)
     submission["property_id"] = property_id
+    prop_model.publish_approved(property_id)
     _copy_submission_media_to_property(submission, property_id)
     return property_id
 
@@ -821,7 +853,7 @@ def _ensure_submission_property_published(submission):
         previous_prop_status = (existing_prop or {}).get("status")
 
     if property_id and previous_prop_status != "available":
-        prop_model.set_status(property_id, "available")
+        prop_model.publish_approved(property_id)
         changed = True
         _log_admin_action(
             "property_status_changed",
@@ -830,6 +862,9 @@ def _ensure_submission_property_published(submission):
             entity_id=property_id,
             meta={"from_status": previous_prop_status, "to_status": "available"},
         )
+    elif property_id and previous_prop_status == "available":
+        # Re-approve / heal: ensure publish flags stay true without changing search().
+        prop_model.publish_approved(property_id)
     if property_id:
         _copy_submission_media_to_property(submission, property_id)
         _ensure_submission_lead(submission)
@@ -911,6 +946,7 @@ def sell_properties():
         area=area_filter or None,
         seller_type=seller_type_filter or None,
     )
+    submissions_rows = [_enrich_submission_media(row) for row in (submissions_rows or [])]
     period_stats = submission_model.period_counts(owner_admin_id=owner_scope)
     return render_template(
         "admin/sell_properties.html",
@@ -1035,6 +1071,7 @@ def edit_sell_property(sid):
         )
         flash("Sell property submission updated.", "success")
         return redirect(url_for("admin.sell_properties", **_submission_redirect_args()))
+    _enrich_submission_media(submission)
     return render_template("admin/sell_property_edit.html", submission=submission)
 
 

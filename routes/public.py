@@ -84,7 +84,13 @@ def home():
         home_stats["clients"] = int(dashboard.get("total_inquiries") or 0)
     except Exception:
         pass
-    testimonials = reviews_model.list_reviews(limit=6)
+    # Public feed: approved testimonials only (is_active=1). Static FALLBACK only if empty.
+    testimonials = reviews_model.list_reviews(limit=6) or []
+    for row in testimonials:
+        try:
+            row["rating"] = max(1, min(5, int(row.get("rating") or 5)))
+        except (TypeError, ValueError):
+            row["rating"] = 5
     if not testimonials:
         testimonials = FALLBACK_TESTIMONIALS
     return render_template(
@@ -171,12 +177,11 @@ def contact():
     linked_property = None
     if property_slug:
         linked_property = prop_model.get_by_slug(property_slug)
-    visit_mode = intent in {"visit", "site_visit"} or request.path.rstrip("/").endswith(
-        "visit-request"
-    )
+    # /contact is always the Contact Us form. Keep site-visit copy only on /visit-request.
+    visit_mode = request.path.rstrip("/").endswith("visit-request")
     return render_template(
         "public/contact.html",
-        intent="visit" if visit_mode else (intent or "inquiry"),
+        intent="visit" if visit_mode else "inquiry",
         property_slug=property_slug,
         linked_property=linked_property,
     )
@@ -184,7 +189,12 @@ def contact():
 
 @public_bp.route("/testimonials")
 def testimonials():
-    rows = reviews_model.list_reviews(limit=120)
+    rows = reviews_model.list_reviews(limit=120) or []
+    for row in rows:
+        try:
+            row["rating"] = max(1, min(5, int(row.get("rating") or 5)))
+        except (TypeError, ValueError):
+            row["rating"] = 5
     return render_template("public/testimonials.html", testimonials=rows)
 
 
@@ -234,6 +244,7 @@ def sell_property():
         hide_bhk_types = {"plot", "land", "shop", "office"}
         bhk_value = 0 if property_type_raw in hide_bhk_types else int(request.form.get("bhk") or 0)
 
+        created_property = None
         try:
             area_factors = {"sq_ft": 1, "sq_yard": 9, "vigha": 17424, "sq_meter": 10.7639}
             area_sq_ft_raw = request.form.get("area_sq_ft")
@@ -282,19 +293,23 @@ def sell_property():
             )
 
             image_paths = []
-            for i, upload in enumerate(request.files.getlist("images")):
-                # Supabase public URL when STORAGE_BACKEND=supabase; else Cloudinary/local.
-                stored = save_upload(upload, created_property["id"], "images", ALLOWED_IMAGE)
-                if stored:
-                    prop_model.add_image(created_property["id"], stored, is_primary=(i == 0), sort_order=i)
-                    image_paths.append(stored)
-
             video_paths = []
-            for i, upload in enumerate(request.files.getlist("videos")):
-                stored = save_upload(upload, created_property["id"], "videos", ALLOWED_VIDEO)
-                if stored:
-                    prop_model.add_video(created_property["id"], stored, sort_order=i)
-                    video_paths.append(stored)
+            try:
+                for i, upload in enumerate(request.files.getlist("images")):
+                    # Supabase public URL when STORAGE_BACKEND=supabase; else Cloudinary/local.
+                    stored = save_upload(upload, created_property["id"], "images", ALLOWED_IMAGE)
+                    if stored:
+                        prop_model.add_image(created_property["id"], stored, is_primary=(i == 0), sort_order=i)
+                        image_paths.append(stored)
+
+                for i, upload in enumerate(request.files.getlist("videos")):
+                    stored = save_upload(upload, created_property["id"], "videos", ALLOWED_VIDEO)
+                    if stored:
+                        prop_model.add_video(created_property["id"], stored, sort_order=i)
+                        video_paths.append(stored)
+            except Exception:
+                # Media failures must not undo a successful property write.
+                pass
 
             submission_model.create_submission(
                 {
@@ -328,7 +343,19 @@ def sell_property():
                     "videos": video_paths,
                 }
             )
+        except Exception:
+            # Only flash an error when the property row itself never landed.
+            if created_property:
+                flash(
+                    "Property submitted successfully! Our team will review and approve it shortly.",
+                    "success",
+                )
+                return redirect(url_for("public.sell_property"))
+            flash("Unable to submit property right now. Please try again.", "danger")
+            return redirect(url_for("public.sell_property"))
 
+        # Inquiry is best-effort CRM bookkeeping — never override a successful submit.
+        try:
             inquiry_model.create(
                 {
                     "name": request.form.get("owner_name"),
@@ -341,11 +368,10 @@ def sell_property():
                 }
             )
         except Exception:
-            flash("Unable to submit property right now. Please try again.", "danger")
-            return redirect(url_for("public.sell_property"))
+            pass
 
         flash(
-            "Thank you! Your property was submitted successfully and is now pending admin approval.",
+            "Property submitted successfully! Our team will review and approve it shortly.",
             "success",
         )
         return redirect(url_for("public.sell_property"))

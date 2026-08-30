@@ -29,6 +29,21 @@
     </div>
 
     <div class="col-12 mt-2"><h5 class="mb-0">Property Details</h5></div>
+    {% set preview_images = submission.property_images or submission.images or [] %}
+    {% set preview_videos = submission.property_videos or submission.videos or [] %}
+    {% if preview_images or preview_videos %}
+    <div class="col-12">
+      <label class="form-label">Uploaded Media</label>
+      <div class="d-flex flex-wrap gap-2 align-items-start">
+        {% for img in preview_images %}
+        <img src="{{ media_url(img) }}" alt="Property image" class="rounded border" style="width: 120px; height: 90px; object-fit: cover;">
+        {% endfor %}
+        {% for vid in preview_videos %}
+        <video controls preload="metadata" class="rounded border" style="width: 180px; height: 120px; object-fit: cover;" src="{{ media_url(vid) }}"></video>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div class="col-md-8">
       <label class="form-label">Property Title *</label>
       <input class="form-control" name="property_title" value="{{ submission.property_title }}" required>

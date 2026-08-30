@@ -190,7 +190,7 @@
       {% for t in testimonials %}
       <div class="col-12 col-md-6 col-lg-4">
         <article class="testimonial-card jv-testimonial h-100">
-          <div class="text-warning mb-2">{% for _ in range(t.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
+          <div class="text-warning mb-2">{% for _ in range(t.rating|int) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
           <p class="mb-3">"{{ t.review_text }}"</p>
           <strong>{{ t.client_name }}</strong><br><small class="text-muted">{{ t.client_location }}</small>
         </article>

@@ -1,5 +1,44 @@
 {% extends "public/base.html" %}
 {% block title %}About Us - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+  /* Page-local only: keep leadership photo + copy stacked (do not edit global CSS). */
+  #leadership .leadership-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    overflow: visible;
+    position: relative;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  #leadership .leadership-card::after {
+    display: none !important;
+  }
+  #leadership .founder-photo-wrap {
+    width: min(220px, 72%);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin: 0 auto 0.25rem;
+    background: #f3f4f6;
+  }
+  #leadership .founder-photo-wrap .founder-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #leadership .leadership-copy {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+</style>
+{% endblock %}
 {% block content %}
 <section class="about-hero jk-flow py-5">
   <div class="container">
@@ -19,40 +58,49 @@
   <div class="row g-4 leadership-row">
     <div class="col-12 col-md-6">
       <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-        <img
-          src="{{ url_for('static', filename='img/founder-photo.webp') }}"
-          alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
-          class="founder-photo"
-        >
-        <p class="founder-label mb-1">Founder</p>
-        <h3 class="founder-name">Kalpesh Chunawala</h3>
-        <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
-        <blockquote class="about-quote-card mb-3">
-          <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
-        </blockquote>
-        <p class="mb-0 text-muted">
-          Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
-          His focus on verified inventory and clear communication has helped families close homes with confidence.
-        </p>
+        <div class="founder-photo-wrap">
+          <img
+            src="{{ url_for('static', filename='img/founder-photo.webp') }}"
+            alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
+            class="founder-photo"
+          >
+        </div>
+        <div class="leadership-copy">
+          <p class="founder-label mb-1">Founder</p>
+          <h3 class="founder-name">Kalpesh Chunawala</h3>
+          <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+          <blockquote class="about-quote-card mb-3">
+            <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
+          </blockquote>
+          <p class="mb-0 text-muted">
+            Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
+            His focus on verified inventory and clear communication has helped families close homes with confidence.
+          </p>
+        </div>
       </article>
     </div>
     <div class="col-12 col-md-6">
       <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-        <img
-          src="{{ url_for('static', filename='img/company-logo-mark.webp') }}"
-          alt="Co-Founder - JAKKASH Property Consultancy"
-          class="founder-photo"
-        >
-        <p class="founder-label mb-1">Co-Founder</p>
-        <h3 class="founder-name">JAKKASH Leadership</h3>
-        <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
-        <blockquote class="about-quote-card mb-3">
-          <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
-        </blockquote>
-        <p class="mb-0 text-muted">
-          Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
-          Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
-        </p>
+        <div class="founder-photo-wrap">
+          <img
+            src="{{ url_for('static', filename='images/team/co-founder.jpg') }}"
+            alt="Co-Founder - JAKKASH Property Consultancy"
+            class="founder-photo"
+            onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/founder-photo.webp') }}';"
+          >
+        </div>
+        <div class="leadership-copy">
+          <p class="founder-label mb-1">Co-Founder</p>
+          <h3 class="founder-name">JAKKASH Leadership</h3>
+          <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+          <blockquote class="about-quote-card mb-3">
+            <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
+          </blockquote>
+          <p class="mb-0 text-muted">
+            Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
+            Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
+          </p>
+        </div>
       </article>
     </div>
   </div>
