@@ -1469,17 +1469,26 @@ def disable_admin_totp(admin_id):
 def activity_logs_dashboard():
     start_date = _coerce_iso_date(request.args.get("start_date"))
     end_date = _coerce_iso_date(request.args.get("end_date"))
-    logs = activity_model.list_logs(
-        limit=20,
-        admin_id=request.args.get("admin_id", type=int),
-        action_key=(request.args.get("action_key") or "").strip() or None,
-        start_date=start_date,
-        end_date=end_date,
-    )
+    try:
+        logs = activity_model.list_logs(
+            limit=20,
+            admin_id=request.args.get("admin_id", type=int),
+            action_key=(request.args.get("action_key") or "").strip() or None,
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except Exception as exc:
+        current_app.logger.warning("activity_logs list failed: %s", exc)
+        logs = []
+    try:
+        admins = Admin.list_admins(include_inactive=True) or []
+    except Exception as exc:
+        current_app.logger.warning("activity_logs admins failed: %s", exc)
+        admins = []
     return render_template(
         "admin/activity_logs.html",
-        logs=logs,
-        admins=Admin.list_admins(include_inactive=True),
+        logs=logs or [],
+        admins=admins,
         selected_admin_id=request.args.get("admin_id", type=int),
         selected_action=(request.args.get("action_key") or "").strip(),
         start_date=start_date or "",

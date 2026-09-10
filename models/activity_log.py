@@ -1,8 +1,10 @@
 import json
+import logging
 
 from database import execute, query_all
 from database.db import skip_runtime_ddl, use_sqlite
 
+logger = logging.getLogger(__name__)
 _schema_checked = False
 
 
@@ -60,19 +62,23 @@ def _parse_row(row):
 
 def log_action(admin_id, action_key, action_label, entity_type=None, entity_id=None, meta=None):
     _ensure_schema()
-    return execute(
-        """INSERT INTO activity_logs
-           (admin_id, action_key, action_label, entity_type, entity_id, meta_json)
-           VALUES (%s,%s,%s,%s,%s,%s)""",
-        (
-            admin_id,
-            (action_key or "").strip()[:120],
-            (action_label or "").strip()[:220] or "Action",
-            (entity_type or "").strip()[:120] or None,
-            entity_id,
-            json.dumps(meta or {}),
-        ),
-    )
+    try:
+        return execute(
+            """INSERT INTO activity_logs
+               (admin_id, action_key, action_label, entity_type, entity_id, meta_json)
+               VALUES (%s,%s,%s,%s,%s,%s)""",
+            (
+                admin_id,
+                (action_key or "").strip()[:120],
+                (action_label or "").strip()[:220] or "Action",
+                (entity_type or "").strip()[:120] or None,
+                entity_id,
+                json.dumps(meta or {}),
+            ),
+        )
+    except Exception as exc:
+        logger.warning("log_action failed (ignored): %s", exc)
+        return None
 
 
 def list_logs(limit=300, admin_id=None, action_key=None, start_date=None, end_date=None):
@@ -98,5 +104,9 @@ def list_logs(limit=300, admin_id=None, action_key=None, start_date=None, end_da
         params.append(end_date)
     sql += " ORDER BY l.created_at DESC LIMIT %s"
     params.append(max(1, min(int(limit or 300), 1000)))
-    rows = query_all(sql, params)
-    return [_parse_row(row) for row in rows]
+    try:
+        rows = query_all(sql, params) or []
+        return [_parse_row(row) for row in rows]
+    except Exception as exc:
+        logger.warning("list_logs failed (returning []): %s", exc)
+        return []
