@@ -451,9 +451,13 @@ def api_inquiry():
             payload["inquiry_type"] = "general"
     try:
         iid = inquiry_model.create(payload)
-        lead_model.create_from_inquiry(payload, inquiry_id=iid)
     except Exception:
         return jsonify({"success": False, "error": "Unable to save inquiry"}), 503
+    # CRM lead row is best-effort — never fail the public contact form if leads table/schema lags.
+    try:
+        lead_model.create_from_inquiry(payload, inquiry_id=iid)
+    except Exception:
+        pass
     return jsonify({"success": True, "message": "Inquiry submitted. We will contact you soon."})
 
 

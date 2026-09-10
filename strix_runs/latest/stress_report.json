@@ -15,13 +15,13 @@
       "total": 81,
       "failures": 0,
       "error_rate": 0.0,
-      "elapsed_s": 2.245,
+      "elapsed_s": 15.914,
       "workers": 56,
       "latency_ms": {
-        "avg": 836.06,
-        "p95": 2083.33,
-        "p99": 2142.62,
-        "max": 2165.27
+        "avg": 1753.05,
+        "p95": 15746.09,
+        "p99": 15764.65,
+        "max": 15775.3
       },
       "failure_samples": [],
       "pass": true

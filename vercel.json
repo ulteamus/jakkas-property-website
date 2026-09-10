@@ -24,6 +24,20 @@
         "cache-control": "public, max-age=31536000, immutable"
       }
     },
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py",
+      "headers": {
+        "cache-control": "no-store, max-age=0"
+      }
+    },
+    {
+      "src": "/properties",
+      "dest": "api/index.py",
+      "headers": {
+        "cache-control": "no-store, max-age=0"
+      }
+    },
     { "src": "/uploads/(.*)", "dest": "api/index.py" },
     { "src": "/(.*)", "dest": "api/index.py" }
   ]

@@ -13,6 +13,7 @@ scripts/_last_*.json
 scripts/smoke_test_results.json
 vercel-deploy*.log
 vercel-preview*.log
+logs/
 .vercel.bak-stale/
 
 .vercel

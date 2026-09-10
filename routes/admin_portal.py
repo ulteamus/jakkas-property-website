@@ -285,19 +285,49 @@ def dashboard():
         lead_model.mark_urgent_stale()
     except Exception:
         pass
-    stats = analytics_model.dashboard_stats()
-    stats["pending_submissions"] = submission_model.count_by_status(
-        "pending", owner_admin_id=_owner_scope_admin_id()
-    )
-    recent_inquiries = inquiry_model.get_all(
-        limit=8, owner_admin_id=_inquiry_owner_scope()
-    )
+    try:
+        stats = analytics_model.dashboard_stats()
+    except Exception:
+        stats = {
+            "total_properties": 0,
+            "available_properties": 0,
+            "sold_properties": 0,
+            "total_visitors": 0,
+            "returning_visitors": 0,
+            "property_views": 0,
+            "total_inquiries": 0,
+            "total": 0,
+            "new": 0,
+            "hot": 0,
+            "urgent": 0,
+            "conversion_rate": 0,
+        }
+    try:
+        stats["pending_submissions"] = submission_model.count_by_status(
+            "pending", owner_admin_id=_owner_scope_admin_id()
+        )
+    except Exception:
+        stats["pending_submissions"] = 0
+    try:
+        recent_inquiries = inquiry_model.get_all(
+            limit=8, owner_admin_id=_inquiry_owner_scope()
+        )
+    except Exception:
+        recent_inquiries = []
+    try:
+        trending = analytics_model.trending_areas(5)
+    except Exception:
+        trending = []
+    try:
+        top_properties = analytics_model.most_viewed_properties(5)
+    except Exception:
+        top_properties = []
     return render_template(
         "admin/dashboard.html",
         stats=stats,
         recent_inquiries=recent_inquiries,
-        trending=analytics_model.trending_areas(5),
-        top_properties=analytics_model.most_viewed_properties(5),
+        trending=trending,
+        top_properties=top_properties,
     )
 
 
@@ -352,7 +382,14 @@ def property_form(pid=None):
         except ValueError as exc:
             flash(str(exc), "danger")
             areas = prop_model.areas_list()
-            return render_template("admin/property_form.html", property=prop, types=PROPERTY_TYPES, areas=areas)
+            media = prop_model.get_media(pid) if pid else {"images": [], "videos": [], "documents": []}
+            return render_template(
+                "admin/property_form.html",
+                property=prop,
+                types=PROPERTY_TYPES,
+                areas=areas,
+                media=media,
+            )
         previous_status = (prop or {}).get("status")
         duplicate = prop_model.find_duplicate(
             data.get("property_name"),
@@ -365,44 +402,64 @@ def property_form(pid=None):
             return redirect(url_for("admin.property_form", pid=pid) if pid else url_for("admin.property_form"))
         if pid:
             prop_model.update(pid, data)
-            _upload_media(request, pid)
-            _log_admin_action(
-                "property_updated",
-                "Updated property",
-                entity_type="property",
-                entity_id=pid,
-                meta={"property_name": data.get("property_name")},
-            )
-            if previous_status != data.get("status"):
+            try:
+                _upload_media(request, pid)
+            except Exception:
+                # Media/storage failures must not undo a successful property update.
+                pass
+            try:
                 _log_admin_action(
-                    "property_status_changed",
-                    "Changed property status",
+                    "property_updated",
+                    "Updated property",
                     entity_type="property",
                     entity_id=pid,
-                    meta={
-                        "from_status": previous_status,
-                        "to_status": data.get("status"),
-                        "property_name": data.get("property_name"),
-                    },
+                    meta={"property_name": data.get("property_name")},
                 )
+                if previous_status != data.get("status"):
+                    _log_admin_action(
+                        "property_status_changed",
+                        "Changed property status",
+                        entity_type="property",
+                        entity_id=pid,
+                        meta={
+                            "from_status": previous_status,
+                            "to_status": data.get("status"),
+                            "property_name": data.get("property_name"),
+                        },
+                    )
+            except Exception:
+                pass
             flash("Property updated.", "success")
         else:
             created = prop_model.create(data, created_by_admin_id=current_user.id)
-            _upload_media(request, created["id"])
-            _log_admin_action(
-                "property_added",
-                "Added property",
-                entity_type="property",
-                entity_id=created["id"],
-                meta={
-                    "property_name": created.get("property_name"),
-                    "creation_source": created.get("creation_source"),
-                },
-            )
+            try:
+                _upload_media(request, created["id"])
+            except Exception:
+                pass
+            try:
+                _log_admin_action(
+                    "property_added",
+                    "Added property",
+                    entity_type="property",
+                    entity_id=created["id"],
+                    meta={
+                        "property_name": created.get("property_name"),
+                        "creation_source": created.get("creation_source"),
+                    },
+                )
+            except Exception:
+                pass
             flash("Property added.", "success")
         return redirect(url_for("admin.properties"))
     areas = prop_model.areas_list()
-    return render_template("admin/property_form.html", property=prop, types=PROPERTY_TYPES, areas=areas)
+    media = prop_model.get_media(pid) if pid else {"images": [], "videos": [], "documents": []}
+    return render_template(
+        "admin/property_form.html",
+        property=prop,
+        types=PROPERTY_TYPES,
+        areas=areas,
+        media=media,
+    )
 
 
 @admin_bp.route("/properties/<int:pid>/delete", methods=["POST"])
@@ -1488,17 +1545,25 @@ def customer_visits():
         flash("Customer visit form saved.", "success")
         return redirect(url_for("admin.customer_visits"))
 
-    rows = visit_model.list_visits(limit=500, start_date=start_date, end_date=end_date)
-    properties = prop_model.search(
-        limit=500,
-        all_statuses=True,
-        status=None,
-        owner_admin_id=_owner_scope_admin_id(),
-    )
+    try:
+        rows = visit_model.list_visits(limit=500, start_date=start_date, end_date=end_date)
+    except Exception as exc:
+        current_app.logger.warning("customer_visits list failed: %s", exc)
+        rows = []
+    try:
+        properties = prop_model.search(
+            limit=500,
+            all_statuses=True,
+            status=None,
+            owner_admin_id=_owner_scope_admin_id(),
+        )
+    except Exception as exc:
+        current_app.logger.warning("customer_visits properties failed: %s", exc)
+        properties = []
     return render_template(
         "admin/customer_visits.html",
-        visits=rows,
-        properties=properties,
+        visits=rows or [],
+        properties=properties or [],
         start_date=start_date or "",
         end_date=end_date or "",
     )

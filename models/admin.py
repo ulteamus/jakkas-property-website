@@ -757,12 +757,12 @@ class Admin(UserMixin):
                 (data.get("full_name") or username).strip()[:120],
                 role,
                 _serialize_permissions(permissions),
-                1 if data.get("is_active", True) else 0,
+                bool(data.get("is_active", True)),
                 phone_value,
-                1 if data.get("phone_verified") else 0,
-                1 if require_otp else 0,
-                1 if mobile_otp_enabled else 0,
-                0,
+                bool(data.get("phone_verified")),
+                bool(require_otp),
+                bool(mobile_otp_enabled),
+                False,
                 None,
                 created_by_admin_id,
             ),
@@ -823,11 +823,11 @@ class Admin(UserMixin):
                 next_email,
                 role,
                 _serialize_permissions(permissions),
-                1 if is_active else 0,
+                bool(is_active),
                 phone_value,
-                1 if data.get("phone_verified") else 0,
-                1 if require_otp else 0,
-                1 if mobile_otp_enabled else 0,
+                bool(data.get("phone_verified")),
+                bool(require_otp),
+                bool(mobile_otp_enabled),
                 password_hash,
                 admin_id,
             ),
@@ -842,7 +842,7 @@ class Admin(UserMixin):
             raise ValueError("Admin not found.")
         if target.is_super_admin and not is_active and _active_full_admin_count(exclude_admin_id=admin_id) <= 0:
             raise ValueError("At least one active full-control admin is required.")
-        execute("UPDATE admins SET is_active=%s WHERE id=%s", (1 if is_active else 0, admin_id))
+        execute("UPDATE admins SET is_active=%s WHERE id=%s", (bool(is_active), admin_id))
 
     @staticmethod
     def delete_admin(admin_id):
@@ -938,12 +938,13 @@ class Admin(UserMixin):
                     "UPDATE admins SET email=%s WHERE id=%s",
                     (DEFAULT_BOOTSTRAP_ADMIN_EMAIL, existing_admin["id"]),
                 )
+            # Postgres boolean columns reject integer 0/1 — use True/False.
             execute(
                 """UPDATE admins
                    SET role='super_admin',
                        permissions_json=%s,
-                       require_otp=1,
-                       mobile_otp_enabled=1,
+                       require_otp=%s,
+                       mobile_otp_enabled=%s,
                        phone=COALESCE(phone,%s),
                        full_name=CASE
                            WHEN full_name IS NULL OR TRIM(full_name)=''
@@ -953,6 +954,8 @@ class Admin(UserMixin):
                    WHERE id=%s""",
                 (
                     _serialize_permissions(PERMISSION_KEYS),
+                    True,
+                    True,
                     COMPANY_PHONE_RAW,
                     DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME,
                     existing_admin["id"],
@@ -972,13 +975,15 @@ class Admin(UserMixin):
         execute(
             """INSERT INTO admins
                (username, email, password_hash, full_name, role, permissions_json, require_otp, mobile_otp_enabled, phone)
-               VALUES (%s,%s,%s,%s,'super_admin',%s,1,1,%s)""",
+               VALUES (%s,%s,%s,%s,'super_admin',%s,%s,%s,%s)""",
             (
                 DEFAULT_BOOTSTRAP_ADMIN_USERNAME,
                 DEFAULT_BOOTSTRAP_ADMIN_EMAIL,
                 pw,
                 DEFAULT_BOOTSTRAP_ADMIN_FULL_NAME,
                 _serialize_permissions(PERMISSION_KEYS),
+                True,
+                True,
                 COMPANY_PHONE_RAW,
             ),
         )

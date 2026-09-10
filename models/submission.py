@@ -105,6 +105,7 @@ def _ensure_schema():
             "unit_number": "TEXT",
             "seller_type": "TEXT",
             "listing_intent": "TEXT DEFAULT 'sell'",
+            "user_id": "TEXT",
         }
         for name, ddl in extras.items():
             if name not in cols:
@@ -125,6 +126,7 @@ def _ensure_schema():
         "unit_number": "VARCHAR(80)",
         "seller_type": "VARCHAR(20)",
         "listing_intent": "VARCHAR(20) DEFAULT 'sell'",
+        "user_id": "VARCHAR(64) NULL",
     }
     for name, ddl in extras.items():
         if name not in cols:

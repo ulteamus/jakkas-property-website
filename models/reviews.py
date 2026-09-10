@@ -1,12 +1,32 @@
+import logging
+
 from database import execute, query_all, query_one
 from database.db import skip_runtime_ddl, use_sqlite
+
+logger = logging.getLogger(__name__)
+
+
+def _runtime_is_sqlite() -> bool:
+    """True when the live connection is SQLite (including MySQL/Postgres fallback)."""
+    try:
+        from flask import g
+        from database.db import get_connection
+
+        get_connection()
+        if g.get("db_backend") == "sqlite":
+            return True
+    except Exception:
+        pass
+    return use_sqlite()
 
 
 def _ensure_tables():
     """Create testimonials + review_comments if missing. Never drop or truncate."""
-    if skip_runtime_ddl():
+    # Resolve backend first so USE_SQLITE=0 + MySQL-down still uses SQLite DDL.
+    sqlite_mode = _runtime_is_sqlite()
+    if skip_runtime_ddl() and not sqlite_mode:
         return
-    if use_sqlite():
+    if sqlite_mode:
         execute(
             """CREATE TABLE IF NOT EXISTS testimonials (
                id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +51,16 @@ def _ensure_tables():
                FOREIGN KEY (testimonial_id) REFERENCES testimonials(id)
             )"""
         )
+        # Product alias so SELECT FROM reviews works locally like Supabase.
+        try:
+            execute(
+                """CREATE VIEW IF NOT EXISTS reviews AS
+                   SELECT id, client_name, client_location, review_text,
+                          rating, is_active, created_at
+                   FROM testimonials"""
+            )
+        except Exception as exc:
+            logger.warning("Could not create local reviews view: %s", exc)
         return
 
     execute(
@@ -81,19 +111,80 @@ def _comments_map(review_ids, include_inactive=False):
 
 
 def list_reviews(include_inactive=False, limit=100):
-    _ensure_tables()
-    sql = "SELECT * FROM testimonials"
-    params = []
-    if not include_inactive:
-        sql += " WHERE is_active=1"
-    sql += " ORDER BY created_at DESC LIMIT %s"
-    params.append(limit)
-    rows = query_all(sql, params)
-    review_ids = [row["id"] for row in rows]
-    comments = _comments_map(review_ids, include_inactive=include_inactive)
+    """Fetch active reviews from `testimonials` (or `reviews` view/alias)."""
+    try:
+        _ensure_tables()
+    except Exception as exc:
+        logger.exception("reviews._ensure_tables failed: %s", exc)
+        return []
+
+    params = [limit]
+    # SQLite stores 0/1; Postgres may use boolean — accept both active forms.
+    if include_inactive:
+        where = ""
+    elif _runtime_is_sqlite():
+        where = " WHERE is_active=1 OR is_active=TRUE"
+    else:
+        where = " WHERE is_active IS TRUE OR is_active=1"
+
+    rows = []
+    source = None
+    # Prefer base table first (always present); then product view `reviews`.
+    for table in ("testimonials", "reviews"):
+        try:
+            rows = query_all(
+                f"SELECT * FROM {table}{where} ORDER BY created_at DESC LIMIT %s",
+                params,
+            ) or []
+            source = table
+            break
+        except Exception as exc:
+            logger.warning("Review query failed on table=%s: %s", table, exc)
+            rows = []
+
+    # Normalize keys so templates always have client_name / review_text / rating.
+    normalized = []
     for row in rows:
-        row["comments"] = comments.get(row["id"], [])
-    return rows
+        item = dict(row)
+        item["client_name"] = (
+            item.get("client_name")
+            or item.get("name")
+            or item.get("reviewer_name")
+            or "Anonymous"
+        )
+        item["client_location"] = (
+            item.get("client_location") or item.get("location") or "Surat"
+        )
+        item["review_text"] = (
+            item.get("review_text")
+            or item.get("comment")
+            or item.get("text")
+            or item.get("body")
+            or ""
+        )
+        try:
+            item["rating"] = max(1, min(5, int(item.get("rating") or 5)))
+        except (TypeError, ValueError):
+            item["rating"] = 5
+        normalized.append(item)
+
+    review_ids = [row["id"] for row in normalized if row.get("id") is not None]
+    try:
+        comments = _comments_map(review_ids, include_inactive=include_inactive)
+    except Exception as exc:
+        logger.warning("review comments load failed: %s", exc)
+        comments = {}
+    for row in normalized:
+        row["comments"] = comments.get(row.get("id"), [])
+
+    logger.info(
+        "list_reviews: fetched %s row(s) from %s (include_inactive=%s)",
+        len(normalized),
+        source or "none",
+        include_inactive,
+    )
+    print(f"[reviews] fetched {len(normalized)} review(s) from {source or 'none'}", flush=True)
+    return normalized
 
 
 def get_review(review_id):

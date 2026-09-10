@@ -1,6 +1,16 @@
 import os
 import uuid
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from flask import (
+    Blueprint,
+    current_app,
+    render_template,
+    request,
+    session,
+    redirect,
+    url_for,
+    flash,
+    jsonify,
+)
 
 from config import ALLOWED_IMAGE, ALLOWED_VIDEO
 from models import property as prop_model
@@ -30,28 +40,6 @@ def _attach_listing_media(properties):
 
 
 public_bp = Blueprint("public", __name__)
-
-# Shown when testimonials table is empty so homepage section never blanks.
-FALLBACK_TESTIMONIALS = [
-    {
-        "client_name": "Mehul Patel",
-        "client_location": "Vesu, Surat",
-        "review_text": "JAKKASH helped us close a clean flat deal in Vesu with clear pricing and fast site visits. Highly professional team.",
-        "rating": 5,
-    },
-    {
-        "client_name": "Priya Shah",
-        "client_location": "Adajan, Surat",
-        "review_text": "Transparent guidance from first call to registration. We rented our Adajan apartment through JAKKASH without stress.",
-        "rating": 5,
-    },
-    {
-        "client_name": "Ravi Desai",
-        "client_location": "Pal, Surat",
-        "review_text": "Verified listings, honest advice, and excellent follow-up. Exactly what you want from a Surat property consultant.",
-        "rating": 5,
-    },
-]
 
 
 @public_bp.before_request
@@ -92,18 +80,46 @@ def home():
         home_stats = analytics_model.home_kpi_counts()
     except Exception:
         pass
-    # Public feed: approved testimonials only (is_active=1). Static FALLBACK only if empty.
-    testimonials = reviews_model.list_reviews(limit=6) or []
-    for row in testimonials:
+    # Live reviews only — normalize to the exact keys home.html expects.
+    try:
+        raw_reviews = reviews_model.list_reviews(limit=6) or []
+    except Exception as exc:
+        current_app.logger.exception("home: failed to load reviews: %s", exc)
+        print(f"[reviews] home fetch error: {exc}", flush=True)
+        raw_reviews = []
+    testimonials = []
+    for row in raw_reviews:
         try:
-            row["rating"] = max(1, min(5, int(row.get("rating") or 5)))
+            rating = max(1, min(5, int((row or {}).get("rating") or 5)))
         except (TypeError, ValueError):
-            row["rating"] = 5
-    if not testimonials:
-        testimonials = FALLBACK_TESTIMONIALS
+            rating = 5
+        testimonials.append(
+            {
+                "id": (row or {}).get("id"),
+                "client_name": (row or {}).get("client_name")
+                or (row or {}).get("name")
+                or (row or {}).get("reviewer_name")
+                or "Anonymous",
+                "client_location": (row or {}).get("client_location")
+                or (row or {}).get("location")
+                or "Surat",
+                "review_text": (row or {}).get("review_text")
+                or (row or {}).get("comment")
+                or (row or {}).get("text")
+                or "",
+                "rating": rating,
+            }
+        )
+    print(
+        f"[reviews] home rendering {len(testimonials)} review(s); "
+        f"sample_keys={list(testimonials[0].keys()) if testimonials else []}",
+        flush=True,
+    )
+    current_app.logger.info("home: rendering %s review(s)", len(testimonials))
     return render_template(
         "public/home.html",
         testimonials=testimonials,
+        reviews=testimonials,
         featured_properties=featured_properties,
         home_stats=home_stats,
     )
@@ -151,7 +167,8 @@ def listings():
 @public_bp.route("/property/<slug>")
 def property_detail(slug):
     prop = prop_model.get_by_slug(slug)
-    if not prop or prop.get("status") != "available":
+    public_statuses = {"available", "approved", "active"}
+    if not prop or (prop.get("status") or "").lower() not in public_statuses:
         return render_template("public/404.html"), 404
     try:
         analytics_model.record_property_view(prop["id"], session.get("visitor_id"), session.get("session_id"))
@@ -180,16 +197,14 @@ def property_map():
 @public_bp.route("/contact")
 @public_bp.route("/visit-request")
 def contact():
-    intent = (request.args.get("intent") or "").strip().lower()
     property_slug = (request.args.get("property") or "").strip()
     linked_property = None
     if property_slug:
         linked_property = prop_model.get_by_slug(property_slug)
-    # /contact is always the Contact Us form. Keep site-visit copy only on /visit-request.
-    visit_mode = request.path.rstrip("/").endswith("visit-request")
+    # Contact Us page always uses inquiry copy (client feedback).
     return render_template(
         "public/contact.html",
-        intent="visit" if visit_mode else "inquiry",
+        intent="inquiry",
         property_slug=property_slug,
         linked_property=linked_property,
     )
@@ -223,8 +238,10 @@ def sell_property():
         ]
         missing = [field for field in required_fields if not request.form.get(field)]
         if missing:
-            flash("Please fill all mandatory fields before submitting.", "danger")
-            return redirect(url_for("public.sell_property"))
+            return _sell_error_response(
+                "Please fill all mandatory fields before submitting.",
+                code=400,
+            )
 
         property_status = (request.form.get("listing_intent") or "sell").strip().lower()
         if property_status not in {"sell", "rent"}:
@@ -253,6 +270,7 @@ def sell_property():
         bhk_value = 0 if property_type_raw in hide_bhk_types else int(request.form.get("bhk") or 0)
 
         created_property = None
+        submission_id = None
         try:
             area_factors = {"sq_ft": 1, "sq_yard": 9, "vigha": 17424, "sq_meter": 10.7639}
             area_sq_ft_raw = request.form.get("area_sq_ft")
@@ -272,11 +290,10 @@ def sell_property():
                 area_name,
             )
             if duplicate:
-                flash(
+                return _sell_error_response(
                     "This property already exists in our system and cannot be uploaded again.",
-                    "warning",
+                    code=409,
                 )
-                return redirect(url_for("public.sell_property"))
 
             created_property = prop_model.create(
                 {
@@ -319,7 +336,7 @@ def sell_property():
                 # Media failures must not undo a successful property write.
                 pass
 
-            submission_model.create_submission(
+            submission_id = submission_model.create_submission(
                 {
                     "property_id": created_property["id"],
                     "owner_name": request.form.get("owner_name"),
@@ -352,15 +369,10 @@ def sell_property():
                 }
             )
         except Exception:
-            # Only flash an error when the property row itself never landed.
+            # Only error when the property row itself never landed.
             if created_property:
-                flash(
-                    "Property submitted successfully! Our team will review and approve it shortly.",
-                    "success",
-                )
-                return redirect(url_for("public.sell_property"))
-            flash("Unable to submit property right now. Please try again.", "danger")
-            return redirect(url_for("public.sell_property"))
+                return _sell_success_response(created_property, submission_id)
+            return _sell_error_response()
 
         # Inquiry is best-effort CRM bookkeeping — never override a successful submit.
         try:
@@ -378,11 +390,7 @@ def sell_property():
         except Exception:
             pass
 
-        flash(
-            "Property submitted successfully! Our team will review and approve it shortly.",
-            "success",
-        )
-        return redirect(url_for("public.sell_property"))
+        return _sell_success_response(created_property, submission_id)
 
     return render_template(
         "public/sell_property.html",
@@ -401,6 +409,158 @@ def sell_property():
             "Valsad",
             "Morbi",
         ],
+    )
+
+
+def _wants_json() -> bool:
+    if request.args.get("format") == "json":
+        return True
+    if (request.headers.get("X-Requested-With") or "").lower() == "xmlhttprequest":
+        return True
+    accept = (request.headers.get("Accept") or "").lower()
+    # Prefer JSON when client asks for it (fetch sell form).
+    return "application/json" in accept
+
+
+def _session_user_id() -> str:
+    """Stable per-browser seller id for My Listings (local session UUID)."""
+    uid = (session.get("user_id") or "").strip()
+    if not uid:
+        uid = str(uuid.uuid4())
+        session["user_id"] = uid
+    return uid
+
+
+def _attach_user_id(property_id, submission_id=None) -> None:
+    uid = _session_user_id()
+    from database import execute
+
+    try:
+        execute("UPDATE properties SET user_id=%s WHERE id=%s", (uid, property_id))
+    except Exception:
+        pass
+    if submission_id:
+        try:
+            execute(
+                "UPDATE owner_submissions SET user_id=%s WHERE id=%s",
+                (uid, submission_id),
+            )
+        except Exception:
+            pass
+
+
+def _track_my_listing(property_id, owner_mobile: str | None = None) -> None:
+    ids = list(session.get("my_listing_ids") or [])
+    pid = int(property_id)
+    if pid not in ids:
+        ids.append(pid)
+    session["my_listing_ids"] = ids[-50:]
+    if owner_mobile:
+        session["my_listings_mobile"] = str(owner_mobile).strip()
+    _session_user_id()
+
+
+def _sell_success_response(created_property, submission_id=None):
+    _track_my_listing(
+        created_property["id"],
+        request.form.get("owner_mobile"),
+    )
+    _attach_user_id(created_property["id"], submission_id)
+    message = "Property submitted successfully! Our team will review and approve it shortly."
+    if _wants_json():
+        return jsonify({
+            "success": True,
+            "status": "success",
+            "message": message,
+            "property_id": created_property.get("id"),
+            "property_status": created_property.get("status") or "reserved",
+            "user_id": session.get("user_id"),
+        }), 201
+    flash(message, "success")
+    return redirect(url_for("public.my_listings"))
+
+
+def _sell_error_response(message=None, code=400):
+    message = message or "Unable to submit property right now. Please try again."
+    if _wants_json():
+        return jsonify({"success": False, "status": "error", "error": message}), code
+    flash(message, "danger")
+    return redirect(url_for("public.sell_property"))
+
+
+@public_bp.route("/my-listings", methods=["GET", "POST"])
+@public_bp.route("/dashboard/listings", methods=["GET", "POST"])
+@public_bp.route("/dashboard", methods=["GET", "POST"])
+def my_listings():
+    """User dashboard: track pending / approved / rejected sell submissions by user_id."""
+    from database import query_all
+
+    user_id = _session_user_id()
+    mobile = (request.values.get("mobile") or session.get("my_listings_mobile") or "").strip()
+    if request.method == "POST" and mobile:
+        session["my_listings_mobile"] = mobile
+
+    submissions = []
+    # Primary filter: session user_id (matches sell-form attach).
+    try:
+        rows = query_all(
+            """SELECT s.*, p.status AS property_current_status, p.slug AS property_slug
+               FROM owner_submissions s
+               LEFT JOIN properties p ON p.id=s.property_id
+               WHERE CAST(s.user_id AS TEXT)=%s
+               ORDER BY s.created_at DESC LIMIT 100""",
+            (str(user_id),),
+        )
+        submissions = [submission_model._parse_submission(r) for r in (rows or [])]
+    except Exception:
+        submissions = []
+
+    # Fallback / merge: owner mobile lookup for legacy rows without user_id.
+    if mobile:
+        try:
+            like = f"%{mobile}%"
+            rows = query_all(
+                """SELECT s.*, p.status AS property_current_status, p.slug AS property_slug
+                   FROM owner_submissions s
+                   LEFT JOIN properties p ON p.id=s.property_id
+                   WHERE s.owner_mobile LIKE %s OR COALESCE(s.owner_alt_mobile,'') LIKE %s
+                   ORDER BY s.created_at DESC LIMIT 100""",
+                (like, like),
+            )
+            by_id = {s.get("id"): s for s in submissions if s.get("id") is not None}
+            for r in rows or []:
+                parsed = submission_model._parse_submission(r)
+                if parsed.get("id") not in by_id:
+                    submissions.append(parsed)
+        except Exception:
+            pass
+
+    tracked_ids = [int(x) for x in (session.get("my_listing_ids") or []) if str(x).isdigit()]
+    tracked_props = []
+    try:
+        props = query_all(
+            """SELECT * FROM properties
+               WHERE CAST(user_id AS TEXT)=%s
+               ORDER BY created_at DESC LIMIT 100""",
+            (str(user_id),),
+        )
+        tracked_props = [prop_model.to_dict(r, public=False) for r in (props or [])]
+    except Exception:
+        tracked_props = []
+    for pid in tracked_ids:
+        try:
+            row = prop_model.get_by_id(pid)
+            if row and all(int(p.get("id") or 0) != int(pid) for p in tracked_props):
+                tracked_props.append(prop_model.to_dict(row, public=False))
+        except Exception:
+            pass
+
+    return render_template(
+        "public/my_listings.html",
+        mobile=mobile,
+        user_id=user_id,
+        submissions=submissions,
+        tracked_properties=tracked_props,
     )
 
 

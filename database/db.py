@@ -29,6 +29,29 @@ def _set_last_db_error(msg):
     _last_db_error = msg
 
 
+def _truncate(value, limit=500):
+    text = repr(value) if not isinstance(value, str) else value
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
+def _log_db_failure(op: str, sql, params, exc, *, fallback: str | None = None):
+    """Write failing SQL + Postgres/MySQL/SQLite error to logs before fallback/raise."""
+    sql_preview = _truncate(" ".join(str(sql or "").split()), 800)
+    params_preview = _truncate(params, 400)
+    extra = f" | fallback={fallback}" if fallback else ""
+    logger.error(
+        "DB %s failed: %s | sql=%s | params=%s%s",
+        op,
+        exc,
+        sql_preview,
+        params_preview,
+        extra,
+    )
+    _set_last_db_error(str(exc))
+
+
 def use_postgres():
     """True when SUPABASE_DB_URL is set and SQLite is not forced on."""
     try:
@@ -170,6 +193,21 @@ def get_connection():
         except Exception as exc:
             if os.getenv("FLASK_ENV", "").strip().lower() == "production" and not os.getenv("VERCEL"):
                 raise
+            # Explicit remote mode: never silently degrade to SQLite.
+            use_sqlite_env = os.getenv("USE_SQLITE", "0").strip().lower()
+            if use_sqlite_env in {"0", "false", "no"}:
+                try:
+                    from database.supabase_client import supabase_db_url
+
+                    if supabase_db_url():
+                        raise DatabaseUnavailableError(
+                            "Remote Postgres required (USE_SQLITE=0); refusing SQLite fallback. "
+                            f"MySQL also unavailable: {exc}"
+                        ) from exc
+                except DatabaseUnavailableError:
+                    raise
+                except Exception:
+                    pass
             global _using_sqlite
             logger.warning(
                 "MySQL unavailable at runtime; falling back to SQLite for local development."
@@ -209,7 +247,8 @@ def close_connection(_exc=None):
 def _rows_to_dict(rows):
     if not rows:
         return rows
-    if use_sqlite():
+    # Convert whenever the live backend is SQLite (including MySQL fallback).
+    if use_sqlite() or g.get("db_backend") == "sqlite":
         return [dict(r) for r in rows]
     return rows
 
@@ -224,25 +263,35 @@ def query_all(sql, params=None):
         try:
             return pg_query_all(sql, params)
         except PgUnavailable as exc:
+            _log_db_failure("query_all", sql, params, exc, fallback="raise" if not os.getenv("VERCEL") else "sqlite")
             if os.getenv("VERCEL"):
                 _force_sqlite_fallback(str(exc))
             else:
-                _set_last_db_error(str(exc))
                 raise DatabaseUnavailableError(str(exc)) from exc
+        except Exception as exc:
+            _log_db_failure("query_all", sql, params, exc)
+            raise
     sql = _adapt_sql(sql)
     try:
         conn = get_connection()
-    except DatabaseUnavailableError:
+    except DatabaseUnavailableError as exc:
+        _log_db_failure("query_all.get_connection", sql, params, exc)
         raise
-    if use_sqlite() or g.get("db_backend") == "sqlite":
-        cur = conn.cursor()
-        cur.execute(sql, params or ())
-        return _rows_to_dict(cur.fetchall())
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(sql, params or ())
-    rows = cursor.fetchall()
-    cursor.close()
-    return rows
+    try:
+        if use_sqlite() or g.get("db_backend") == "sqlite":
+            cur = conn.cursor()
+            cur.execute(sql, params or ())
+            return _rows_to_dict(cur.fetchall())
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute(sql, params or ())
+            rows = cursor.fetchall()
+        finally:
+            cursor.close()
+        return rows
+    except Exception as exc:
+        _log_db_failure("query_all", sql, params, exc)
+        raise
 
 
 def query_one(sql, params=None):
@@ -260,11 +309,14 @@ def execute(sql, params=None):
         try:
             return pg_execute(sql, params)
         except PgUnavailable as exc:
+            _log_db_failure("execute", sql, params, exc, fallback="raise" if not os.getenv("VERCEL") else "sqlite")
             if os.getenv("VERCEL"):
                 _force_sqlite_fallback(str(exc))
             else:
-                _set_last_db_error(str(exc))
                 raise DatabaseUnavailableError(str(exc)) from exc
+        except Exception as exc:
+            _log_db_failure("execute", sql, params, exc)
+            raise
     sql = _adapt_sql(sql)
     last_exc = None
     for attempt in range(4):
@@ -276,10 +328,12 @@ def execute(sql, params=None):
                 conn.commit()
                 return cur.lastrowid
             cursor = conn.cursor()
-            cursor.execute(sql, params or ())
-            conn.commit()
-            last_id = cursor.lastrowid
-            cursor.close()
+            try:
+                cursor.execute(sql, params or ())
+                conn.commit()
+                last_id = cursor.lastrowid
+            finally:
+                cursor.close()
             return last_id
         except Exception as exc:
             last_exc = exc
@@ -289,7 +343,9 @@ def execute(sql, params=None):
 
                 time.sleep(0.02 * (attempt + 1))
                 continue
+            _log_db_failure("execute", sql, params, exc)
             raise
+    _log_db_failure("execute", sql, params, last_exc, fallback="exhausted_retries")
     raise last_exc
 
 
@@ -303,22 +359,37 @@ def execute_many(sql, params_list):
         try:
             return pg_execute_many(sql, params_list)
         except PgUnavailable as exc:
+            _log_db_failure(
+                "execute_many",
+                sql,
+                f"batch_len={len(params_list or [])}",
+                exc,
+                fallback="raise" if not os.getenv("VERCEL") else "sqlite",
+            )
             if os.getenv("VERCEL"):
                 _force_sqlite_fallback(str(exc))
             else:
-                _set_last_db_error(str(exc))
                 raise DatabaseUnavailableError(str(exc)) from exc
+        except Exception as exc:
+            _log_db_failure("execute_many", sql, f"batch_len={len(params_list or [])}", exc)
+            raise
     sql = _adapt_sql(sql)
-    conn = get_connection()
-    if use_sqlite() or g.get("db_backend") == "sqlite":
-        cur = conn.cursor()
-        cur.executemany(sql, params_list)
-        conn.commit()
-        return
-    cursor = conn.cursor()
-    cursor.executemany(sql, params_list)
-    conn.commit()
-    cursor.close()
+    try:
+        conn = get_connection()
+        if use_sqlite() or g.get("db_backend") == "sqlite":
+            cur = conn.cursor()
+            cur.executemany(sql, params_list)
+            conn.commit()
+            return
+        cursor = conn.cursor()
+        try:
+            cursor.executemany(sql, params_list)
+            conn.commit()
+        finally:
+            cursor.close()
+    except Exception as exc:
+        _log_db_failure("execute_many", sql, f"batch_len={len(params_list or [])}", exc)
+        raise
 
 
 def test_connection():
@@ -336,5 +407,5 @@ def test_connection():
         conn.close()
         return ok
     except Exception as exc:
-        _set_last_db_error(str(exc))
+        _log_db_failure("test_connection", "SELECT 1 / ping", None, exc, fallback="False")
         return False

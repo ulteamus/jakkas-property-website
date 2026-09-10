@@ -40,6 +40,7 @@ def _ensure_schema():
         "seller_type": "TEXT",
         "is_active": "INTEGER DEFAULT 1",
         "approval_status": "TEXT DEFAULT 'approved'",
+        "user_id": "TEXT",
     }
     extra_mysql = {
         "owner_admin_id": "INT NULL",
@@ -50,6 +51,7 @@ def _ensure_schema():
         "seller_type": "VARCHAR(20)",
         "is_active": "TINYINT(1) DEFAULT 1",
         "approval_status": "VARCHAR(30) DEFAULT 'approved'",
+        "user_id": "VARCHAR(64) NULL",
     }
     if use_sqlite():
         cols = {str(row.get("name", "")).lower() for row in query_all("PRAGMA table_info(properties)")}
@@ -317,6 +319,9 @@ def find_duplicate(property_name, address, area_name=None, price=None, exclude_i
     return query_one(sql, params)
 
 
+PUBLIC_LISTING_STATUSES = ("available", "approved", "active")
+
+
 def search(area=None, property_type=None, min_price=None, max_price=None,
            bhk=None, status="available", keyword=None, featured_only=False,
            sort="newest", limit=100, offset=0, all_statuses=False,
@@ -326,8 +331,14 @@ def search(area=None, property_type=None, min_price=None, max_price=None,
     sql = "SELECT * FROM properties WHERE 1=1"
     params = []
     if not all_statuses and status:
-        sql += " AND status=%s"
-        params.append(status)
+        # Public feed: treat available / approved / active as live listings.
+        if status in PUBLIC_LISTING_STATUSES or status == "available":
+            placeholders = ",".join(["%s"] * len(PUBLIC_LISTING_STATUSES))
+            sql += f" AND LOWER(COALESCE(status,'')) IN ({placeholders})"
+            params.extend(PUBLIC_LISTING_STATUSES)
+        else:
+            sql += " AND status=%s"
+            params.append(status)
 
     area_filter = area or location or city
     if area_filter:
@@ -407,10 +418,14 @@ def latest(limit=8):
 
 def map_markers(public=True):
     _ensure_schema()
+    placeholders = ",".join(["%s"] * len(PUBLIC_LISTING_STATUSES))
     rows = query_all(
-        """SELECT id, property_name, area_name, price, property_type,
+        f"""SELECT id, property_name, area_name, price, property_type,
                   latitude, longitude, primary_image, slug, bhk, sq_ft
-           FROM properties WHERE status='available' AND latitude IS NOT NULL"""
+           FROM properties
+           WHERE LOWER(COALESCE(status,'')) IN ({placeholders})
+             AND latitude IS NOT NULL""",
+        PUBLIC_LISTING_STATUSES,
     )
     return to_dict_list(rows, public=public)
 
@@ -502,8 +517,8 @@ def set_status(pid, status):
 def publish_approved(pid):
     """
     Mark a listing live for the public panel.
-    Always sets status='available'. Best-effort also sets is_active / approval_status
-    when those columns exist (never fails the approve flow if they do not).
+    Sets status='available' (canonical) and best-effort approval_status='approved'.
+    Also accepts legacy 'approved'/'active' as public via search().
     """
     _ensure_schema()
     execute("UPDATE properties SET status=%s WHERE id=%s", ("available", pid))
@@ -527,11 +542,13 @@ def similar(pid, limit=4):
     if not p:
         return []
     price = float(p["price"])
+    placeholders = ",".join(["%s"] * len(PUBLIC_LISTING_STATUSES))
     return [_parse(r) for r in query_all(
-        """SELECT * FROM properties WHERE id!=%s AND status='available'
+        f"""SELECT * FROM properties WHERE id!=%s
+           AND LOWER(COALESCE(status,'')) IN ({placeholders})
            AND (area_name=%s OR property_type=%s) AND price BETWEEN %s AND %s
            ORDER BY ABS(price-%s) LIMIT %s""",
-        (pid, p["area_name"], p["property_type"], price * 0.7, price * 1.3,
+        (pid, *PUBLIC_LISTING_STATUSES, p["area_name"], p["property_type"], price * 0.7, price * 1.3,
          price, limit),
     )]
 

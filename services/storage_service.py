@@ -218,12 +218,20 @@ def _cloudinary_save(file_storage: FileStorage, property_id, media_type: str, ex
     return url
 
 
+def _forbid_ephemeral_disk() -> bool:
+    """Vercel / explicit supabase backend must never write ephemeral container disk."""
+    if storage_backend_preference() == "supabase":
+        return True
+    return bool((os.getenv("VERCEL") or "").strip())
+
+
 def save_media(file_storage, property_id, media_type, allowed) -> str | None:
     """
     Persist an uploaded file.
 
     Backend order (unless STORAGE_BACKEND forces one):
     Supabase Storage (CDN public URL) → Cloudinary → local disk.
+    On Vercel or STORAGE_BACKEND=supabase, local disk is forbidden.
     """
     if not file_storage or not getattr(file_storage, "filename", None):
         return None
@@ -236,6 +244,10 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
 
     pref = storage_backend_preference()
     if pref == "local":
+        if _forbid_ephemeral_disk():
+            raise RuntimeError(
+                "Local disk storage is disabled on Vercel; configure Supabase Storage."
+            )
         return _local_save(file_storage, property_id, media_type, ext)
 
     if _use_supabase_storage():
@@ -248,7 +260,7 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
                 )
             except Exception:
                 pass
-            if pref == "supabase":
+            if pref == "supabase" or _forbid_ephemeral_disk():
                 raise
 
     if _use_cloudinary_storage():
@@ -261,9 +273,13 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
                 )
             except Exception:
                 pass
-            if pref == "cloudinary":
+            if pref == "cloudinary" or _forbid_ephemeral_disk():
                 raise
 
+    if _forbid_ephemeral_disk():
+        raise RuntimeError(
+            "No cloud storage backend available; refusing ephemeral local upload."
+        )
     return _local_save(file_storage, property_id, media_type, ext)
 
 

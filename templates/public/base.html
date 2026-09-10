@@ -40,6 +40,7 @@
           <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.about' %}active{% endif %}" href="{{ url_for('public.about') }}">About Us</a></li>
           <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.testimonials' %}active{% endif %}" href="{{ url_for('public.testimonials') }}">Testimonials</a></li>
           <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.contact' %}active{% endif %}" href="{{ url_for('public.contact') }}">Contact Us</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.my_listings' %}active{% endif %}" href="{{ url_for('public.my_listings') }}">My Listings</a></li>
         </ul>
 
         <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-lg-center gap-2 mt-3 mt-lg-0 ms-lg-auto header-actions">

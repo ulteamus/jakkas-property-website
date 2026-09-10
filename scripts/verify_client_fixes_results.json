@@ -1,0 +1,75 @@
+{
+  "contact_copy": true,
+  "sell_property_submit": {
+    "ok": true,
+    "status": 302,
+    "property_id": 7,
+    "prop_status": "reserved",
+    "danger": [],
+    "success": [
+      "Property submitted successfully! Our team will review and approve it shortly."
+    ]
+  },
+  "approve_publish": {
+    "ok": true,
+    "status": "available",
+    "is_active": 1,
+    "listed_in_api": true
+  },
+  "testimonials": {
+    "ok": true,
+    "review_id": 4,
+    "in_feed": true,
+    "home_contains": true
+  },
+  "smoke": {
+    "ok": true,
+    "cases": [
+      {
+        "path": "/",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/properties",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/contact",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/about",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/static/uploads/hero-fallback.jpg",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/admin/login",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/login",
+        "status": 404,
+        "ok": true
+      },
+      {
+        "path": "/my-listings",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "path": "/api/properties",
+        "status": 200,
+        "ok": true
+      }
+    ]
+  }
+}

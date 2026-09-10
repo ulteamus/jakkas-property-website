@@ -83,6 +83,44 @@
       <input type="file" class="form-control" id="adminDocsInput" name="documents" multiple accept=".pdf">
       <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
     </div>
+    {% set existing_images = (media.images if media else []) or (property.images if property and property.images else []) or [] %}
+    {% set existing_videos = (media.videos if media else []) or (property.videos if property and property.videos else []) or [] %}
+    {% if property and (existing_images or existing_videos or property.primary_image) %}
+    <div class="col-12">
+      <label class="form-label fw-semibold">Existing Gallery</label>
+      <div class="admin-media-grid row g-2">
+        {% if property.primary_image and not existing_images %}
+        <div class="col-6 col-md-3 col-lg-2">
+          <a href="{{ media_url(property.primary_image) }}" target="_blank" rel="noopener">
+            <img src="{{ media_url(property.primary_image) }}" alt="Primary image" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+          </a>
+        </div>
+        {% endif %}
+        {% for img in existing_images %}
+        {% set img_path = img.file_path if img.file_path is defined else img %}
+        <div class="col-6 col-md-3 col-lg-2">
+          <a href="{{ media_url(img_path) }}" target="_blank" rel="noopener">
+            <img src="{{ media_url(img_path) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      {% if existing_videos %}
+      <div class="row g-3 mt-2">
+        {% for vid in existing_videos %}
+        {% set vid_path = vid.file_path if vid.file_path is defined else vid %}
+        <div class="col-12 col-md-6 col-lg-4">
+          {% if vid_path and (vid_path.startswith('http://') or vid_path.startswith('https://')) and ('youtube' in vid_path or 'youtu.be' in vid_path or 'vimeo' in vid_path) %}
+          <a class="btn btn-outline-primary" href="{{ vid_path }}" target="_blank" rel="noopener">Open video</a>
+          {% else %}
+          <video controls preload="metadata" class="w-100 rounded border" style="max-height:240px;background:#111;" src="{{ media_url(vid_path) }}"></video>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   <button class="btn btn-jk-accent mt-3">Save Property</button>
 </form>

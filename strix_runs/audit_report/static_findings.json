@@ -1,0 +1,24 @@
+{
+  "tool": "strix-agent (blocked) + manual static audit + stress harness",
+  "scan_date": "2026-08-30",
+  "target": "C:\\Users\\asw\\jakkas-property-website",
+  "strix_cli": {
+    "status": "failed",
+    "reason": "Docker daemon not available (RuntimeError: Docker not available)",
+    "log": "strix_runs/audit_report/strix_cli.log"
+  },
+  "stress_harness": {
+    "status": "PASS",
+    "workers": 56,
+    "requests_per_iteration": 81,
+    "unhandled_500_rate": "0.0%",
+    "report": "strix_runs/latest/stress_report.json"
+  },
+  "severity_summary": {
+    "critical": 1,
+    "high": 2,
+    "medium": 6,
+    "low": 5,
+    "info": 4
+  }
+}

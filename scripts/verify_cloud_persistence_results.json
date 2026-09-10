@@ -1,0 +1,41 @@
+{
+  "ran_at": "2026-08-30T19:47:49.500802+00:00",
+  "base": "https://jakkas-property-website.vercel.app",
+  "checks": {
+    "api_properties": {
+      "ok": true,
+      "status": 200,
+      "count": 6
+    },
+    "api_inquiry": {
+      "ok": true,
+      "status": 200,
+      "response": {
+        "message": "Inquiry submitted. We will contact you soon.",
+        "success": true
+      },
+      "db": {
+        "checked": true,
+        "found": true,
+        "id": 30
+      },
+      "marker": "cloud-verify-92185cc503"
+    },
+    "api_reviews": {
+      "ok": true,
+      "post_status": 200,
+      "post_response": {
+        "message": "Thanks! Your review has been posted.",
+        "success": true
+      },
+      "home_status": 200,
+      "testimonials_status": 200,
+      "visible_after_get": true,
+      "review_text": "Cloud review persistence 92185cc503"
+    }
+  },
+  "csrf": {
+    "present": true
+  },
+  "ok": true
+}

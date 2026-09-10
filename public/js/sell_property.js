@@ -190,7 +190,7 @@
 
   areaValueInput?.addEventListener('input', updateAreaSqFt);
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     updateAreaSqFt();
     syncSubmitterFields();
 
@@ -211,6 +211,55 @@
       e.preventDefault();
       expectedInput?.focus();
       alert('Please enter your expected price.');
+      return;
+    }
+
+    e.preventDefault();
+    const submitBtn = form.querySelector('[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+    }
+    try {
+      const fd = new FormData(form);
+      const res = await fetch(form.action || window.location.pathname, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      // Treat any 2xx (response.ok) including 200/201 as success.
+      let payload = null;
+      try {
+        payload = await res.json();
+      } catch (_) {
+        payload = null;
+      }
+      const ok =
+        res.ok ||
+        res.status === 200 ||
+        res.status === 201 ||
+        (payload && (payload.success === true || payload.status === 'success'));
+      if (ok) {
+        form.reset();
+        syncListingIntent();
+        syncSubmitterFields();
+        syncPropertyType();
+        updateAreaSqFt();
+        const msg =
+          (payload && (payload.message || payload.error)) ||
+          'Property submitted successfully! Our team will review and approve it shortly.';
+        alert(msg);
+        window.location.href = '/my-listings';
+        return;
+      }
+      const err =
+        (payload && (payload.error || payload.message)) ||
+        'Unable to submit property right now. Please try again.';
+      alert(err);
+    } catch (_) {
+      alert('Unable to submit property right now. Please try again.');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 

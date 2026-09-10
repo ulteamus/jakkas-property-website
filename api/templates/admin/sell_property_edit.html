@@ -34,14 +34,22 @@
     {% if preview_images or preview_videos %}
     <div class="col-12">
       <label class="form-label">Uploaded Media</label>
-      <div class="d-flex flex-wrap gap-2 align-items-start">
+      <div class="row g-2 admin-media-grid">
         {% for img in preview_images %}
-        <img src="{{ media_url(img) }}" alt="Property image" class="rounded border" style="width: 120px; height: 90px; object-fit: cover;">
-        {% endfor %}
-        {% for vid in preview_videos %}
-        <video controls preload="metadata" class="rounded border" style="width: 180px; height: 120px; object-fit: cover;" src="{{ media_url(vid) }}"></video>
+        <div class="col-6 col-md-3 col-lg-2">
+          <img src="{{ media_url(img) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+        </div>
         {% endfor %}
       </div>
+      {% if preview_videos %}
+      <div class="row g-3 mt-1">
+        {% for vid in preview_videos %}
+        <div class="col-12 col-md-6">
+          <video controls preload="metadata" class="w-100 rounded border" style="max-height:260px;background:#111;" src="{{ media_url(vid) }}"></video>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
     {% endif %}
     <div class="col-md-8">

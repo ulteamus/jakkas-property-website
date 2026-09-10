@@ -2087,6 +2087,31 @@ TEMPLATES = {
       <input type="file" class="form-control" id="adminDocsInput" name="documents" multiple accept=".pdf">
       <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
     </div>
+    {% set existing_images = (media.images if media else []) or [] %}
+    {% set existing_videos = (media.videos if media else []) or [] %}
+    {% if property and (existing_images or existing_videos) %}
+    <div class="col-12">
+      <label class="form-label fw-semibold">Existing Gallery</label>
+      <div class="admin-media-grid row g-2">
+        {% for img in existing_images %}
+        <div class="col-6 col-md-3 col-lg-2">
+          <a href="{{ media_url(img.file_path) }}" target="_blank" rel="noopener">
+            <img src="{{ media_url(img.file_path) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      {% if existing_videos %}
+      <div class="row g-3 mt-2">
+        {% for vid in existing_videos %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <video controls preload="metadata" class="w-100 rounded border" style="max-height:240px;background:#111;" src="{{ media_url(vid.file_path) }}"></video>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   <button class="btn btn-jk-accent mt-3">Save Property</button>
 </form>
@@ -2526,14 +2551,22 @@ TEMPLATES = {
     {% if preview_images or preview_videos %}
     <div class="col-12">
       <label class="form-label">Uploaded Media</label>
-      <div class="d-flex flex-wrap gap-2 align-items-start">
+      <div class="row g-2 admin-media-grid">
         {% for img in preview_images %}
-        <img src="{{ media_url(img) }}" alt="Property image" class="rounded border" style="width: 120px; height: 90px; object-fit: cover;">
-        {% endfor %}
-        {% for vid in preview_videos %}
-        <video controls preload="metadata" class="rounded border" style="width: 180px; height: 120px; object-fit: cover;" src="{{ media_url(vid) }}"></video>
+        <div class="col-6 col-md-3 col-lg-2">
+          <img src="{{ media_url(img) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+        </div>
         {% endfor %}
       </div>
+      {% if preview_videos %}
+      <div class="row g-3 mt-1">
+        {% for vid in preview_videos %}
+        <div class="col-12 col-md-6">
+          <video controls preload="metadata" class="w-100 rounded border" style="max-height:260px;background:#111;" src="{{ media_url(vid) }}"></video>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
     {% endif %}
     <div class="col-md-8">
@@ -3462,13 +3495,17 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% block title %}About Us - {{ company_name }}{% endblock %}
 {% block extra_css %}
 <style>
-  /* Page-local only: keep leadership photo + copy stacked (do not edit global CSS). */
+  /* Page-local: symmetric founder cards — stacked photo+copy, equal height on desktop. */
+  #leadership .leadership-row {
+    align-items: stretch;
+  }
   #leadership .leadership-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 0.75rem;
+    height: 100%;
     overflow: visible;
     position: relative;
     opacity: 1 !important;
@@ -3490,12 +3527,21 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center top;
     display: block;
   }
   #leadership .leadership-copy {
     width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
     position: relative;
     z-index: 1;
+  }
+  @media (max-width: 767.98px) {
+    #leadership .leadership-row > [class*="col-"] + [class*="col-"] {
+      margin-top: 0.5rem;
+    }
   }
 </style>
 {% endblock %}
@@ -3543,10 +3589,10 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
         <div class="founder-photo-wrap">
           <img
-            src="{{ url_for('static', filename='images/team/co-founder.jpg') }}"
+            src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}"
             alt="Co-Founder - JAKKASH Property Consultancy"
             class="founder-photo"
-            onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/founder-photo.webp') }}';"
+            onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';"
           >
         </div>
         <div class="leadership-copy">
@@ -3690,6 +3736,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
           <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.about' %}active{% endif %}" href="{{ url_for('public.about') }}">About Us</a></li>
           <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.testimonials' %}active{% endif %}" href="{{ url_for('public.testimonials') }}">Testimonials</a></li>
           <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.contact' %}active{% endif %}" href="{{ url_for('public.contact') }}">Contact Us</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint == 'public.my_listings' %}active{% endif %}" href="{{ url_for('public.my_listings') }}">My Listings</a></li>
         </ul>
 
         <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-lg-center gap-2 mt-3 mt-lg-0 ms-lg-auto header-actions">
@@ -3931,12 +3978,18 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% endblock %}
 """,
     "public/contact.html": """{% extends "public/base.html" %}
-{% block title %}{% if intent == 'visit' %}Request Site Visit{% else %}Contact Us{% endif %} - {{ company_name }}{% endblock %}
+{% block title %}Contact Us - {{ company_name }}{% endblock %}
 {% block content %}
 <div class="container py-5 jk-flow">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('public.home') }}">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Contact Us</li>
+    </ol>
+  </nav>
   <div class="row g-5">
     <div class="col-lg-6 reveal-on-scroll">
-      <h1 class="section-title">{% if intent == 'visit' %}Request Site Visit{% else %}Contact Us{% endif %}</h1>
+      <h1 class="section-title">Contact Us</h1>
       <p class="mb-1"><strong>{{ company_name }}</strong></p>
       <p class="mb-1"><i class="bi bi-geo-alt text-warning"></i> {{ company_address }}</p>
       <p class="mb-1"><i class="bi bi-telephone"></i> Mobile: <a href="tel:{{ company_phone_raw }}">{{ company_phone }}</a></p>
@@ -3953,14 +4006,14 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <form id="contactForm" class="mt-4 content-card">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% if linked_property %}<input type="hidden" name="property_id" value="{{ linked_property.id }}">{% endif %}
-        <input type="hidden" name="source" value="{{ 'site_visit_request' if intent == 'visit' else 'contact_form' }}">
-        <div class="mb-3"><input class="form-control" name="name" id="contactNameInput" placeholder="Name *" required autofocus></div>
+        <input type="hidden" name="source" value="contact_form">
+        <div class="mb-3"><input class="form-control" name="name" id="contactNameInput" placeholder="Your Name *" required autofocus></div>
         <div class="mb-3"><input class="form-control" name="mobile" placeholder="Mobile *" required></div>
         <div class="mb-3"><input class="form-control" name="email" type="email" placeholder="Email *" required></div>
         <div class="mb-3">
-          <textarea class="form-control" name="message" rows="4" placeholder="{% if intent == 'visit' %}Preferred visit date / time and notes{% else %}Your message{% endif %}">{% if linked_property and intent == 'visit' %}I would like to schedule a site visit for {{ linked_property.property_name }}.{% elif linked_property %}Inquiry about {{ linked_property.property_name }}.{% endif %}</textarea>
+          <textarea class="form-control" name="message" rows="4" placeholder="Your message">{% if linked_property %}Inquiry about {{ linked_property.property_name }}.{% endif %}</textarea>
         </div>
-        <button class="btn btn-jk-accent">{% if intent == 'visit' %}Submit Visit Request{% else %}Send Message{% endif %}</button>
+        <button class="btn btn-jk-accent" type="submit"><i class="bi bi-send"></i> Send Inquiry</button>
       </form>
     </div>
     <div class="col-lg-6 reveal-on-scroll">
@@ -4274,7 +4327,7 @@ document.getElementById('contactNameInput')?.focus();
       </div>
       <div class="col-12 col-md-6">
         <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-          <img src="{{ url_for('static', filename='img/company-logo-mark.webp') }}" alt="Co-Founder" class="founder-photo">
+          <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
           <p class="founder-label mb-1">Co-Founder</p>
           <h4 class="founder-name">JAKKASH Leadership</h4>
           <blockquote class="about-quote-card mb-3"><p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p></blockquote>
@@ -4537,6 +4590,90 @@ document.getElementById('contactNameInput')?.focus();
 </div>
 {% endblock %}
 {% block extra_js %}<script src="{{ url_for('static', filename='js/map.js') }}"></script>{% endblock %}
+""",
+    "public/my_listings.html": """{% extends "public/base.html" %}
+{% block title %}My Listings - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="container py-5 jk-flow">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('public.home') }}">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">My Listings</li>
+    </ol>
+  </nav>
+  <h1 class="section-title">My Listings</h1>
+  <p class="text-muted">Track pending, approved, and rejected property submissions.</p>
+
+  <form method="POST" class="row g-2 align-items-end content-card mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-6">
+      <label class="form-label" for="myListingsMobile">Owner mobile</label>
+      <input class="form-control" id="myListingsMobile" name="mobile" value="{{ mobile or '' }}" placeholder="10-digit mobile used on Sell form" required>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-jk-accent w-100" type="submit">View My Listings</button>
+    </div>
+  </form>
+
+  {% if submissions %}
+  <div class="table-responsive content-card">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Price</th>
+          <th>Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in submissions %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ s.property_title }}</div>
+            <div class="small text-muted">{{ s.location_area or s.city }} · {{ s.property_type }}</div>
+          </td>
+          <td>
+            {% set st = (s.status or 'pending')|lower %}
+            <span class="badge {% if st == 'approved' %}text-bg-success{% elif st == 'rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
+              {{ st|title }}
+            </span>
+          </td>
+          <td>₹{{ "{:,.0f}".format(s.price or 0) }}</td>
+          <td class="small text-muted">{{ s.created_at }}</td>
+          <td>
+            {% if s.property_slug and st == 'approved' %}
+            <a class="btn btn-sm btn-jk-outline" href="{{ url_for('public.property_detail', slug=s.property_slug) }}">View</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif mobile %}
+  <p class="text-muted">No submissions found for that mobile number.</p>
+  {% endif %}
+
+  {% if tracked_properties %}
+  <h2 class="section-title mt-5">This session</h2>
+  <div class="row g-3">
+    {% for p in tracked_properties %}
+    <div class="col-md-6 col-lg-4">
+      <article class="content-card h-100 p-3">
+        <div class="fw-semibold">{{ p.property_name }}</div>
+        <div class="small text-muted mb-2">{{ p.area_name }} · {{ p.status }}</div>
+        {% if p.slug and (p.status or '')|lower in ['available','approved','active'] %}
+        <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-outline">Open listing</a>
+        {% endif %}
+      </article>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
 """,
     "public/price_ai.html": """{% extends "public/base.html" %}
 {% block title %}Price AI - {{ company_name }}{% endblock %}

@@ -78,7 +78,7 @@ def edit_property(property_id):
         _handle_image_upload(request, property_id)
         flash("Property updated.", "success")
         return redirect(url_for("admin.properties_list"))
-    return render_template("admin/property_form.html", property=prop)
+    return render_template("admin/property_form.html", property=prop, media=property_model.get_media(property_id))
 
 
 @admin_bp.route("/properties/<int:property_id>/delete", methods=["POST"])

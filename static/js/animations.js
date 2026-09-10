@@ -128,8 +128,9 @@
   function autoApplyScrollReveal(root = document) {
     root.querySelectorAll(autoRevealSelectors).forEach((el) => {
       if (el.classList.contains("scroll-reveal") || isExcluded(el)) return;
-      const staggerRoot = el.closest(".scroll-reveal-stagger");
-      if (staggerRoot && Array.from(staggerRoot.children).includes(el)) return;
+      // Skip anything under a stagger row — parent children are revealed as a unit.
+      // Nested .testimonial-card otherwise get opacity:0 and are never observed.
+      if (el.closest(".scroll-reveal-stagger")) return;
       el.classList.add("scroll-reveal");
     });
   }

@@ -128,17 +128,29 @@ def list_visits(limit=250, start_date=None, end_date=None):
         params.append(end_date)
     sql += " ORDER BY v.visit_date DESC, v.created_at DESC LIMIT %s"
     params.append(max(1, min(int(limit or 250), 1000)))
-    rows = [_parse_visit(r) for r in query_all(sql, params)]
-    _attach_extra_property_names(rows)
-    return rows
+    try:
+        rows = [_parse_visit(r) for r in (query_all(sql, params) or [])]
+        _attach_extra_property_names(rows)
+        return rows
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).warning("list_visits failed (returning []): %s", exc)
+        return []
 
 
 def get_visit(visit_id):
     _ensure_schema()
-    row = _parse_visit(query_one(_base_query() + " WHERE v.id=%s", (visit_id,)))
-    if row:
-        _attach_extra_property_names([row])
-    return row
+    try:
+        row = _parse_visit(query_one(_base_query() + " WHERE v.id=%s", (visit_id,)))
+        if row:
+            _attach_extra_property_names([row])
+        return row
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).warning("get_visit failed: %s", exc)
+        return None
 
 
 def _attach_extra_property_names(rows):

@@ -101,8 +101,8 @@ def postgres_configured() -> bool:
                 mask_db_url(url),
             )
         return False
-    if _pg_pool_failed:
-        return False
+    # Keep configured=True even after a pool failure so local USE_SQLITE=0
+    # fails loudly instead of silently falling back to SQLite/MySQL.
     return True
 
 

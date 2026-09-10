@@ -1,11 +1,14 @@
 import os
 import re
+import time
+import traceback
+import uuid
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory, session
+from flask import Flask, g, jsonify, request, send_from_directory, session
 from flask_wtf.csrf import CSRFError
 from jinja2 import ChoiceLoader
-import uuid
+from werkzeug.exceptions import HTTPException
 
 from config import (
     Config,
@@ -23,10 +26,12 @@ from config import (
 from extensions import login_manager, csrf
 from database import close_connection, test_connection
 from models.admin import Admin
+from utils.logger import setup_logging
 
 
 def create_app():
     resolve_secret_key()
+    logger = setup_logging()
     root = Path(__file__).resolve().parent
     api_root = root / "api"
     if (api_root / "templates").exists():
@@ -111,6 +116,91 @@ def create_app():
             session["session_id"] = str(uuid.uuid4())
         if "visitor_id" not in session:
             session["visitor_id"] = str(uuid.uuid4())
+
+    @app.before_request
+    def log_request_start():
+        g._request_started_at = time.perf_counter()
+        path = request.path or ""
+        if path.startswith("/static/") or path.startswith("/uploads/"):
+            g._skip_request_log = True
+            return
+        g._skip_request_log = False
+        logger.info(
+            "REQ %s %s ip=%s",
+            request.method,
+            request.url,
+            request.headers.get("X-Forwarded-For", request.remote_addr),
+        )
+
+    @app.after_request
+    def log_request_end(response):
+        if getattr(g, "_skip_request_log", False):
+            return response
+        started = getattr(g, "_request_started_at", None)
+        elapsed_ms = (
+            round((time.perf_counter() - started) * 1000, 1) if started is not None else -1
+        )
+        logger.info(
+            "RES %s %s status=%s duration_ms=%s ip=%s",
+            request.method,
+            request.path,
+            response.status_code,
+            elapsed_ms,
+            request.headers.get("X-Forwarded-For", request.remote_addr),
+        )
+        return response
+
+    def _safe_request_headers():
+        redact = {"authorization", "cookie", "x-csrf-token", "x-api-key"}
+        out = {}
+        for key, value in request.headers.items():
+            if key.lower() in redact:
+                out[key] = "[redacted]"
+            else:
+                out[key] = value
+        return out
+
+    def _safe_session_snapshot():
+        try:
+            data = dict(session)
+        except Exception:
+            return {}
+        redact_keys = {"password", "token", "csrf_token", "otp", "secret"}
+        return {
+            k: ("[redacted]" if any(r in str(k).lower() for r in redact_keys) else v)
+            for k, v in data.items()
+        }
+
+    @app.errorhandler(Exception)
+    def handle_unhandled_exception(exc):
+        if isinstance(exc, HTTPException):
+            return exc
+        tb = traceback.format_exc()
+        logger.error(
+            "Unhandled exception on %s %s\n"
+            "ip=%s\nheaders=%s\nsession=%s\n%s",
+            request.method,
+            request.url,
+            request.headers.get("X-Forwarded-For", request.remote_addr),
+            _safe_request_headers(),
+            _safe_session_snapshot(),
+            tb,
+        )
+        wants_json = (
+            request.path.startswith("/api/")
+            or request.accept_mimetypes.best == "application/json"
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        )
+        if wants_json:
+            return jsonify({"success": False, "error": "Internal server error."}), 500
+        return (
+            "<!doctype html><html><head><title>Error</title></head>"
+            "<body><h1>Something went wrong</h1>"
+            "<p>An unexpected error occurred. Please try again later.</p>"
+            "</body></html>",
+            500,
+            {"Content-Type": "text/html; charset=utf-8"},
+        )
 
     def _normalize_upload_relpath(filename):
         name = (filename or "").replace("\\", "/").lstrip("/")
@@ -220,9 +310,16 @@ app = create_app()
 if __name__ == "__main__":
     application = app
     debug_enabled = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
+    # Windows + debug reloader doubles processes and can OOM (MemoryError on template/session).
+    use_reloader = os.getenv("FLASK_USE_RELOADER", "0").strip().lower() in {"1", "true", "yes", "on"}
     host = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
     try:
         port = int(os.getenv("FLASK_RUN_PORT", "5000"))
     except (TypeError, ValueError):
         port = 5000
-    application.run(debug=debug_enabled, host=host, port=port)
+    application.run(
+        debug=debug_enabled,
+        use_reloader=use_reloader,
+        host=host,
+        port=port,
+    )

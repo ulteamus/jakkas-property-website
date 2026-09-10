@@ -1,0 +1,84 @@
+{% extends "public/base.html" %}
+{% block title %}My Listings - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="container py-5 jk-flow">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('public.home') }}">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">My Listings</li>
+    </ol>
+  </nav>
+  <h1 class="section-title">My Listings</h1>
+  <p class="text-muted">Track pending, approved, and rejected property submissions.</p>
+  {% if user_id %}<p class="small text-muted mb-3">Session user id: <code>{{ user_id }}</code></p>{% endif %}
+
+  <form method="POST" class="row g-2 align-items-end content-card mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-6">
+      <label class="form-label" for="myListingsMobile">Owner mobile</label>
+      <input class="form-control" id="myListingsMobile" name="mobile" value="{{ mobile or '' }}" placeholder="10-digit mobile used on Sell form" required>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-jk-accent w-100" type="submit">View My Listings</button>
+    </div>
+  </form>
+
+  {% if submissions %}
+  <div class="table-responsive content-card">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Price</th>
+          <th>Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in submissions %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ s.property_title }}</div>
+            <div class="small text-muted">{{ s.location_area or s.city }} · {{ s.property_type }}</div>
+          </td>
+          <td>
+            {% set st = (s.status or 'pending')|lower %}
+            <span class="badge {% if st == 'approved' %}text-bg-success{% elif st == 'rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
+              {{ st|title }}
+            </span>
+          </td>
+          <td>₹{{ "{:,.0f}".format(s.price or 0) }}</td>
+          <td class="small text-muted">{{ s.created_at }}</td>
+          <td>
+            {% if s.property_slug and st == 'approved' %}
+            <a class="btn btn-sm btn-jk-outline" href="{{ url_for('public.property_detail', slug=s.property_slug) }}">View</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif mobile %}
+  <p class="text-muted">No submissions found for that mobile number.</p>
+  {% endif %}
+
+  {% if tracked_properties %}
+  <h2 class="section-title mt-5">This session</h2>
+  <div class="row g-3">
+    {% for p in tracked_properties %}
+    <div class="col-md-6 col-lg-4">
+      <article class="content-card h-100 p-3">
+        <div class="fw-semibold">{{ p.property_name }}</div>
+        <div class="small text-muted mb-2">{{ p.area_name }} · {{ p.status }}</div>
+        {% if p.slug and (p.status or '')|lower in ['available','approved','active'] %}
+        <a href="{{ url_for('public.property_detail', slug=p.slug) }}" class="btn btn-sm btn-jk-outline">Open listing</a>
+        {% endif %}
+      </article>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -75,22 +75,53 @@ def record_search(area=None, property_type=None, min_budget=None, max_budget=Non
 
 
 def dashboard_stats():
-    """Single round-trip aggregation for admin/home KPI cards."""
-    row = query_one(
-        """SELECT
-             (SELECT COUNT(*) FROM properties) AS total_properties,
-             (SELECT COUNT(*) FROM properties WHERE status='available') AS available_properties,
-             (SELECT COUNT(*) FROM properties WHERE status='sold') AS sold_properties,
-             (SELECT COUNT(*) FROM visitors) AS total_visitors,
-             (SELECT COUNT(*) FROM visitors WHERE visit_count>1) AS returning_visitors,
-             (SELECT COUNT(*) FROM property_views) AS property_views,
-             (SELECT COUNT(*) FROM inquiries) AS total_inquiries,
-             (SELECT COUNT(*) FROM leads) AS lead_total,
-             (SELECT COUNT(*) FROM leads WHERE status='new') AS lead_new,
-             (SELECT COUNT(*) FROM leads WHERE lead_tier='hot') AS lead_hot,
-             (SELECT COUNT(*) FROM leads WHERE is_urgent=1) AS lead_urgent
-        """
-    ) or {}
+    """Single round-trip aggregation for admin/home KPI cards.
+
+    Tolerant of partial cloud schemas: missing analytics tables return zeros
+    instead of crashing the admin dashboard.
+    """
+    empty = {
+        "total_properties": 0,
+        "available_properties": 0,
+        "sold_properties": 0,
+        "total_visitors": 0,
+        "returning_visitors": 0,
+        "property_views": 0,
+        "total_inquiries": 0,
+        "total": 0,
+        "new": 0,
+        "hot": 0,
+        "urgent": 0,
+        "conversion_rate": 0,
+    }
+    try:
+        row = query_one(
+            """SELECT
+                 (SELECT COUNT(*) FROM properties) AS total_properties,
+                 (SELECT COUNT(*) FROM properties WHERE status='available') AS available_properties,
+                 (SELECT COUNT(*) FROM properties WHERE status='sold') AS sold_properties,
+                 (SELECT COUNT(*) FROM visitors) AS total_visitors,
+                 (SELECT COUNT(*) FROM visitors WHERE visit_count>1) AS returning_visitors,
+                 (SELECT COUNT(*) FROM property_views) AS property_views,
+                 (SELECT COUNT(*) FROM inquiries) AS total_inquiries,
+                 (SELECT COUNT(*) FROM leads) AS lead_total,
+                 (SELECT COUNT(*) FROM leads WHERE status='new') AS lead_new,
+                 (SELECT COUNT(*) FROM leads WHERE lead_tier='hot') AS lead_hot,
+                 (SELECT COUNT(*) FROM leads WHERE is_urgent IS TRUE OR CAST(is_urgent AS INTEGER)=1) AS lead_urgent
+            """
+        ) or {}
+    except Exception:
+        try:
+            row = query_one(
+                """SELECT
+                     (SELECT COUNT(*) FROM properties) AS total_properties,
+                     (SELECT COUNT(*) FROM properties WHERE status='available') AS available_properties,
+                     (SELECT COUNT(*) FROM properties WHERE status='sold') AS sold_properties,
+                     (SELECT COUNT(*) FROM inquiries) AS total_inquiries
+                """
+            ) or {}
+        except Exception:
+            return empty
     total_visitors = int(row.get("total_visitors") or 0)
     lead_total = int(row.get("lead_total") or 0)
     return {
@@ -131,10 +162,13 @@ def home_kpi_counts():
 
 
 def trending_areas(limit=8):
-    return query_all(
-        "SELECT * FROM area_demand ORDER BY demand_score DESC, search_count DESC LIMIT %s",
-        (limit,),
-    )
+    try:
+        return query_all(
+            "SELECT * FROM area_demand ORDER BY demand_score DESC, search_count DESC LIMIT %s",
+            (limit,),
+        ) or []
+    except Exception:
+        return []
 
 
 def most_viewed_properties(limit=10):

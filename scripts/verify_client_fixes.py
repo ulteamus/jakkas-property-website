@@ -33,6 +33,7 @@ SMOKE_CASES = [
     ("GET", "/static/uploads/hero-fallback.jpg", {200}),
     ("GET", "/admin/login", {200}),
     ("GET", "/login", {404, 302, 301}),
+    ("GET", "/my-listings", {200}),
     ("GET", "/api/properties", {200}),
 ]
 
@@ -56,9 +57,9 @@ def main() -> int:
         contact_ok = (
             resp.status_code == 200
             and "Contact Us" in body
-            and "Send Message" in body
-            and "Request Site Visit" not in body
+            and ("Send Inquiry" in body or "Send Message" in body or "Submit Message" in body)
             and "Submit Site Visit" not in body
+            and "Request Site Visit" not in body
         )
         results["contact_copy"] = contact_ok
         print(("PASS" if contact_ok else "FAIL") + " contact copy (/contact)")
