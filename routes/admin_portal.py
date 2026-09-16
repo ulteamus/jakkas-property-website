@@ -29,9 +29,46 @@ from utils.pdf_export import (
     generate_leads_list_pdf,
     generate_single_lead_pdf,
 )
+from services import india_property_predictor
 from utils.helpers import save_upload
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+ADMIN_CITY_OPTIONS = [
+    "Surat",
+    "Ahmedabad",
+    "Vadodara",
+    "Rajkot",
+    "Bhavnagar",
+    "Gandhinagar",
+    "Bharuch",
+    "Navsari",
+    "Vapi",
+    "Anand",
+    "Valsad",
+    "Morbi",
+]
+
+ADMIN_AMENITIES = [
+    "Parking",
+    "Lift",
+    "Security",
+    "Power Backup",
+    "Garden",
+    "Gym",
+    "Swimming Pool",
+    "Club House",
+    "CCTV",
+    "Water Supply",
+]
+
+# UI label → DB status (reserved = pending approval)
+ADMIN_STATUS_OPTIONS = [
+    ("available", "Available"),
+    ("reserved", "Pending"),
+    ("approved", "Approved"),
+    ("sold", "Sold"),
+]
 
 
 def _owner_scope_admin_id():
@@ -376,19 +413,35 @@ def property_form(pid=None):
         _ensure_property_owner(prop)
         prop = prop_model.to_dict(prop, public=False)
 
+    def _form_context(property_row, media_bundle=None):
+        areas = prop_model.areas_list()
+        media = media_bundle or (
+            prop_model.get_media(pid) if pid else {"images": [], "videos": [], "documents": []}
+        )
+        submission = None
+        if pid:
+            submission = submission_model.latest_for_property_ids([pid]).get(pid)
+        return dict(
+            property=property_row,
+            types=PROPERTY_TYPES,
+            areas=areas,
+            media=media,
+            submission=submission,
+            city_options=ADMIN_CITY_OPTIONS,
+            surat_localities=india_property_predictor.list_surat_localities(),
+            amenity_options=ADMIN_AMENITIES,
+            status_options=ADMIN_STATUS_OPTIONS,
+        )
+
     if request.method == "POST":
         try:
             data = _form_property(request.form)
         except ValueError as exc:
             flash(str(exc), "danger")
-            areas = prop_model.areas_list()
             media = prop_model.get_media(pid) if pid else {"images": [], "videos": [], "documents": []}
             return render_template(
                 "admin/property_form.html",
-                property=prop,
-                types=PROPERTY_TYPES,
-                areas=areas,
-                media=media,
+                **_form_context(prop, media),
             )
         previous_status = (prop or {}).get("status")
         duplicate = prop_model.find_duplicate(
@@ -451,15 +504,30 @@ def property_form(pid=None):
                 pass
             flash("Property added.", "success")
         return redirect(url_for("admin.properties"))
-    areas = prop_model.areas_list()
-    media = prop_model.get_media(pid) if pid else {"images": [], "videos": [], "documents": []}
-    return render_template(
-        "admin/property_form.html",
-        property=prop,
-        types=PROPERTY_TYPES,
-        areas=areas,
-        media=media,
-    )
+    return render_template("admin/property_form.html", **_form_context(prop))
+
+
+@admin_bp.route("/properties/<int:pid>/images/<int:image_id>/delete", methods=["POST"])
+@permission_required("manage_properties")
+def delete_property_image(pid, image_id):
+    prop = prop_model.get_by_id(pid)
+    _ensure_property_owner(prop)
+    deleted = prop_model.delete_image(pid, image_id)
+    if deleted:
+        try:
+            _log_admin_action(
+                "property_image_deleted",
+                "Deleted property image",
+                entity_type="property",
+                entity_id=pid,
+                meta={"image_id": image_id, "file_path": deleted.get("file_path")},
+            )
+        except Exception:
+            pass
+        flash("Image removed.", "success")
+    else:
+        flash("Image not found.", "warning")
+    return redirect(url_for("admin.property_form", pid=pid))
 
 
 @admin_bp.route("/properties/<int:pid>/delete", methods=["POST"])
@@ -1678,10 +1746,17 @@ def flush_mock_data():
 
 
 def _form_property(form):
-    amenities = [a.strip() for a in form.get("amenities", "").split(",") if a.strip()]
+    # Sell-parity checkboxes (getlist) or legacy comma-separated amenities
+    amenities = [a.strip() for a in form.getlist("amenities") if str(a).strip()]
+    if not amenities:
+        amenities = [a.strip() for a in form.get("amenities", "").split(",") if a.strip()]
 
-    def _required_float(field_name, label, min_value=None):
-        raw = str(form.get(field_name) or "").strip().replace(",", "")
+    def _required_float(field_name, label, min_value=None, aliases=None):
+        raw = ""
+        for name in [field_name, *(aliases or [])]:
+            raw = str(form.get(name) or "").strip().replace(",", "")
+            if raw:
+                break
         if not raw:
             raise ValueError(f"{label} is required.")
         try:
@@ -1713,26 +1788,98 @@ def _form_property(form):
             raise ValueError(f"{label} must be at least {min_value}.")
         return value
 
+    property_name = (form.get("property_name") or form.get("property_title") or "").strip()
+    if not property_name:
+        raise ValueError("Property title is required.")
+    area_name = (form.get("area_name") or form.get("location_area") or "").strip()
+    if not area_name:
+        raise ValueError("Location / area is required.")
+    address = (form.get("address") or form.get("property_address") or "").strip()
+    property_type = (form.get("property_type") or "").strip()
+    if not property_type:
+        raise ValueError("Property type is required.")
+
+    # Dual-write Listing Intent + Listing Type (schema compatibility)
+    listing_intent_raw = (form.get("listing_intent") or "").strip().lower()
+    listing_type_raw = (form.get("listing_type") or "").strip().lower()
+    if listing_intent_raw in {"sell", "rent"}:
+        listing_intent = listing_intent_raw
+    elif listing_type_raw in {"rent", "rental"}:
+        listing_intent = "rent"
+    elif listing_type_raw in {"sell", "sale", "buy"}:
+        listing_intent = "sell"
+    else:
+        listing_intent = "sell"
+    listing_type = "rent" if listing_intent == "rent" else "sale"
+    # Prefer explicit admin Listing Type when provided
+    if listing_type_raw in {"rent", "rental"}:
+        listing_type = "rent"
+        listing_intent = "rent"
+    elif listing_type_raw in {"sell", "sale", "buy"}:
+        listing_type = "sale"
+        if listing_intent_raw not in {"sell", "rent"}:
+            listing_intent = "sell"
+
+    status_raw = (form.get("status") or "available").strip().lower()
+    status_map = {
+        "available": "available",
+        "pending": "reserved",
+        "pending_approval": "reserved",
+        "reserved": "reserved",
+        "approved": "approved",
+        "active": "available",
+        "sold": "sold",
+        "rented": "rented",
+    }
+    status = status_map.get(status_raw, "available")
+
+    sq_ft_raw = (
+        str(form.get("sq_ft") or "").strip().replace(",", "")
+        or str(form.get("area_sq_ft") or "").strip().replace(",", "")
+    )
+    if sq_ft_raw:
+        try:
+            sq_ft = float(sq_ft_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Area (sq ft) must be a valid number.") from exc
+    else:
+        area_value_raw = str(form.get("area_value") or "").strip().replace(",", "")
+        if not area_value_raw:
+            raise ValueError("Area (sq ft) is required.")
+        factors = {"sq_ft": 1, "sq_yard": 9, "vigha": 17424, "sq_meter": 10.7639}
+        unit = (form.get("area_unit") or "sq_ft").strip().lower()
+        try:
+            sq_ft = float(area_value_raw) * factors.get(unit, 1)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Area must be a valid number.") from exc
+    if sq_ft < 1:
+        raise ValueError("Area (sq ft) must be at least 1.")
+
+    city = (form.get("city") or "Surat").strip() or "Surat"
+    location = (form.get("location") or form.get("location_area") or area_name).strip() or area_name
+
     return {
-        "property_name": form.get("property_name"),
-        "property_type": form.get("property_type"),
-        "area_name": form.get("area_name"),
-        "address": form.get("address"),
+        "property_name": property_name,
+        "property_type": property_type,
+        "area_name": area_name,
+        "address": address,
         "price": _required_float("price", "Price", min_value=0),
         "bhk": _optional_int("bhk", "BHK", default=0, min_value=0),
-        "sq_ft": _required_float("sq_ft", "Area (sq ft)", min_value=1),
+        "sq_ft": sq_ft,
         "description": form.get("description"),
         "amenities": amenities,
         "latitude": _optional_float("latitude", "Latitude", 21.1702),
         "longitude": _optional_float("longitude", "Longitude", 72.8311),
-        "status": form.get("status", "available"),
+        "status": status,
         "is_featured": form.get("is_featured") == "on",
-        "listing_type": form.get("listing_type") or form.get("listing_intent") or "sale",
-        "listing_intent": form.get("listing_intent") or form.get("listing_type") or "sell",
+        "listing_type": listing_type,
+        "listing_intent": listing_intent,
         "seller_type": form.get("seller_type") or None,
         "block_wing": (form.get("block_wing") or "").strip() or None,
         "unit_number": (form.get("unit_number") or "").strip() or None,
         "creation_source": form.get("creation_source", "admin"),
+        "city": city,
+        "location": location,
     }
 
 

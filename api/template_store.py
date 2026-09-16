@@ -2005,161 +2005,327 @@ TEMPLATES = {
     "admin/property_form.html": """{% extends "admin/base.html" %}
 {% block title %}{{ 'Edit' if property else 'Add' }} Property{% endblock %}
 {% block page_heading %}{{ 'Edit' if property else 'Add' }} Property{% endblock %}
-{% block page_subheading %}Capture complete listing information with polished form controls and better visual grouping.{% endblock %}
+{% block page_subheading %}Same layout as Sell Property, plus admin-only status, documents, and moderation controls.{% endblock %}
 {% block page_actions %}
 <a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Properties</a>
 {% endblock %}
 {% block content %}
-<form method="POST" enctype="multipart/form-data" class="admin-section-card" id="adminPropertyForm">
+{% set p = property or {} %}
+{% set sub = submission or {} %}
+{% set selected_amenities = p.amenities if p and p.amenities is iterable and p.amenities is not string else [] %}
+{% set intent = (p.listing_intent if p.listing_intent in ['sell','rent'] else ('rent' if p.listing_type == 'rent' else 'sell')) %}
+{% set seller = (p.seller_type or sub.seller_type or sub.submitter_type or 'owner')|lower %}
+{% if seller not in ['owner','broker','developer'] %}{% set seller = 'owner' %}{% endif %}
+{% set ptype = (p.property_type or '')|lower %}
+{% set status_val = (p.status or 'available')|lower %}
+{% if status_val == 'active' %}{% set status_val = 'available' %}{% endif %}
+{% set listing_type_val = 'rent' if intent == 'rent' or (p.listing_type or '')|lower == 'rent' else 'sale' %}
+{% set existing_images = (media.images if media else []) or [] %}
+{% set existing_videos = (media.videos if media else []) or [] %}
+{% set existing_docs = (media.documents if media else []) or [] %}
+
+<form method="POST" enctype="multipart/form-data" class="admin-section-card admin-property-form" id="adminPropertyForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="row g-3">
-    <div class="col-md-8"><label>Property Name *</label><input class="form-control" name="property_name" value="{{ property.property_name if property else '' }}" required></div>
-    <div class="col-md-4"><label>Type *</label>
-      <select class="form-select" name="property_type" id="adminPropertyType" required>
-        {% for t in types %}<option value="{{ t }}" {% if property and property.property_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4"><label>Area *</label><input class="form-control" name="area_name" list="areas" value="{{ property.area_name if property else '' }}" required>
-      <datalist id="areas">{% for a in areas %}<option value="{{ a }}">{% endfor %}</datalist>
-    </div>
-    <div class="col-md-4"><label>Price ₹ *</label><input type="number" class="form-control" name="price" value="{{ property.price if property else '' }}" required></div>
-    <div class="col-md-4"><label>Status</label>
-      <select class="form-select" name="status">
-        {% for s in ['available','reserved','sold','rented'] %}
-        <option value="{{ s }}" {% if property and property.status==s %}selected{% endif %}>
-          {% if s == 'reserved' %}pending_approval{% else %}{{ s }}{% endif %}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-3" id="adminBhkWrap"><label>BHK Number</label><input type="number" class="form-control" name="bhk" id="adminBhkInput" value="{{ property.bhk if property else 0 }}"></div>
-    <div class="col-md-3"><label>Block / Wing</label><input class="form-control" name="block_wing" value="{{ property.block_wing if property and property.block_wing else '' }}" placeholder="A, B, C"></div>
-    <div class="col-md-3"><label>Unit Number</label><input class="form-control" name="unit_number" value="{{ property.unit_number if property and property.unit_number else '' }}" placeholder="101, 903"></div>
-    <div class="col-md-3"><label>Sq Ft *</label><input type="number" class="form-control" name="sq_ft" value="{{ property.sq_ft if property else '' }}" required></div>
-    <div class="col-md-3"><label>Latitude</label><input class="form-control" name="latitude" value="{{ property.latitude if property else '21.1702' }}"></div>
-    <div class="col-md-3"><label>Longitude</label><input class="form-control" name="longitude" value="{{ property.longitude if property else '72.8311' }}"></div>
-    <div class="col-12"><label>Address</label><input class="form-control" name="address" value="{{ property.address if property else '' }}"></div>
-    <div class="col-12"><label>Description</label><textarea class="form-control" name="description" rows="4">{{ property.description if property else '' }}</textarea></div>
-    <div class="col-12"><label>Amenities (comma-separated)</label>
-      <input class="form-control" name="amenities" value="{% if property and property.amenities %}{{ property.amenities|join(', ') }}{% endif %}">
-    </div>
-    <div class="col-md-4"><label>Sell vs Rent *</label>
-      <select class="form-select" name="listing_intent">
-        {% set intent = (property.listing_intent if property else 'sell') %}
-        {% if intent not in ['sell','rent'] %}
-          {% set intent = 'rent' if property and property.listing_type == 'rent' else 'sell' %}
-        {% endif %}
-        <option value="sell" {% if intent == 'sell' %}selected{% endif %}>Sell Property</option>
-        <option value="rent" {% if intent == 'rent' %}selected{% endif %}>Rent Property</option>
-      </select>
-      <input type="hidden" name="listing_type" id="adminListingType" value="{{ 'rent' if intent == 'rent' else 'sale' }}">
-    </div>
-    <div class="col-md-4"><label>Seller Type</label>
-      <select class="form-select" name="seller_type">
-        <option value="">—</option>
-        {% for st in ['owner','broker','developer'] %}
-        <option value="{{ st }}" {% if property and property.seller_type == st %}selected{% endif %}>{{ st|title }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4"><label>Creation Source</label>
-      <select class="form-select" name="creation_source">
-        <option value="admin" {% if not property or property.creation_source == 'admin' %}selected{% endif %}>Admin</option>
-        <option value="user_submission" {% if property and property.creation_source == 'user_submission' %}selected{% endif %}>User Submission</option>
-      </select>
-    </div>
-    <div class="col-md-4 form-check mt-4">
-      <input type="checkbox" class="form-check-input" name="is_featured" id="feat" {% if property and property.is_featured %}checked{% endif %}>
-      <label class="form-check-label" for="feat">Featured</label>
-    </div>
-    <div class="col-md-4">
-      <label>Selected Photos List</label>
-      <input type="file" class="form-control" id="adminImagesInput" name="images" multiple accept="image/*">
-      <div id="adminImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
-    </div>
-    <div class="col-md-4">
-      <label>Selected Videos List</label>
-      <input type="file" class="form-control" id="adminVideosInput" name="videos" multiple accept="video/*">
-      <div id="adminVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
-    </div>
-    <div class="col-md-4">
-      <label>Documents (PDF)</label>
-      <input type="file" class="form-control" id="adminDocsInput" name="documents" multiple accept=".pdf">
-      <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
-    </div>
-    {% set existing_images = (media.images if media else []) or (property.images if property and property.images else []) or [] %}
-    {% set existing_videos = (media.videos if media else []) or (property.videos if property and property.videos else []) or [] %}
-    {% if property and (existing_images or existing_videos or property.primary_image) %}
-    <div class="col-12">
-      <label class="form-label fw-semibold">Existing Gallery</label>
-      <div class="admin-media-grid row g-2">
-        {% if property.primary_image and not existing_images %}
-        <div class="col-6 col-md-3 col-lg-2">
-          <a href="{{ media_url(property.primary_image) }}" target="_blank" rel="noopener">
-            <img src="{{ media_url(property.primary_image) }}" alt="Primary image" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
-          </a>
-        </div>
-        {% endif %}
-        {% for img in existing_images %}
-        {% set img_path = img.file_path if img.file_path is defined else img %}
-        <div class="col-6 col-md-3 col-lg-2">
-          <a href="{{ media_url(img_path) }}" target="_blank" rel="noopener">
-            <img src="{{ media_url(img_path) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
-          </a>
-        </div>
-        {% endfor %}
-      </div>
-      {% if existing_videos %}
-      <div class="row g-3 mt-2">
-        {% for vid in existing_videos %}
-        {% set vid_path = vid.file_path if vid.file_path is defined else vid %}
-        <div class="col-12 col-md-6 col-lg-4">
-          {% if vid_path and (vid_path.startswith('http://') or vid_path.startswith('https://')) and ('youtube' in vid_path or 'youtu.be' in vid_path or 'vimeo' in vid_path) %}
-          <a class="btn btn-outline-primary" href="{{ vid_path }}" target="_blank" rel="noopener">Open video</a>
-          {% else %}
-          <video controls preload="metadata" class="w-100 rounded border" style="max-height:240px;background:#111;" src="{{ media_url(vid_path) }}"></video>
+
+  <div class="admin-only-strip mb-4">
+    <h5 class="mb-3">Admin Controls</h5>
+    <div class="row g-3">
+      <div class="col-12 col-md-3">
+        <label class="form-label" for="adminStatusSelect">Status</label>
+        <select class="form-select" id="adminStatusSelect" name="status">
+          {% for value, label in status_options %}
+          <option value="{{ value }}" {% if status_val == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+          {% if status_val == 'rented' %}
+          <option value="rented" selected>Rented</option>
           {% endif %}
-        </div>
-        {% endfor %}
+        </select>
       </div>
-      {% endif %}
+      <div class="col-12 col-md-3">
+        <label class="form-label">Listing Type</label>
+        <input type="hidden" id="adminListingTypeInput" name="listing_type" value="{{ listing_type_val }}">
+        <div class="sell-option-chips" role="group" aria-label="Listing type">
+          <button type="button" class="sell-option-chip {% if listing_type_val == 'sale' %}is-active btn-orange{% endif %}" data-listing-type="sale">Sell</button>
+          <button type="button" class="sell-option-chip {% if listing_type_val == 'rent' %}is-active btn-orange{% endif %}" data-listing-type="rent">Rent</button>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Seller Type</label>
+        <input type="hidden" id="adminSellerTypeInput" name="seller_type" value="{{ seller }}">
+        <div class="sell-option-chips" role="group" aria-label="Seller type (admin)">
+          <button type="button" class="sell-option-chip {% if seller == 'owner' %}is-active{% endif %}" data-admin-seller-type="owner">Owner</button>
+          <button type="button" class="sell-option-chip {% if seller == 'broker' %}is-active{% endif %}" data-admin-seller-type="broker">Broker</button>
+          <button type="button" class="sell-option-chip {% if seller == 'developer' %}is-active{% endif %}" data-admin-seller-type="developer">Developer</button>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label" for="adminCreationSource">Creation Source</label>
+        <select class="form-select" id="adminCreationSource" name="creation_source">
+          <option value="admin" {% if not p or p.creation_source == 'admin' or not p.creation_source %}selected{% endif %}>Admin</option>
+          <option value="user_submission" {% if p and p.creation_source == 'user_submission' %}selected{% endif %}>User Submission</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="adminDocsInput">Document Upload (PDF)</label>
+        <input class="form-control" id="adminDocsInput" type="file" name="documents" accept=".pdf,application/pdf" multiple>
+        <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
+        {% if existing_docs %}
+        <ul class="list-unstyled small mt-2 mb-0 admin-doc-list">
+          {% for doc in existing_docs %}
+          {% set doc_path = doc.file_path if doc.file_path is defined else doc %}
+          <li class="mb-1">
+            <a href="{{ media_url(doc_path) }}" target="_blank" rel="noopener">{{ doc.doc_name if doc.doc_name is defined and doc.doc_name else ('Document ' ~ loop.index) }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      <div class="col-12 col-md-3 form-check mt-4 pt-2">
+        <input type="checkbox" class="form-check-input" name="is_featured" id="feat" {% if p.is_featured %}checked{% endif %}>
+        <label class="form-check-label" for="feat">Featured</label>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label" for="adminLatitude">Latitude</label>
+        <input class="form-control" id="adminLatitude" name="latitude" value="{{ p.latitude if p.latitude is not none else '21.1702' }}">
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label" for="adminLongitude">Longitude</label>
+        <input class="form-control" id="adminLongitude" name="longitude" value="{{ p.longitude if p.longitude is not none else '72.8311' }}">
+      </div>
     </div>
-    {% endif %}
   </div>
-  <button class="btn btn-jk-accent mt-3">Save Property</button>
+
+  <div class="jk-tab-slider" data-jk-tabs="admin-property">
+    <div class="jk-tab-bar" role="tablist" aria-label="Property form sections">
+      <button type="button" class="jk-tab is-active" role="tab" id="adminTabOwner" aria-controls="adminPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
+      <button type="button" class="jk-tab" role="tab" id="adminTabContact" aria-controls="adminPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
+      <button type="button" class="jk-tab" role="tab" id="adminTabProperty" aria-controls="adminPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
+      <button type="button" class="jk-tab" role="tab" id="adminTabIntent" aria-controls="adminPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
+    </div>
+
+    <div class="jk-tab-panels">
+      <div class="jk-tab-panel is-active" role="tabpanel" id="adminPanelOwner" aria-labelledby="adminTabOwner" data-jk-tab-panel="owner">
+        <h5 class="mb-3" id="adminContactSectionTitle">Owner Details</h5>
+        <div class="row g-3 sell-contact-row">
+          <div class="col-12">
+            <label class="form-label">Seller Type</label>
+            <input type="hidden" id="submitterTypeInput" name="submitter_type" value="{{ seller }}">
+            <input type="hidden" id="sellerTypeInput" value="{{ seller }}">
+            <div class="sell-option-chips" role="group" aria-label="Seller type">
+              <button type="button" class="sell-option-chip {% if seller == 'owner' %}is-active{% endif %}" data-submitter-type="owner">Owner</button>
+              <button type="button" class="sell-option-chip {% if seller == 'broker' %}is-active{% endif %}" data-submitter-type="broker">Broker</button>
+              <button type="button" class="sell-option-chip {% if seller == 'developer' %}is-active{% endif %}" data-submitter-type="developer">Developer</button>
+            </div>
+          </div>
+          <div class="col-12 sell-contact-field">
+            <label class="form-label" for="contactNameInput" id="contactNameLabel">Owner Name</label>
+            <input class="form-control" id="contactNameInput" name="owner_name" value="{{ sub.owner_name or '' }}" placeholder="Owner Name">
+          </div>
+        </div>
+      </div>
+
+      <div class="jk-tab-panel" role="tabpanel" id="adminPanelContact" aria-labelledby="adminTabContact" data-jk-tab-panel="contact" hidden>
+        <h5 class="mb-3">Contact Details</h5>
+        <div class="row g-3 sell-contact-row">
+          <div class="col-12 col-md-6 sell-contact-field">
+            <label class="form-label" for="ownerMobileInput">Mobile Number</label>
+            <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" value="{{ sub.owner_mobile or '' }}" placeholder="10-digit mobile number" maxlength="15">
+          </div>
+          <div class="col-12 col-md-6 sell-contact-field">
+            <label class="form-label" for="ownerAltMobileInput">Alternate Mobile</label>
+            <input class="form-control" id="ownerAltMobileInput" name="owner_alt_mobile" type="tel" value="{{ sub.owner_alt_mobile or '' }}" placeholder="Alternate mobile (optional)" maxlength="15">
+          </div>
+          <div class="col-12 col-md-6 sell-contact-field">
+            <label class="form-label" for="ownerEmailInput">Email Address</label>
+            <input type="email" class="form-control" id="ownerEmailInput" name="owner_email" value="{{ sub.owner_email or '' }}" placeholder="Email address (optional)">
+          </div>
+          <div class="col-12 sell-contact-field">
+            <label class="form-label" for="ownerAddressInput">Full Residential Address</label>
+            <textarea class="form-control" id="ownerAddressInput" name="owner_address" rows="2" placeholder="Full residential address">{{ sub.owner_address or '' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="jk-tab-panel" role="tabpanel" id="adminPanelProperty" aria-labelledby="adminTabProperty" data-jk-tab-panel="property" hidden>
+        <h5 class="mb-3">Property Details</h5>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="adminCitySelect">City *</label>
+            <select class="form-select" id="adminCitySelect" name="city" required>
+              {% for city in city_options %}
+              <option value="{{ city }}" {% if (p.city or 'Surat') == city %}selected{% endif %}>{{ city }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-8">
+            <label class="form-label" for="adminLocationInput">Location / Area *</label>
+            <input class="form-control" id="adminLocationInput" name="location_area" list="adminAreas" value="{{ p.area_name or p.location or '' }}" placeholder="e.g. Vesu, Adajan, Pal, Piplod" required autocomplete="off">
+            <datalist id="adminAreas">
+              {% for a in areas %}<option value="{{ a }}"></option>{% endfor %}
+              {% for loc in surat_localities %}<option value="{{ loc }}"></option>{% endfor %}
+            </datalist>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Property Type *</label>
+            <input type="hidden" id="propertyTypeInput" name="property_type" value="{{ ptype }}" required>
+            <div class="sell-option-chips sell-property-type-chips" role="group" aria-label="Property type">
+              <button type="button" class="sell-option-chip {% if ptype in ['apartment','flat'] %}is-active{% endif %}" data-property-type="apartment">Apartment / Flat</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'villa' %}is-active{% endif %}" data-property-type="villa">Villa</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'bungalow' %}is-active{% endif %}" data-property-type="bungalow">Bungalow</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'plot' %}is-active{% endif %}" data-property-type="plot">Plot / Land</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'shop' %}is-active{% endif %}" data-property-type="shop">Shop</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'office' %}is-active{% endif %}" data-property-type="office">Office</button>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="propertyTitleInput">Property Title *</label>
+            <input class="form-control" id="propertyTitleInput" name="property_title" value="{{ p.property_name or '' }}" placeholder="e.g. 3 BHK flat in Vesu" required>
+          </div>
+          <div class="col-12 col-sm-6 col-md-3" id="bhkWrap">
+            <label class="form-label" for="bhkInput">BHK Number</label>
+            <input class="form-control" id="bhkInput" type="number" name="bhk" min="0" value="{{ p.bhk if p.bhk is not none else '' }}" placeholder="BHK">
+          </div>
+          <div class="col-12 col-sm-6 col-md-3 {% if ptype not in ['apartment','flat'] %}d-none{% endif %}" id="blockWingWrap">
+            <label class="form-label" for="blockWingInput">Block / Wing</label>
+            <input class="form-control" id="blockWingInput" name="block_wing" value="{{ p.block_wing or '' }}" placeholder="e.g. A, B, C">
+          </div>
+          <div class="col-12 col-sm-6 col-md-3" id="unitNumberWrap">
+            <label class="form-label" for="unitNumberInput" id="unitNumberLabel">Unit Number</label>
+            <input class="form-control" id="unitNumberInput" name="unit_number" value="{{ p.unit_number or '' }}" placeholder="e.g. 101, 903">
+          </div>
+        </div>
+
+        <h5 class="mt-4 mb-3">Area &amp; Expected Price</h5>
+        <div class="row g-3 sell-area-price-row">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="areaValueInput" id="areaValueLabel">Enter the area in sqft *</label>
+            <input class="form-control" id="areaValueInput" type="number" name="area_value" value="{{ p.sq_ft if p.sq_ft is not none else '' }}" placeholder="Enter the area in sqft" required min="0.01" step="any">
+            <label class="form-label mt-3">Area Unit *</label>
+            <input type="hidden" id="areaUnitInput" name="area_unit" value="sq_ft">
+            <div class="sell-option-chips" role="group" aria-label="Area unit">
+              <button type="button" class="sell-option-chip is-active" data-area-unit="sq_ft">Sq. Ft.</button>
+              <button type="button" class="sell-option-chip" data-area-unit="sq_yard">Sq. Yard</button>
+              <button type="button" class="sell-option-chip" data-area-unit="vigha">Vigha</button>
+              <button type="button" class="sell-option-chip" data-area-unit="sq_meter">Sq. Meter</button>
+            </div>
+            <input type="hidden" id="areaSqFtInput" name="area_sq_ft" value="{{ p.sq_ft if p.sq_ft is not none else '' }}">
+            <div class="form-text" id="areaConvertedHint"></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
+            <input class="form-control" id="expectedPriceInput" type="number" name="price" value="{{ p.price if p.price is not none else '' }}" placeholder="Enter expected price" min="1" step="1" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="propertyAddressInput">Property Address *</label>
+            <textarea class="form-control" id="propertyAddressInput" name="property_address" rows="2" placeholder="Full property address *" required>{{ p.address or '' }}</textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="descriptionInput">Property Description</label>
+            <textarea class="form-control" id="descriptionInput" name="description" rows="4" placeholder="Describe the property (optional)">{{ p.description or '' }}</textarea>
+          </div>
+        </div>
+
+        <h5 class="mt-4 mb-3">Amenities</h5>
+        <div class="row g-2">
+          {% for amenity in amenity_options %}
+          <div class="col-6 col-md-4 col-lg-3">
+            <label class="amenity-check">
+              <input type="checkbox" name="amenities" value="{{ amenity }}" {% if amenity in selected_amenities %}checked{% endif %}>
+              <span>{{ amenity }}</span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <h5 class="mt-4 mb-3">Media Upload</h5>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="adminImagesInput">Selected Photos List</label>
+            <input class="form-control" id="adminImagesInput" type="file" name="images" accept="image/*" multiple>
+            <div id="adminImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="adminVideosInput">Selected Videos List</label>
+            <input class="form-control" id="adminVideosInput" type="file" name="videos" accept="video/*" multiple>
+            <div id="adminVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
+          </div>
+        </div>
+
+        {% if property and (existing_images or existing_videos or p.primary_image) %}
+        <h5 class="mt-4 mb-3">Image Moderation</h5>
+        <p class="form-text mb-2">Preview and remove uploaded images before setting status to Available.</p>
+        <div class="admin-media-grid row g-2" id="adminExistingGallery">
+          {% if p.primary_image and not existing_images %}
+          <div class="col-6 col-md-3 col-lg-2">
+            <div class="admin-media-thumb">
+              <img src="{{ media_url(p.primary_image) }}" alt="Primary image" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+              <span class="admin-media-badge">Primary</span>
+            </div>
+          </div>
+          {% endif %}
+          {% for img in existing_images %}
+          {% set img_path = img.file_path if img.file_path is defined else img %}
+          {% set img_id = img.id if img.id is defined else none %}
+          <div class="col-6 col-md-3 col-lg-2">
+            <div class="admin-media-thumb">
+              <a href="{{ media_url(img_path) }}" target="_blank" rel="noopener">
+                <img src="{{ media_url(img_path) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+              </a>
+              {% if img.is_primary %}
+              <span class="admin-media-badge">Primary</span>
+              {% endif %}
+              {% if img_id %}
+              <form method="POST" action="{{ url_for('admin.delete_property_image', pid=property.id, image_id=img_id) }}" class="admin-media-delete" onsubmit="return confirm('Remove this image?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove image">Remove</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if existing_videos %}
+        <div class="row g-3 mt-2">
+          {% for vid in existing_videos %}
+          {% set vid_path = vid.file_path if vid.file_path is defined else vid %}
+          <div class="col-12 col-md-6 col-lg-4">
+            {% if vid_path and (vid_path.startswith('http://') or vid_path.startswith('https://')) and ('youtube' in vid_path or 'youtu.be' in vid_path or 'vimeo' in vid_path) %}
+            <a class="btn btn-outline-primary" href="{{ vid_path }}" target="_blank" rel="noopener">Open video</a>
+            {% else %}
+            <video controls preload="metadata" class="w-100 rounded border" style="max-height:240px;background:#111;" src="{{ media_url(vid_path) }}"></video>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+
+      <div class="jk-tab-panel" role="tabpanel" id="adminPanelIntent" aria-labelledby="adminTabIntent" data-jk-tab-panel="intent" hidden>
+        <h5 class="mb-3">Listing Intent</h5>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Listing Intent *</label>
+          <input type="hidden" id="listingIntentInput" name="listing_intent" value="{{ intent }}">
+          <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
+            <button type="button" class="sell-option-chip {% if intent == 'sell' %}is-active btn-orange{% endif %}" data-listing-intent="sell">Sell Property</button>
+            <button type="button" class="sell-option-chip {% if intent == 'rent' %}is-active btn-orange{% endif %}" data-listing-intent="rent">Rent Property</button>
+          </div>
+          <p class="form-text mb-0 mt-2">Synced with Admin Listing Type (Sell / Rent) for schema compatibility.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-4">
+    <button class="btn btn-jk-accent btn-lg" type="submit">Save Property</button>
+    <a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+  </div>
 </form>
-<p class="small text-muted mt-2">Map marker is created automatically from latitude/longitude.</p>
+<p class="small text-muted mt-2">Map marker uses latitude/longitude from Admin Controls.</p>
 {% endblock %}
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
-<script>
-  if (window.MediaFileManager) {
-    MediaFileManager.bind(document.getElementById('adminImagesInput'), document.getElementById('adminImagesPreview'), { listClass: 'media-file-list--photos' });
-    MediaFileManager.bind(document.getElementById('adminVideosInput'), document.getElementById('adminVideosPreview'), { listClass: 'media-file-list--videos' });
-    MediaFileManager.bind(document.getElementById('adminDocsInput'), document.getElementById('adminDocsPreview'));
-  }
-  (function () {
-    const typeEl = document.getElementById('adminPropertyType');
-    const bhkWrap = document.getElementById('adminBhkWrap');
-    const bhkInput = document.getElementById('adminBhkInput');
-    const intentEl = document.querySelector('select[name="listing_intent"]');
-    const listingType = document.getElementById('adminListingType');
-    const hide = new Set(['plot', 'land', 'shop', 'office']);
-    function syncBhk() {
-      const t = (typeEl?.value || '').toLowerCase();
-      const show = !hide.has(t);
-      bhkWrap?.classList.toggle('d-none', !show);
-      if (bhkInput) bhkInput.disabled = !show;
-    }
-    function syncIntent() {
-      if (listingType && intentEl) listingType.value = intentEl.value === 'rent' ? 'rent' : 'sale';
-    }
-    typeEl?.addEventListener('change', syncBhk);
-    intentEl?.addEventListener('change', syncIntent);
-    syncBhk();
-    syncIntent();
-  })();
-</script>
+<script src="{{ url_for('static', filename='js/admin_property_form.js') }}"></script>
 {% endblock %}
 """,
     "admin/reviews.html": """{% extends "admin/base.html" %}

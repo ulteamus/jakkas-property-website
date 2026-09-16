@@ -565,19 +565,23 @@ def update(pid, data):
     if listing_intent == "rent":
         listing_type = "rent"
     seller_type = _normalize_seller_type(data.get("seller_type"))
+    creation_source = _normalize_creation_source(data.get("creation_source"))
     block_wing = (data.get("block_wing") or "").strip() or None
     unit_number = (data.get("unit_number") or "").strip() or None
+    city = (data.get("city") or "Surat").strip() or "Surat"
+    location = (data.get("location") or data.get("area_name") or "").strip() or None
     execute(
         """UPDATE properties SET property_name=%s,property_type=%s,area_name=%s,address=%s,
            price=%s,bhk=%s,sq_ft=%s,description=%s,amenities=%s,latitude=%s,longitude=%s,
            status=%s,is_featured=%s,listing_type=%s,block_wing=%s,unit_number=%s,
-           listing_intent=%s,seller_type=%s WHERE id=%s""",
+           listing_intent=%s,seller_type=%s,creation_source=%s,city=%s,location=%s WHERE id=%s""",
         (
             data["property_name"], property_type, data["area_name"],
             data.get("address"), data["price"], data.get("bhk", 0), data["sq_ft"],
             data.get("description"), amenities, data.get("latitude"),
             data.get("longitude"), data.get("status"), bool(data.get("is_featured")),
-            listing_type, block_wing, unit_number, listing_intent, seller_type, pid,
+            listing_type, block_wing, unit_number, listing_intent, seller_type,
+            creation_source, city, location, pid,
         ),
     )
 
@@ -698,6 +702,56 @@ def add_document(pid, path, doc_name=None):
         "INSERT INTO property_documents (property_id,file_path,doc_name) VALUES (%s,%s,%s)",
         (pid, path, doc_name or "Document"),
     )
+
+
+def delete_image(pid, image_id):
+    """Remove one property image row, fix primary_image, best-effort remote delete."""
+    _ensure_schema()
+    row = query_one(
+        "SELECT * FROM property_images WHERE id=%s AND property_id=%s",
+        (int(image_id), int(pid)),
+    )
+    if not row:
+        return None
+    path = (row.get("file_path") or "").strip()
+    was_primary = bool(row.get("is_primary"))
+    execute(
+        "DELETE FROM property_images WHERE id=%s AND property_id=%s",
+        (int(image_id), int(pid)),
+    )
+    prop = query_one("SELECT primary_image FROM properties WHERE id=%s", (int(pid),))
+    primary = ((prop or {}).get("primary_image") or "").strip()
+    needs_primary_fix = was_primary or (path and primary and primary == path)
+    if needs_primary_fix:
+        next_img = query_one(
+            """SELECT id, file_path FROM property_images
+               WHERE property_id=%s
+               ORDER BY is_primary DESC, sort_order ASC, id ASC
+               LIMIT 1""",
+            (int(pid),),
+        )
+        if next_img:
+            execute(
+                "UPDATE property_images SET is_primary=0 WHERE property_id=%s",
+                (int(pid),),
+            )
+            execute(
+                "UPDATE property_images SET is_primary=1 WHERE id=%s",
+                (next_img["id"],),
+            )
+            execute(
+                "UPDATE properties SET primary_image=%s WHERE id=%s",
+                (next_img["file_path"], int(pid)),
+            )
+        else:
+            execute("UPDATE properties SET primary_image=NULL WHERE id=%s", (int(pid),))
+    try:
+        from services.storage_service import delete_media
+
+        delete_media(path)
+    except Exception:
+        pass
+    return row
 
 
 def areas_list():

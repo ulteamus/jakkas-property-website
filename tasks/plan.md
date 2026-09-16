@@ -73,9 +73,9 @@ Co-founder name (human input) + About styling prefs
 
 ### Phase 3: Admin parity & moderation
 
-- [ ] Task 8: Admin Add/Edit form layout/fields match Sell (user-visible parity)
-- [ ] Task 9: Admin-only field strip (Status, PDF, Listing Type, Seller Type, Creation Source)
-- [ ] Task 10: Image moderation — preview all uploads + per-image delete before go-live
+- [x] Task 8: Admin Add/Edit form layout/fields match Sell (user-visible parity)
+- [x] Task 9: Admin-only field strip (Status, PDF, Listing Type, Seller Type, Creation Source)
+- [x] Task 10: Image moderation — preview all uploads + per-image delete before go-live
 
 ### Checkpoint: Complete
 - [ ] Admin create/edit mirrors sell UX; admin-only controls still present

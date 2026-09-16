@@ -62,26 +62,26 @@
 
 ## Phase 3 — Admin parity & moderation
 
-- [ ] **Task 8 (M):** Admin Add/Edit Property form matches Sell layout/fields/design
+- [x] **Task 8 (M):** Admin Add/Edit Property form matches Sell layout/fields/design
   - AC: visual/field parity for shared fields; create + edit work
   - Verify: admin form vs `/sell-property` side-by-side
   - Files: `templates/admin/property_form.html`, `static/css/admin.css`, maybe `routes/admin_portal.py`
   - Deps: Task 6
 
-- [ ] **Task 9 (S–M):** Admin-only strip — Status, PDF docs, Listing Type, Seller Type, Creation Source
+- [x] **Task 9 (S–M):** Admin-only strip — Status, PDF docs, Listing Type, Seller Type, Creation Source
   - AC: present only in admin; PDF persists; sell form stays clean
   - Verify: admin save/reload; sell page has no admin-only controls
   - Files: `property_form.html`, `admin_portal.py`
   - Deps: Task 8
 
-- [ ] **Task 10 (M):** Image moderation — preview all + per-image delete before go-live
+- [x] **Task 10 (M):** Image moderation — preview all + per-image delete before go-live
   - AC: thumbnail grid; delete updates DB (+ best-effort remote); primary_image corrected
   - Verify: remove image → public cards omit it after approve
   - Files: `models/property.py`, `routes/admin_portal.py`, `templates/admin/property_form.html`, maybe `storage_service.py`
   - Deps: Tasks 2, 8/9
 
 ### Checkpoint — Complete
-- [ ] All 10 tasks done
+- [x] All 10 tasks done
 - [ ] Bundle + preview/prod smoke: Discover, `/properties`, sell, detail tabs, admin form + delete image
 - [ ] Client review ready
 
@@ -97,6 +97,6 @@
 - [x] **Task 5 unblocked** — using `[INSERT_NAME_HERE]` until real name is pasted in templates
 
 ## Reminder before each deploy
-- [x] Edit `templates/` + `static/` (canonical) — Phase 1 + Phase 2 done
-- [x] `py -3 scripts/vercel_bundle.py` — ran after Phase 1; re-run after Phase 2
+- [x] Edit `templates/` + `static/` (canonical) — Phase 1 + Phase 2 + Phase 3 done
+- [x] `py -3 scripts/vercel_bundle.py` — ran after Phase 1; re-run after Phase 2; re-run after Phase 3
 - [ ] Confirm Vercel storage env (no secrets in plan/todo) — deploy still needed for live verify of sell uploads

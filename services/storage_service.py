@@ -286,3 +286,91 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
 def is_remote_url(path: str | None) -> bool:
     value = (path or "").strip().lower()
     return value.startswith("http://") or value.startswith("https://")
+
+
+def _supabase_object_path_from_url(url: str) -> str | None:
+    bucket = supabase_bucket_name()
+    marker = f"/storage/v1/object/public/{bucket}/"
+    if marker not in url:
+        return None
+    return url.split(marker, 1)[-1].split("?", 1)[0].strip() or None
+
+
+def _cloudinary_public_id_from_url(url: str) -> tuple[str | None, str]:
+    """Return (public_id, resource_type) best-effort from a Cloudinary delivery URL."""
+    try:
+        # .../image/upload/v123/folder/name.ext or /video/upload/ /raw/upload/
+        resource_type = "image"
+        if "/video/upload/" in url:
+            resource_type = "video"
+        elif "/raw/upload/" in url:
+            resource_type = "raw"
+        parts = url.split("/upload/", 1)
+        if len(parts) != 2:
+            return None, resource_type
+        rest = parts[1].split("?", 1)[0]
+        # drop optional version segment v123/
+        segs = [s for s in rest.split("/") if s]
+        if segs and segs[0].startswith("v") and segs[0][1:].isdigit():
+            segs = segs[1:]
+        if not segs:
+            return None, resource_type
+        last = segs[-1]
+        if "." in last:
+            segs[-1] = last.rsplit(".", 1)[0]
+        return "/".join(segs), resource_type
+    except Exception:
+        return None, "image"
+
+
+def delete_media(path: str | None) -> bool:
+    """Best-effort delete of a stored media object. Never raises to callers."""
+    value = (path or "").strip()
+    if not value:
+        return False
+    try:
+        if is_remote_url(value):
+            if supabase_configured() and "/storage/v1/object/public/" in value:
+                object_path = _supabase_object_path_from_url(value)
+                if object_path:
+                    try:
+                        client = _supabase_client()
+                        client.storage.from_(supabase_bucket_name()).remove([object_path])
+                        return True
+                    except Exception:
+                        pass
+            if cloudinary_configured() and "res.cloudinary.com" in value:
+                public_id, resource_type = _cloudinary_public_id_from_url(value)
+                if public_id:
+                    try:
+                        from cloudinary.uploader import destroy as cloudinary_destroy
+
+                        _configure_cloudinary()
+                        cloudinary_destroy(public_id, resource_type=resource_type)
+                        return True
+                    except Exception:
+                        pass
+            return False
+
+        # Local relative path under UPLOAD_ROOT / property-uploads
+        try:
+            root = Path(current_app.config["UPLOAD_ROOT"])
+            rel = value.lstrip("/").replace("\\", "/")
+            candidates = [
+                root / rel,
+                Path(current_app.root_path) / "static" / "property-uploads" / rel,
+            ]
+            if rel.startswith("properties/"):
+                candidates.insert(0, root / rel[len("properties/") :])
+            for candidate in candidates:
+                try:
+                    if candidate.is_file():
+                        candidate.unlink()
+                        return True
+                except Exception:
+                    continue
+        except Exception:
+            return False
+        return False
+    except Exception:
+        return False

@@ -908,3 +908,62 @@ body.admin-login-page {
     font-size: 0.79rem;
   }
 }
+
+/* Admin property form — sell parity + moderation */
+.admin-property-form .admin-only-strip {
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: linear-gradient(180deg, #fff8f1 0%, #ffffff 100%);
+}
+.admin-property-form .admin-only-strip h5 {
+  color: var(--admin-accent-deep);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.admin-media-thumb {
+  position: relative;
+  display: block;
+}
+.admin-media-thumb .admin-media-badge {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  z-index: 1;
+  background: rgba(31, 31, 36, 0.82);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 650;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+}
+.admin-media-thumb .admin-media-delete {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  z-index: 1;
+  margin: 0;
+}
+.admin-media-thumb .admin-media-delete .btn {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+.admin-doc-list a {
+  color: var(--admin-accent-deep);
+  text-decoration: none;
+}
+.admin-doc-list a:hover {
+  text-decoration: underline;
+}
+.admin-property-form .amenity-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+}
+.admin-property-form .amenity-check input {
+  margin: 0;
+}
+
