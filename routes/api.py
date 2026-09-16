@@ -3,7 +3,7 @@ import uuid
 from collections import Counter
 from functools import wraps
 
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, current_app, jsonify, request, session
 from flask_login import current_user
 
 from database import execute, query_all
@@ -851,7 +851,16 @@ def api_media_upload():
     if not upload:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
 
-    stored = save_upload(upload, property_id, media_type, allowed)
+    try:
+        stored = save_upload(upload, property_id, media_type, allowed)
+    except Exception as exc:
+        current_app.logger.exception(
+            "api_media_upload failed property_id=%s media_type=%s: %s",
+            property_id,
+            media_type,
+            exc,
+        )
+        return jsonify({"success": False, "error": str(exc) or "Upload failed"}), 502
     if not stored:
         return jsonify({"success": False, "error": "Upload failed or file type not allowed"}), 400
 

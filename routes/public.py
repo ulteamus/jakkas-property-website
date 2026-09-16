@@ -400,14 +400,23 @@ def sell_property():
 
             media_warning = None
             if uploaded_images and not image_paths:
+                detail = "; ".join(media_errors[:3]) if media_errors else "storage backend unavailable"
                 media_warning = (
-                    "Your listing was saved, but none of the photos could be uploaded. "
-                    "Please try again or contact us to attach photos."
+                    "Your listing was saved, but none of the photos could be uploaded "
+                    f"({detail}). Please try again or contact us to attach photos."
                 )
             elif media_errors and image_paths:
                 media_warning = (
                     "Listing saved, but some media files failed to upload. "
                     "You can add more photos later via our team."
+                )
+            if media_errors:
+                current_app.logger.warning(
+                    "sell: property %s media summary uploaded_images=%s saved=%s errors=%s",
+                    created_property.get("id"),
+                    len(uploaded_images),
+                    len(image_paths),
+                    media_errors[:5],
                 )
 
             submission_id = submission_model.create_submission(

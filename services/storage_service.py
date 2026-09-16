@@ -26,13 +26,35 @@ def storage_backend_preference() -> str:
     return (_env("STORAGE_BACKEND") or "auto").lower()
 
 
-def supabase_configured() -> bool:
-    return bool(_env("SUPABASE_URL") and _env(
-        "SUPABASE_SERVICE_KEY",
-        "SUPABASE_KEY",
+def _supabase_auth_candidates() -> list[tuple[str, str]]:
+    """Ordered (env_name, key) for Storage API.
+
+    Prefer classic JWT keys (``eyJ…``). Newer ``sb_secret_*`` values are often
+    rejected by supabase-py as "Invalid API key" even when set on Vercel.
+    """
+    names = (
         "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_KEY",
+        "SUPABASE_SERVICE_KEY",
         "SUPABASE_ANON_KEY",
-    ))
+    )
+    jwt_first: list[tuple[str, str]] = []
+    other: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for name in names:
+        value = _env(name)
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        if value.startswith("eyJ"):
+            jwt_first.append((name, value))
+        else:
+            other.append((name, value))
+    return jwt_first + other
+
+
+def supabase_configured() -> bool:
+    return bool(_env("SUPABASE_URL") and _supabase_auth_candidates())
 
 
 def cloudinary_configured() -> bool:
@@ -68,19 +90,43 @@ def _use_cloudinary_storage() -> bool:
     return cloudinary_configured()
 
 
-def _supabase_client():
+def _log_storage(level: str, message: str, *args) -> None:
+    try:
+        logger = current_app.logger
+    except Exception:
+        return
+    getattr(logger, level, logger.warning)(message, *args)
+
+
+def _supabase_client(api_key: str | None = None):
     from supabase import create_client
 
     url = _env("SUPABASE_URL").rstrip("/")
-    key = _env(
-        "SUPABASE_SERVICE_KEY",
-        "SUPABASE_KEY",
-        "SUPABASE_SERVICE_ROLE_KEY",
-        "SUPABASE_ANON_KEY",
-    )
+    key = (api_key or "").strip()
+    if not key:
+        candidates = _supabase_auth_candidates()
+        if not candidates:
+            raise RuntimeError("Supabase credentials are not configured.")
+        key = candidates[0][1]
     if not url or not key:
         raise RuntimeError("Supabase credentials are not configured.")
     return create_client(url, key)
+
+
+def _is_auth_failure(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(
+        token in text
+        for token in (
+            "invalid api key",
+            "invalid jwt",
+            "jwt expired",
+            "not authorized",
+            "unauthorized",
+            "401",
+            "403",
+        )
+    )
 
 
 def _ensure_supabase_bucket(client, bucket: str) -> None:
@@ -145,8 +191,14 @@ def _local_save(file_storage: FileStorage, property_id, media_type: str, ext: st
     return f"properties/{property_id}/{media_type}/{name}"
 
 
-def _supabase_save(file_storage: FileStorage, property_id, media_type: str, ext: str) -> str:
-    client = _supabase_client()
+def _supabase_save_with_client(
+    client,
+    file_storage: FileStorage,
+    property_id,
+    media_type: str,
+    ext: str,
+    key_name: str,
+) -> str:
     bucket = supabase_bucket_name()
     _ensure_supabase_bucket(client, bucket)
 
@@ -157,19 +209,71 @@ def _supabase_save(file_storage: FileStorage, property_id, media_type: str, ext:
 
     content_type = _content_type(file_storage.filename or object_path, media_type, ext)
     storage = client.storage.from_(bucket)
-    storage.upload(
-        object_path,
-        payload,
-        file_options={
-            "content-type": content_type,
-            "upsert": "true",
-        },
-    )
+    try:
+        storage.upload(
+            object_path,
+            payload,
+            file_options={
+                "content-type": content_type,
+                "upsert": "true",
+            },
+        )
+    except Exception as exc:
+        _log_storage(
+            "error",
+            "Supabase upload failed provider=supabase bucket=%s key_env=%s path=%s reason=%s",
+            bucket,
+            key_name,
+            object_path,
+            exc,
+        )
+        raise
+
     public_url = (storage.get_public_url(object_path) or "").strip().rstrip("?")
     if not public_url.startswith("http"):
         base = _env("SUPABASE_URL").rstrip("/")
         public_url = f"{base}/storage/v1/object/public/{bucket}/{object_path}"
+    if not public_url.startswith("http"):
+        raise RuntimeError("Supabase upload returned no public HTTPS URL.")
+    _log_storage(
+        "info",
+        "Supabase upload ok provider=supabase bucket=%s key_env=%s",
+        bucket,
+        key_name,
+    )
     return public_url
+
+
+def _supabase_save(file_storage: FileStorage, property_id, media_type: str, ext: str) -> str:
+    candidates = _supabase_auth_candidates()
+    if not candidates:
+        raise RuntimeError("Supabase credentials are not configured.")
+
+    last_exc: Exception | None = None
+    for key_name, api_key in candidates:
+        try:
+            client = _supabase_client(api_key)
+            return _supabase_save_with_client(
+                client, file_storage, property_id, media_type, ext, key_name
+            )
+        except Exception as exc:
+            last_exc = exc
+            if _is_auth_failure(exc) and (key_name, api_key) != candidates[-1]:
+                _log_storage(
+                    "warning",
+                    "Supabase auth failed with %s (%s); trying next configured key.",
+                    key_name,
+                    exc,
+                )
+                try:
+                    file_storage.stream.seek(0)
+                except Exception:
+                    pass
+                continue
+            raise
+    raise RuntimeError(
+        f"Supabase storage auth failed for all configured keys: {last_exc}"
+    ) from last_exc
 
 
 def _configure_cloudinary() -> None:
@@ -234,12 +338,20 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
     On Vercel or STORAGE_BACKEND=supabase, local disk is forbidden.
     """
     if not file_storage or not getattr(file_storage, "filename", None):
+        _log_storage("warning", "save_media skipped: empty file or missing filename")
         return None
     filename = secure_filename(file_storage.filename) or file_storage.filename
     if "." not in filename:
+        _log_storage("warning", "save_media rejected: no extension on %r", filename)
         return None
     ext = filename.rsplit(".", 1)[-1].lower()
     if ext not in allowed:
+        _log_storage(
+            "warning",
+            "save_media rejected: extension %r not in allowed=%s",
+            ext,
+            sorted(allowed),
+        )
         return None
 
     pref = storage_backend_preference()
@@ -252,33 +364,45 @@ def save_media(file_storage, property_id, media_type, allowed) -> str | None:
 
     if _use_supabase_storage():
         try:
-            return _supabase_save(file_storage, property_id, media_type, ext)
-        except Exception as exc:
-            try:
-                current_app.logger.warning(
-                    "Supabase upload failed (%s); trying next storage backend.", exc
+            url = _supabase_save(file_storage, property_id, media_type, ext)
+            if _forbid_ephemeral_disk() and not is_remote_url(url):
+                raise RuntimeError(
+                    "Supabase returned a non-remote path; refusing ephemeral media on Vercel."
                 )
-            except Exception:
-                pass
+            return url
+        except Exception as exc:
+            _log_storage(
+                "warning",
+                "Supabase upload failed (provider=supabase status=error reason=%s); "
+                "trying next storage backend.",
+                exc,
+            )
             if pref == "supabase" or _forbid_ephemeral_disk():
                 raise
 
     if _use_cloudinary_storage():
         try:
-            return _cloudinary_save(file_storage, property_id, media_type, ext)
-        except Exception as exc:
-            try:
-                current_app.logger.warning(
-                    "Cloudinary upload failed (%s); using local storage.", exc
+            url = _cloudinary_save(file_storage, property_id, media_type, ext)
+            if _forbid_ephemeral_disk() and not is_remote_url(url):
+                raise RuntimeError(
+                    "Cloudinary returned a non-remote path; refusing ephemeral media on Vercel."
                 )
-            except Exception:
-                pass
+            return url
+        except Exception as exc:
+            _log_storage(
+                "warning",
+                "Cloudinary upload failed (provider=cloudinary status=error reason=%s); "
+                "falling back if allowed.",
+                exc,
+            )
             if pref == "cloudinary" or _forbid_ephemeral_disk():
                 raise
 
     if _forbid_ephemeral_disk():
         raise RuntimeError(
-            "No cloud storage backend available; refusing ephemeral local upload."
+            "No cloud storage backend available; refusing ephemeral local upload. "
+            "Check Vercel env: SUPABASE_URL, SUPABASE_KEY (JWT service role), "
+            "SUPABASE_BUCKET, STORAGE_BACKEND=supabase."
         )
     return _local_save(file_storage, property_id, media_type, ext)
 

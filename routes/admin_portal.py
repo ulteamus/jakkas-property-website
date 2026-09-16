@@ -1,7 +1,7 @@
 from functools import wraps
 from datetime import date, timedelta
 
-from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from config import ALLOWED_DOC, ALLOWED_IMAGE, ALLOWED_VIDEO, LEAD_STATUSES, PROPERTY_TYPES
@@ -455,11 +455,17 @@ def property_form(pid=None):
             return redirect(url_for("admin.property_form", pid=pid) if pid else url_for("admin.property_form"))
         if pid:
             prop_model.update(pid, data)
+            media_result = {"attempted": 0, "uploaded": 0, "errors": []}
             try:
-                _upload_media(request, pid)
-            except Exception:
-                # Media/storage failures must not undo a successful property update.
-                pass
+                media_result = _upload_media(request, pid)
+            except Exception as exc:
+                current_app.logger.exception(
+                    "admin property_form media upload failed for property %s: %s",
+                    pid,
+                    exc,
+                )
+                media_result["errors"].append(str(exc) or "Media upload failed.")
+            _flash_media_result(media_result)
             try:
                 _log_admin_action(
                     "property_updated",
@@ -485,10 +491,17 @@ def property_form(pid=None):
             flash("Property updated.", "success")
         else:
             created = prop_model.create(data, created_by_admin_id=current_user.id)
+            media_result = {"attempted": 0, "uploaded": 0, "errors": []}
             try:
-                _upload_media(request, created["id"])
-            except Exception:
-                pass
+                media_result = _upload_media(request, created["id"])
+            except Exception as exc:
+                current_app.logger.exception(
+                    "admin property_form media upload failed for new property %s: %s",
+                    created.get("id"),
+                    exc,
+                )
+                media_result["errors"].append(str(exc) or "Media upload failed.")
+            _flash_media_result(media_result)
             try:
                 _log_admin_action(
                     "property_added",
@@ -1884,19 +1897,90 @@ def _form_property(form):
 
 
 def _upload_media(request, pid):
-    """Persist property media through storage_service (Supabase → Cloudinary → local)."""
+    """Persist property media through storage_service (Supabase → Cloudinary → local).
+
+    Returns ``{attempted, uploaded, errors}``. Never swallows storage errors silently —
+    callers should flash warnings. Property row updates remain durable either way.
+    """
+    attempted = 0
+    uploaded = 0
+    errors: list[str] = []
+
     for i, f in enumerate(request.files.getlist("images")):
-        path = save_upload(f, pid, "images", ALLOWED_IMAGE)
-        if path:
-            prop_model.add_image(pid, path, is_primary=(i == 0), sort_order=i)
+        if not f or not getattr(f, "filename", None):
+            continue
+        attempted += 1
+        try:
+            path = save_upload(f, pid, "images", ALLOWED_IMAGE)
+            if path:
+                prop_model.add_image(pid, path, is_primary=(i == 0), sort_order=i)
+                uploaded += 1
+            else:
+                errors.append(f"Image {i + 1} was rejected or empty.")
+        except Exception as exc:
+            current_app.logger.exception(
+                "admin: image upload failed for property %s: %s", pid, exc
+            )
+            errors.append(str(exc) or f"Image {i + 1} upload failed.")
+
     for i, f in enumerate(request.files.getlist("videos")):
-        path = save_upload(f, pid, "videos", ALLOWED_VIDEO)
-        if path:
-            prop_model.add_video(pid, path, sort_order=i)
-    for f in request.files.getlist("documents"):
-        path = save_upload(f, pid, "documents", ALLOWED_DOC)
-        if path:
-            prop_model.add_document(pid, path, f.filename)
+        if not f or not getattr(f, "filename", None):
+            continue
+        attempted += 1
+        try:
+            path = save_upload(f, pid, "videos", ALLOWED_VIDEO)
+            if path:
+                prop_model.add_video(pid, path, sort_order=i)
+                uploaded += 1
+            else:
+                errors.append(f"Video {i + 1} was rejected or empty.")
+        except Exception as exc:
+            current_app.logger.exception(
+                "admin: video upload failed for property %s: %s", pid, exc
+            )
+            errors.append(str(exc) or f"Video {i + 1} upload failed.")
+
+    for i, f in enumerate(request.files.getlist("documents")):
+        if not f or not getattr(f, "filename", None):
+            continue
+        attempted += 1
+        try:
+            path = save_upload(f, pid, "documents", ALLOWED_DOC)
+            if path:
+                prop_model.add_document(pid, path, f.filename)
+                uploaded += 1
+            else:
+                errors.append(f"Document {i + 1} was rejected or empty.")
+        except Exception as exc:
+            current_app.logger.exception(
+                "admin: document upload failed for property %s: %s", pid, exc
+            )
+            errors.append(str(exc) or f"Document {i + 1} upload failed.")
+
+    return {"attempted": attempted, "uploaded": uploaded, "errors": errors}
+
+
+def _flash_media_result(result: dict | None) -> None:
+    """Surface media failures after a durable property save."""
+    result = result or {}
+    errors = list(result.get("errors") or [])
+    attempted = int(result.get("attempted") or 0)
+    uploaded = int(result.get("uploaded") or 0)
+    if not attempted or not errors:
+        return
+    detail = "; ".join(errors[:3])
+    if len(errors) > 3:
+        detail = f"{detail}; +{len(errors) - 3} more"
+    if uploaded:
+        flash(
+            f"Property saved, but some media failed to upload ({uploaded} ok). {detail}",
+            "warning",
+        )
+    else:
+        flash(
+            f"Property saved, but none of the media files could be uploaded. {detail}",
+            "warning",
+        )
 
 
 

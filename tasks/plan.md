@@ -1,375 +1,446 @@
-# Implementation Plan: Client Feedback (Vercel Live)
+# Implementation Plan: Client Feedback Round 2 (Storage + Sell UX + Admin Sync)
+
+> **Supersedes:** prior plan *Client Feedback (Vercel Live)* / Phases 1–3 (Discover images, empty `/properties`, tab sliders, admin form parity, image delete). Those items are treated as **done or deferred**; this document is the **new scope** from Audio 1–4 feedback. Do not re-implement Phase 1–3 unless a regression is proven.
 
 ## Overview
 
-Address client feedback from the live deploy at [jakkas-property-website.vercel.app](https://jakkas-property-website.vercel.app): fix broken Discover / listing media, restore non-empty `/properties` results, make sell/detail tab UX scroll horizontally, update About / co-founder copy+alignment, and bring admin Add/Edit Property into visual/field parity with the public Sell form—including admin-only fields and per-image moderation before go-live.
+Fix production **image persistence** (upload → remote store → DB link) as a fail-fast priority, then apply **client-authorized** public UX changes (sell step order, expected-price integrity, hide Owner/Contact on public detail, About/responsive polish), then fix **My Listings approval sync**, then admin **Sell Properties table scroll** plus **Property Inventory** area filter + print export.
 
-**Design-lock conflict:** Standing Jakkash rule treats frontend as FINAL for some workstreams. This client feedback **explicitly authorizes** scoped UI changes for About Us styling, co-founder name/alignment, horizontal tab slider (sell + detail), and admin form UI parity. Plan and implement those UI edits; do not broaden into unrelated redesign.
+**Design-lock note:** Standing Jakkash “frontend FINAL” rule is overridden **only** for surfaces listed in this plan. Do not redesign unrelated templates.
 
-**Stack:** Flask + Jinja (`templates/`, mirrored via `scripts/vercel_bundle.py` → `api/template_store.py` / `api/static` / `public/`), Supabase Postgres, Vercel Python serverless (`api/index.py`), media via `services/storage_service.py` (Supabase → Cloudinary → local). Live admin is `routes/admin_portal.py`.
+**Stack reminder:** Flask + Jinja; edit `templates/**` + `static/**` then `py -3 scripts/vercel_bundle.py`. Media: `services/storage_service.py` (Supabase → Cloudinary → local; local forbidden on Vercel). Public listings: `available|approved|active`; sell creates `reserved` + `owner_submissions`.
 
 ## Architecture Decisions
 
-- **Edit canonical sources, then bundle:** Change `templates/**` and `static/**` first; run `py -3 scripts/vercel_bundle.py` before deploy so Vercel DictLoader + mirrors stay in sync. Prefer not hand-editing `api/template_store.py`.
-- **Static on Vercel:** `.vercelignore` excludes `api/static/` and `static/property-uploads/`. Root `static/` is what `@vercel/static` serves. Property media must be **remote URLs** (Supabase/Cloudinary), never reliance on ephemeral `/tmp` or ignored `property-uploads/`.
-- **Listings are JS-first:** `/properties` SSR is thin; `static/js/listings.js` loads `/api/properties`. Empty grid is primarily an API/filter/data problem, not a missing Jinja loop.
-- **Default city filter is high-risk:** `templates/public/listings.html` sets `name="city"` to `value="Surat"`, and listings.js always sends non-empty filters → every browse hits `prop_model.search(city="Surat")` (city OR location ILIKE). Fix filter defaults / empty-city semantics before blaming “no data.”
-- **Sell submissions stay `status=reserved`:** Public Discover / `/properties` / detail only show `available|approved|active`. Post-submit image visibility belongs on My Listings / admin moderation, not the public feed, until approved.
-- **Admin form parity = shared structure, not shared auth:** Rebuild admin property form layout/sections to match sell (chips, sections/tabs, media picker UX) while keeping Status, PDF documents, Listing Type, Seller Type, Creation Source admin-only.
-- **Image moderation needs new delete path:** Today admin shows existing gallery as links only; `models/property.py` has `add_image` / `get_media` but **no** delete-media helper or route. Add delete + preview before go-live.
-- **Horizontal tabs are new UI:** Sell currently uses stacked headings + wrapping chips (`flex-wrap: wrap`). Detail uses a flat meta list. Client wants tabs: Owner, Contact, Property Details, Listing Intent with smooth horizontal scroll (no awkward wrap).
+- **Storage first, fail loud:** Prior smoke noted silent upload fail on prod while delete works when an image exists. Treat missing remote URL / empty `property_images` as a hard defect; surface errors to submitter/admin; never swallow storage exceptions into “success with no photos” without a clear warning (already partially present on sell — extend and fix root cause).
+- **Canonical media path:** Persist only HTTPS Supabase/Cloudinary URLs in DB on Vercel. Local `properties/...` paths are invalid in production.
+- **Sell wizard UX:** Strict step order 1 Listing Intent → 2 Owner → 3 Contact (dynamic by Owner/Broker/Developer) → 4 Property Details → 5 Submit. Intermediate steps use **Next** (no Submit). Preserve existing POST field names.
+- **Expected price:** User-entered INR is authoritative. No client/server script may predict, overwrite, or deduct from `price` / `#expectedPriceInput` on sell (or admin property form parity fields). Standalone `/price-predictor` / `/api/predict-price` remain separate tools — do not wire them into sell submit.
+- **Public detail privacy:** Remove Owner and Contact **tabs** from public `detail.html`; show Property Details (+ listing intent/price as today) and a single clean brokerage CTA (WhatsApp/Call/Inquiry). No owner PII in public DOM.
+- **My Listings status source of truth:** Display status must reflect **effective approval**, not only `owner_submissions.status`. Prefer coalesce: if linked `properties.status` ∈ `{available,approved,active}` → show Approved; if submission rejected → Rejected; else Pending. Also sync submission when admin sets property available via property form.
+- **Admin inventory vs sell queue:** Area filter + Print View for **Property Inventory** (`/admin/properties`) — Sell Properties already has area + print; reuse that pattern. Table clip: `.admin-table-wrap { overflow: hidden }` fights horizontal scroll — fix CSS so Actions remain reachable.
 
 ## Dependency Graph
 
 ```
-Remote storage health (Supabase/Cloudinary env)
+Prod storage env (bucket + service key + public policies)
     │
-    ├── Discover / listing card media URLs
-    │
-    ├── Sell upload persistence → My Listings / admin gallery
-    │
-    └── Admin per-image delete (must not leave orphan local-only paths)
+    └── save_media / sell + admin upload → property_images.file_path
+            │
+            └── Visual parity (public cards, My Listings thumbs, admin gallery)
 
-City/filter defaults + public status set
+Sell step model (intent → owner → contact → property → submit)
     │
-    └── /properties empty results + Discover card count
+    ├── Expected price lock (no auto-mutate)
+    └── Detail privacy (drop Owner/Contact tabs)  [independent after sell UX]
 
-Sell form section/tab structure + CSS scroll
+Approval write paths (sell-properties approve OR property_form status)
     │
-    ├── Property detail tab slider (same pattern)
-    │
-    └── Admin form parity (reuse section model; add admin-only strip)
+    └── My Listings display status (+ optional backfill)
 
-Co-founder name (human input) + About styling prefs
+Admin CSS overflow + Property Inventory filters/print
     │
-    └── Home + About templates/CSS
+    └── Independent of public UX (can follow sync)
+
+About layout + mobile/tablet polish (authorized surfaces only)
 ```
+
+## Root-cause hypotheses (to verify in Task 1)
+
+| Area | Likely cause | Evidence in codebase |
+|------|----------------|----------------------|
+| Upload silent fail | Supabase upload fails; Cloudinary missing; local forbidden on Vercel; exception logged but listing still “success” | `storage_service.save_media`; sell catches per-file errors; admin `_upload_media` `except: pass` |
+| Images not linked | `add_image` never called when `stored` is None; empty payload / bad MIME | `routes/public.py` sell loop |
+| My Listings Pending | Template uses `s.status` only; ignores joined `property_current_status`; property_form can set `available` without `set_submission_status` | `my_listings.html`; `admin_portal.property_form` update path |
+| Actions clipped | `.admin-table-wrap { overflow: hidden }` (desktop) | `static/css/admin.css` ~367–372 |
+| Inventory no area/print | `properties.html` status chips only; sell_properties already has area+print | Compare templates/routes |
 
 ## Task List
 
-### Phase 1: Media & listings foundations (fail fast)
+### Phase 1: Storage fail-fast (PRIORITY)
 
-- [x] Task 1: Diagnose and fix Discover “JAKKASH Spaces” broken images
-- [x] Task 2: Fix sell-upload persistence + post-submit image visibility
-- [x] Task 3: Fix empty `/properties` (city default + API search)
+- [x] Task 1: Diagnose production storage path (env, bucket, keys, policies, sample upload)
+- [x] Task 2: Fix upload → remote store → DB link; fail loud when no remote URL
+- [x] Task 3: Stop silent media swallow on admin property form; align warnings with sell
 
-### Checkpoint: Public listings & media
-- [x] Homepage Discover cards show real images or intentional placeholder
-- [x] Sell with photos stores remote URLs; thumbs visible where expected post-submit
-- [x] `/properties` with no user filters shows available listings (not forced empty by `city=Surat`)
-- [ ] Review with human before UI polish / admin parity
+### Checkpoint: Storage
+- [x] Prod sell with photos yields HTTPS URLs in `property_images` / submission JSON *(code path verified locally against live Supabase; deploy + human smoke still recommended)*
+- [x] Failed upload shows clear user-visible error/warning (not empty gallery with “success” only)
+- [ ] Delete still works for newly uploaded remote images *(unchanged delete path; spot-check after deploy)*
+- [ ] Human review before UI/admin phases
 
-### Phase 2: Public UI (client-authorized)
+### Phase 2: Sell flow, price integrity, public privacy
 
-- [x] Task 4: About Us homepage visual adjustments
-- [x] Task 5: Co-founder name placeholder `[INSERT_NAME_HERE]` + profile image alignment
-- [x] Task 6: Horizontal tab slider on Sell Property form
-- [x] Task 7: Horizontal tab slider on property details
+- [ ] Task 4: Reorder sell wizard + Next/Submit-only-at-end
+- [ ] Task 5: Lock expected price (remove any predict/alter/deduct paths on sell + form parity)
+- [ ] Task 6: Hide Owner & Contact tabs on public property detail; clean brokerage CTA
 
-### Checkpoint: Public UI
-- [ ] About / leadership look acceptable on mobile + desktop
-- [ ] Sell + detail tabs scroll horizontally without wrap jank
-- [x] `vercel_bundle.py` run after template/static edits
+### Checkpoint: Public sell + detail
+- [ ] Step order matches spec; Submit only on final step
+- [ ] Submitted price equals typed value
+- [ ] Public detail has no Owner/Contact tabs; no seller PII
+- [ ] `vercel_bundle.py` after template/static edits
 
-### Phase 3: Admin parity & moderation
+### Phase 3: My Listings approval sync
 
-- [x] Task 8: Admin Add/Edit form layout/fields match Sell (user-visible parity)
-- [x] Task 9: Admin-only field strip (Status, PDF, Listing Type, Seller Type, Creation Source)
-- [x] Task 10: Image moderation — preview all uploads + per-image delete before go-live
+- [ ] Task 7: Sync / derive My Listings status from property + submission; backfill on property_form publish
+
+### Checkpoint: Approval sync
+- [ ] Mobile search shows Approved after admin approval (either approve path)
+- [ ] Rejected still shows Rejected
+
+### Phase 4: Admin table, inventory filter, print
+
+- [ ] Task 8: Horizontal scroll for Sell Properties (and inventory) action columns
+- [ ] Task 9: Property Inventory location/area filter (e.g. Adajan, Vesu)
+- [ ] Task 10: Property Inventory Print View for filtered set
+
+### Checkpoint: Admin inventory
+- [ ] Actions reachable on narrow + desktop widths
+- [ ] Filter + print match filtered rows
+
+### Phase 5: About + responsive polish
+
+- [ ] Task 11: About Us layout improvements (authorized page only)
+- [ ] Task 12: Mobile + tablet pass on authorized surfaces (sell, detail, about, my-listings, admin tables)
 
 ### Checkpoint: Complete
-- [ ] Admin create/edit mirrors sell UX; admin-only controls still present
-- [ ] Admin can remove bad images before setting status available
-- [ ] Smoke on production/preview: Discover, `/properties`, sell, detail tabs, admin form
-- [ ] Ready for client review
+- [ ] All acceptance criteria met
+- [ ] Bundle + deploy smoke on storage + sell + my-listings + admin inventory
+- [ ] Ready for human / client review
 
----
+## Detailed Tasks
 
-## Task 1: Diagnose and fix Discover “JAKKASH Spaces” broken images
+## Task 1: Diagnose production storage path
 
-**Description:** Homepage Discover section (`templates/public/home.html` → `#jvDiscoverGrid`) renders SSR cards via `render_listing_media` and/or JS via `static/js/home.js` + `listing-media.js`. Broken images on Vercel typically mean DB paths pointing at `/uploads/...` or ignored `static/property-uploads/`, failed remote storage, or `media_url` / `primary_image_url` mismatch. Fix URL resolution and ensure cards fall back cleanly to `/static/img/default-property.jpg` (file exists under root `static/img/`).
+**Description:** Read-only-to-ops diagnosis of why prod uploads silent-fail while delete works when an image exists. Confirm Vercel env (`SUPABASE_URL`, service role key preference order, `SUPABASE_BUCKET`/`STORAGE_BACKEND`), bucket existence/public ACL, and a single controlled upload test (staging or prod admin) logging returned URL vs DB row.
 
 **Acceptance criteria:**
-- [ ] Discover cards on live/preview show working image src (HTTPS remote or valid static fallback)
-- [ ] No systematic 404s for card images when `primary_image` / `property_images` exist
-- [ ] Missing media still shows default placeholder, not a broken icon
+- [x] Written diagnosis: which backend is selected on Vercel and why upload fails (or succeeds)
+- [x] Confirmed whether failure is auth, bucket missing, MIME, payload empty, or URL not written to DB
 
 **Verification:**
-- [ ] Browser: open `/` → Discover section → Network tab image requests succeed or hit default
-- [ ] Flask/test client or curl: `/api/properties?sort=newest&limit=9` returns `primary_image_url` that starts with `http` or `/static/`
-- [ ] Confirm `.vercelignore` is not required for the serving path used
+- [x] Manual: one admin or sell upload attempt with runtime logs inspected
+- [x] Compare a known-good remote URL row vs a failed submission’s `images` JSON
 
-**Dependencies:** None (high-risk; first)
+**Diagnosis result (2026-09-16):**
+- Backend preference on Vercel/local: `STORAGE_BACKEND=supabase`, bucket `property-media`.
+- Failure mode: **auth key selection**. Code preferred `SUPABASE_SERVICE_KEY` (`sb_secret_*`) which supabase-py rejects as **Invalid API key**; JWT in `SUPABASE_KEY` uploads successfully (HTTP 200 + public GET 200 + `property_images` row).
+- Not MIME/empty payload/missing bucket (bucket exists; upload works once JWT is used).
+- Silent success path: sell already warned; admin `_upload_media` was wrapped in `except: pass` (Task 3).
+
+**Dependencies:** None
 
 **Files likely touched:**
-- `models/property.py` (`public_image_url`, serialization)
-- `routes/public.py` (`_attach_listing_media`, home)
-- `static/js/listing-media.js` / `static/js/home.js`
-- `templates/public/_listing_media.html` (only if macro URL path wrong)
+- (investigation notes only; may add temporary logging later in Task 2)
+- `services/storage_service.py` (read)
+- Vercel env / Supabase dashboard (ops)
 
-**Estimated scope:** M (3–5 files)
+**Estimated scope:** Small–Medium (investigation; no feature code until Task 2)
 
 ---
 
-## Task 2: Fix sell-upload persistence + post-submit image visibility
+## Task 2: Fix upload → store → DB link (fail loud)
 
-**Description:** Sell POST (`routes/public.py`) creates `status=reserved`, uploads via `save_upload` → `storage_service`, and swallows media exceptions. On Vercel, local fallback is ephemeral. Client report “images not displaying after submission” may mean (a) upload never persisted remotely, (b) My Listings shows no thumbs (`templates/public/my_listings.html` is text-only), and/or (c) detail/public feed correctly hides reserved. Fix remote upload reliability, surface upload failures to the user when all images fail, and show thumbnails on My Listings / success path for the submitter.
+**Description:** Fix root cause from Task 1 so `save_media` / `save_upload` returns a durable HTTPS URL and sell/admin paths call `add_image` with that URL. On Vercel, never persist local relative paths. When all uploads fail, prefer hard fail or unavoidable clear warning that cannot be missed (JSON + flash + confirm UI).
 
 **Acceptance criteria:**
-- [ ] Successful sell with images stores absolute remote URLs in `property_images` / `owner_submissions.images_json`
-- [ ] Submitter sees uploaded image previews on My Listings (or dedicated success view) without needing public approval
-- [ ] If storage backend fails for all files, user gets a clear error/warning (not silent success with empty media)
+- [x] Successful upload stores `https://…` in `property_images.file_path` and submission `images`
+- [x] Failure raises or returns explicit error; no silent empty gallery on “happy path” success without warning
+- [x] Public/admin thumbs resolve for new uploads
 
 **Verification:**
-- [ ] Submit sell form with 1–2 images on preview/prod; inspect DB paths start with `https://`
-- [ ] Open `/my-listings` with same mobile/session → thumbs render
-- [ ] Confirm `STORAGE_BACKEND` / Supabase env on Vercel (no secrets in docs)
+- [ ] Sell with 2 images → My Listings thumbs + admin gallery
+- [ ] Force-fail storage (bad bucket name in preview) → user sees error/warning
 
-**Dependencies:** Task 1 (shared URL/storage understanding)
+**Dependencies:** Task 1
 
 **Files likely touched:**
-- `routes/public.py` (sell + my_listings context)
-- `services/storage_service.py` / `utils/helpers.py`
-- `templates/public/my_listings.html`
-- `static/js/sell_property.js` (error messaging)
+- `services/storage_service.py`
+- `routes/public.py` (sell upload loop / response)
+- `models/property.py` (`add_image` if needed)
+- Possibly `routes/admin_portal.py` `_upload_media`
 
-**Estimated scope:** M
+**Estimated scope:** Medium
 
 ---
 
-## Task 3: Fix empty `/properties` (city default + API search)
+## Task 3: Admin upload errors not swallowed
 
-**Description:** `listings.js` always sends `city` when the filter input is non-empty; HTML defaults city to `"Surat"`. Combined with sparse rows, blank/null `city` columns, or non-matching values, `/api/properties?city=Surat` can return 0 while “View all properties” feels broken. Align defaults: empty city means “all cities,” keep optional Surat hint as placeholder not value; verify `prop_model.search` city/location ILIKE and public status set; ensure reset/browse-all clears city.
+**Description:** Property form currently `except: pass` around `_upload_media`, which hides the same storage bug. Flash/log media failures after successful property save; keep property update durable but make media failure visible.
 
 **Acceptance criteria:**
-- [ ] Loading `/properties` with no intentional filters returns all publicly available listings (status in `available|approved|active`)
-- [ ] Choosing city Surat still filters correctly when user intends it
-- [ ] Empty state only when DB truly has zero public rows
+- [x] Admin save with failed images shows flash warning listing failure
+- [x] Successful admin images still attach as remote URLs
 
 **Verification:**
-- [ ] Browser: `/properties` → resultsCount > 0 when DB has available rows
-- [ ] Network: first `/api/properties` call does **not** force `city=Surat` unless user set it
-- [ ] Compare with `/api/properties?sort=newest&limit=120` (no city) vs `?city=Surat`
+- [ ] Admin edit attach photo on prod/preview
+- [ ] Logs contain storage exception when forced fail
 
-**Dependencies:** None (can parallel Task 1 after storage sanity)
+**Dependencies:** Task 2
 
 **Files likely touched:**
-- `templates/public/listings.html` (city input default)
-- `static/js/listings.js`
-- `models/property.py` (`search` city/location) — only if still wrong after UI default fix
-- `routes/api.py` — only if API mishandles empty city
+- `routes/admin_portal.py`
+- `templates/admin/property_form.html` (optional message display)
 
-**Estimated scope:** S–M
+**Estimated scope:** Small
 
 ---
 
-## Task 4: About Us homepage visual adjustments
+## Task 4: Sell wizard reorder + Next / Submit-at-end
 
-**Description:** Client asked for minor About Us styling on the homepage (`#about` in `home.html`, styles in `jakkash.css`: `.jv-about-split`, leadership). Apply restrained spacing/typography/alignment tweaks only—no full redesign. Exact visual preferences are an open question; start from current layout and tighten inconsistency vs About page.
-
-**Acceptance criteria:**
-- [ ] Homepage About block looks polished and consistent on mobile + desktop
-- [ ] No unrelated homepage sections restyled
-- [ ] Changes limited to About/leadership-related CSS/markup
-
-**Verification:**
-- [ ] Browser screenshot `/#about` mobile + desktop
-- [ ] Compare with `/about` for consistency if shared classes
-
-**Dependencies:** None (UI; can follow Phase 1 checkpoint)
-
-**Files likely touched:**
-- `templates/public/home.html`
-- `static/css/jakkash.css`
-- optionally `templates/public/about.html` if shared classes
-
-**Estimated scope:** S
-
----
-
-## Task 5: Co-founder name + profile image alignment
-
-**Description:** Replace placeholder name `JAKKASH Leadership` with the real second co-founder name on home + about (+ `api/template_store` via bundle). Fix co-founder photo alignment/spacing relative to founder card (`.founder-photo`, `.leadership-card`). Asset exists at `static/images/team/co-founder.jpeg` (and `.jpg` fallback).
+**Description:** Reorder tabs/panels to: Listing Intent → Owner → Contact (labels/fields already dynamic via seller type) → Property Details. Add Next/Back controls; keep Submit only on final step (or only enabled on final step). Update `sell_property.js` tab activation and validation to validate per-step before Next.
 
 **Acceptance criteria:**
-- [ ] Co-founder displays the agreed real name (not placeholder)
-- [ ] Photo alignment/spacing matches founder card visually
-- [ ] Home and About stay in sync
+- [ ] Strict order matches client audio (1→5)
+- [ ] Intermediate steps: Next (and Back), not Submit
+- [ ] Final step: Submit For Selling; POST contract unchanged
+- [ ] Owner/Broker/Developer still retitle contact fields
 
 **Verification:**
-- [ ] Browser `/` and `/about` leadership rows
-- [ ] Image loads; no layout jump vs founder column
+- [ ] Manual walkthrough mobile + desktop
+- [ ] Successful submit still creates reserved property + submission
 
-**Dependencies:** Open question — exact co-founder name (and optional quote/bio) from client
-
-**Files likely touched:**
-- `templates/public/home.html`
-- `templates/public/about.html`
-- `static/css/jakkash.css`
-
-**Estimated scope:** S
-
----
-
-## Task 6: Horizontal tab slider on Sell Property form
-
-**Description:** Refactor sell form into tabbed sections: Owner, Contact, Property Details, Listing Intent (map existing fields into those groups; Amenities/Media can sit under Property Details or a following panel). Replace wrapping chip rows that cause awkward wrap with a horizontal scroll tab bar (`overflow-x: auto`, nowrap, snap optional). Keep existing field names/POST contract so `routes/public.py` sell handler stays stable.
-
-**Acceptance criteria:**
-- [ ] Tabs listed: Owner, Contact, Property Details, Listing Intent
-- [ ] Tab bar scrolls horizontally on narrow viewports; labels do not wrap awkwardly
-- [ ] All mandatory fields still submit; validation still works
-- [ ] Chip groups inside panels may still wrap where needed; tab labels do not
-
-**Verification:**
-- [ ] Browser mobile width: drag/swipe tab bar
-- [ ] Submit valid sell payload (test client or manual)
-- [ ] Keyboard: tabs reachable / focus visible
-
-**Dependencies:** None for structure; better after Task 2 if testing full sell flow
+**Dependencies:** Checkpoint Storage preferred (can implement in parallel after Task 2 if needed)
 
 **Files likely touched:**
 - `templates/public/sell_property.html`
 - `static/js/sell_property.js`
-- `static/css/jakkash.css` (and `mobile.css` if needed)
+- `static/css/jakkash.css` (step nav only if needed)
+- Then `scripts/vercel_bundle.py`
 
-**Estimated scope:** M
+**Estimated scope:** Medium
 
 ---
 
-## Task 7: Horizontal tab slider on property details
+## Task 5: Expected price integrity
 
-**Description:** Apply the same horizontal tab pattern on property detail for Owner, Contact, Property Details, Listing Intent. Detail currently mixes gallery + flat meta + inquiry panels; introduce a tabbed content region for those four info groups without removing CTA buttons (WhatsApp/Call/Inquiry). Owner/Contact may be limited by public PII stripping (`to_dict(public=True)`)—show only what product already allows publicly, or “contact broker” CTAs where owner fields are stripped.
+**Description:** Audit sell (+ admin property form price field) for any script that predicts, autofills, or deducts expected price. Remove/disable wiring to `/api/predict-price` or ML helpers on these forms. Ensure submitted `price` equals `#expectedPriceInput` value with no client mutation before POST.
 
 **Acceptance criteria:**
-- [ ] Detail page has matching horizontal tab slider UX
-- [ ] Public PII rules respected (no leaking stripped owner fields)
-- [ ] Gallery/CTAs remain usable
+- [ ] No automatic change to expected price on sell form
+- [ ] Typed value equals DB `properties.price` / submission `price` after submit
 
 **Verification:**
-- [ ] Browser `/property/<slug>` mobile + desktop
-- [ ] Confirm no new owner PII in HTML source vs current public rules
+- [ ] Enter known price → submit → admin/My Listings show same number
+- [ ] Grep confirm no predict hooks on sell/admin property form JS
 
-**Dependencies:** Task 6 (reuse CSS/JS tab pattern)
+**Dependencies:** None (∥ Task 4)
+
+**Files likely touched:**
+- `static/js/sell_property.js`
+- `static/js/admin_property_form.js` (if any)
+- `templates/public/sell_property.html` / `templates/admin/property_form.html` (remove predictor UI if present)
+
+**Estimated scope:** Small
+
+---
+
+## Task 6: Public detail privacy (hide Owner/Contact tabs)
+
+**Description:** On `templates/public/detail.html`, remove Owner and Contact tab buttons/panels. Keep Property Details (and listing intent/price presentation). Provide one clean CTA group to contact the brokerage team (existing WhatsApp/Call/Inquiry — consolidate so it doesn’t feel like seller contact).
+
+**Acceptance criteria:**
+- [ ] No Owner or Contact tabs in public detail UI
+- [ ] No owner name/phone/email in public detail markup
+- [ ] Clear CTA to contact Jakkash team remains
+
+**Verification:**
+- [ ] `/property/<slug>` desktop + mobile
+- [ ] View-source / a11y tree: no seller PII tabs
+
+**Dependencies:** None (∥ Phase 2)
 
 **Files likely touched:**
 - `templates/public/detail.html`
-- `static/css/jakkash.css`
-- small JS if tabs need behavior (new or shared module)
+- `static/js/detail.js` (if tab init assumes four tabs)
+- CSS as needed
+- Bundle
 
-**Estimated scope:** M
+**Estimated scope:** Small
 
 ---
 
-## Task 8: Admin Add/Edit form layout/fields match Sell (user-visible parity)
+## Task 7: My Listings approval state sync
 
-**Description:** Rebuild `templates/admin/property_form.html` (served by `routes/admin_portal.py` `property_form`) so user-facing layout/fields/design match the Sell form: same sections/tabs, chip-style intent/type/seller controls where applicable, amenities, media picker via `media_file_manager.js`. Preserve admin POST handling (`_form_property`, `_upload_media`).
+**Description:** Fix out-of-sync Pending when property is live. (1) Template/API: derive badge from `property_current_status` + submission status. (2) When admin `property_form` sets status to available/approved/active for a linked submission, call `set_submission_status(..., "approved")` (and reverse to pending/reserved carefully if demoted). Optional one-shot SQL/script to backfill mismatched rows.
 
 **Acceptance criteria:**
-- [ ] Side-by-side, admin form mirrors sell structure for shared fields
-- [ ] Create + edit both work; existing property values hydrate correctly
-- [ ] Admin CSS does not break admin shell (`admin/base.html`)
+- [ ] After admin approval (Sell Properties **or** property status → available), mobile lookup shows Approved
+- [ ] View link appears when approved + slug present
+- [ ] Rejected remains Rejected
 
 **Verification:**
-- [ ] Login admin → Add Property / Edit Property vs `/sell-property`
-- [ ] Save new + edit existing property successfully
+- [ ] Approve via sell-properties → My Listings by mobile
+- [ ] Set available via property edit on a reserved user submission → My Listings updates
+- [ ] Pending reserved still Pending
 
-**Dependencies:** Task 6 (sell tab structure becomes the parity target)
+**Dependencies:** None (∥ after Phase 1; independent of sell UX)
 
 **Files likely touched:**
-- `templates/admin/property_form.html`
+- `templates/public/my_listings.html`
+- `routes/public.py` (`my_listings` — attach `display_status`)
+- `routes/admin_portal.py` (`property_form` status sync)
+- `models/submission.py` if helper needed
+
+**Estimated scope:** Medium
+
+---
+
+## Task 8: Admin table horizontal scroll (actions visible)
+
+**Description:** Fix CSS so Sell Properties (and Property Inventory) action columns are not clipped. Replace/narrow `.admin-table-wrap { overflow: hidden }` so `table-responsive` / `overflow-x: auto` works on desktop as well as the existing mobile media-query rules.
+
+**Acceptance criteria:**
+- [ ] All action buttons reachable via horizontal scroll without being cut off
+- [ ] Card border-radius still acceptable (clip content only where intentional)
+
+**Verification:**
+- [ ] `/admin/sell-properties` at ~1024px and mobile widths
+- [ ] `/admin/properties` same check
+
+**Dependencies:** None
+
+**Files likely touched:**
 - `static/css/admin.css`
-- `routes/admin_portal.py` (only if field name mapping needed)
-- optional small admin JS
+- Possibly `templates/admin/sell_properties.html` / `properties.html` wrapper classes
+- Bundle
 
-**Estimated scope:** M (split further if markup balloons)
+**Estimated scope:** Small
 
 ---
 
-## Task 9: Admin-only field strip while keeping user UI
+## Task 9: Property Inventory area filter
 
-**Description:** On the parity admin form, keep a clearly separated admin-only group: Status, Document Upload (PDF), Listing Type (Sell/Rent), Seller Type (Owner/Broker[/Developer if already supported]), Creation Source. These must not appear on the public sell form. Wire documents through existing `_upload_media` / `add_document` paths.
+**Description:** Add location/area filter (e.g. Adajan, Vesu) to `/admin/properties`, mirroring Sell Properties area select. Extend `prop_model.search` / route query args; area options from distinct `area_name` (not only `status=available` if inventory needs reserved too — prefer all statuses in admin scope).
 
 **Acceptance criteria:**
-- [ ] Admin-only fields visible and editable only in admin
-- [ ] Public sell form unchanged regarding these fields
-- [ ] PDF upload persists and lists under documents
+- [ ] Selecting an area filters inventory list
+- [ ] “All areas” clears filter
+- [ ] Works with existing status chips + pagination
 
 **Verification:**
-- [ ] Admin save with each admin-only field set; reload edit form shows values
-- [ ] Public `/sell-property` has no Status / Creation Source / admin PDF controls
+- [ ] Filter Adajan → only matching rows
+- [ ] Status=reserved + area combo works
 
-**Dependencies:** Task 8
+**Dependencies:** None (∥ Task 8)
 
 **Files likely touched:**
-- `templates/admin/property_form.html`
-- `routes/admin_portal.py` (`_form_property`, `_upload_media`)
-- `models/property.py` (if document helpers need extension)
+- `routes/admin_portal.py` (`properties`)
+- `models/property.py` (`search`, `areas_list` variant)
+- `templates/admin/properties.html`
 
-**Estimated scope:** S–M
+**Estimated scope:** Small–Medium
 
 ---
 
-## Task 10: Image moderation — preview all uploads + per-image delete before go-live
+## Task 10: Property Inventory print export
 
-**Description:** Admin must preview **all** user-uploaded images for a property and remove individual images before setting status to available. Implement `delete_image` (and optional storage object delete best-effort) in the property model, an authenticated admin route, and UI controls on the existing gallery (not view-only links). After deletes, refresh `primary_image` if the primary was removed.
+**Description:** Add Print View button on Property Inventory that opens a print-friendly template of the **current filtered** set (status + area + page or “all matching” — prefer all matching filtered rows up to a sane cap, document cap in UI). Reuse patterns from `sell_properties_print.html` / `print_sell_properties`.
 
 **Acceptance criteria:**
-- [ ] Admin sees thumbnail grid of all images for the property
-- [ ] Per-image Remove deletes DB row (and best-effort remote object)
-- [ ] Primary image pointer updated if needed
-- [ ] Cannot go live with removed images still showing on public cards
+- [ ] Print View respects active filters
+- [ ] Browser print stylesheet usable for inventory report
+- [ ] Does not expose needless PII beyond inventory fields already on admin list
 
 **Verification:**
-- [ ] Admin edit: remove one of N images → reload → gone
-- [ ] Approve/set available → public card/detail omit deleted image
-- [ ] Unauthorized POST to delete endpoint returns 401/403
+- [ ] Filter area → Print View → rows match
+- [ ] Print preview readable
 
-**Dependencies:** Tasks 2 and 8/9 (media must be viewable; form hosts UI)
+**Dependencies:** Task 9 (filter query args)
 
 **Files likely touched:**
-- `models/property.py` (delete helpers)
-- `routes/admin_portal.py` (delete route)
-- `templates/admin/property_form.html`
-- optionally `services/storage_service.py` (remote delete)
+- `routes/admin_portal.py` (new print route)
+- `templates/admin/properties_print.html` (new)
+- `templates/admin/properties.html` (button)
+- Bundle
 
-**Estimated scope:** M
+**Estimated scope:** Medium
 
 ---
 
-## Parallelization Opportunities
+## Task 11: About Us layout improvements
 
-| Parallel-safe | Sequential |
-|---------------|------------|
-| Task 3 (listings filter) ∥ Task 1 (Discover media) after storage env check | Task 6 → Task 7 → Task 8 → Task 9 |
-| Task 4 (About CSS) ∥ Task 5 (co-founder) once name known | Task 2 before relying on admin moderation demos |
-| Task 10 after Task 2 storage paths known | Bundle + deploy after each UI phase |
+**Description:** Client-authorized polish on `templates/public/about.html` (+ related CSS). Improve layout rhythm/alignment without redesigning the whole site. Scope: About page (and homepage `#about` only if the same issue is visible there — prefer About page first).
+
+**Acceptance criteria:**
+- [ ] About layout improved per client feedback (clearer hierarchy, less cramped sections)
+- [ ] Desktop + tablet + mobile acceptable
+
+**Verification:**
+- [ ] `/about` screenshots at 375 / 768 / 1280
+
+**Dependencies:** Open question on exact visual prefs (else judgment within existing brand)
+
+**Files likely touched:**
+- `templates/public/about.html`
+- `static/css/jakkash.css` and/or page-scoped styles
+- Bundle
+
+**Estimated scope:** Small
+
+---
+
+## Task 12: Mobile + tablet responsiveness pass
+
+**Description:** Rigorous pass across **authorized** surfaces only: sell wizard, public detail, about, my-listings, admin sell-properties + properties tables. Fix overflow, tap targets, tab/step nav, and table scroll regressions introduced by earlier phases.
+
+**Acceptance criteria:**
+- [ ] No critical horizontal page overflow on 375 / 768
+- [ ] Sell Next/Submit usable on mobile
+- [ ] Admin actions reachable (ties to Task 8)
+
+**Verification:**
+- [ ] Checklist pass on listed routes
+- [ ] Spot-check after bundle
+
+**Dependencies:** Tasks 4, 6, 8, 11
+
+**Files likely touched:**
+- `static/css/jakkash.css`, `static/css/admin.css`
+- Possibly small HTML/JS tweaks on authorized templates only
+
+**Estimated scope:** Medium
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Vercel ephemeral FS / ignored `property-uploads` | High — broken images everywhere | Require Supabase/Cloudinary; store absolute URLs; never ship media only under ignored paths |
-| Default `city=Surat` empties listings | High — “0 properties” | Clear default; treat empty as no city filter; verify API |
-| Silent sell media `except: pass` | High — submit “works” without images | Fail loudly when images were attached but none stored |
-| Admin↔Sell parity scope creep | Med — XL form rewrite | Parity = layout/fields/tabs only; reuse CSS patterns from Task 6 |
-| Public detail Owner/Contact tabs vs PII strip | Med — empty tabs or leaks | Tab content = public-safe fields + CTAs only |
-| Design-lock vs client UI asks | Med — agent hesitation | This plan documents explicit authorization for listed UI items only |
-| Dual template/static mirrors drift | Med — local OK, Vercel stale | Always run `vercel_bundle.py` after template/static edits |
-| No media delete today | Med — moderation blocked | Task 10 adds model + route + UI |
+| Prod Supabase key is anon-only / RLS blocks upload | High | Task 1 verifies service role; document required Vercel secrets before coding workarounds |
+| “Silent success” hides incomplete fix | High | Task 2–3 force visible warnings + log correlation IDs |
+| Syncing submission on property_form causes false Approvals | Med | Only sync when linked `owner_submissions` exists; map status carefully |
+| Inventory print loads too many rows | Med | Cap + message; reuse sell print period patterns |
+| Frontend FINAL conflict / scope creep | Med | Touch only authorized surfaces listed above |
+| Bundle drift (`api/template_store` stale) | Med | Always run `vercel_bundle.py` after template/static edits |
+| Price “AI” was client perception of another page | Low | Task 5 audit; clarify in Open Questions |
 
-## Open Questions (RESOLVED)
+## Open Questions — Resolved (Round 2 kickoff)
 
-1. **Co-founder name:** Still literal placeholder `[INSERT CO-FOUNDER NAME]` (user forgot real name). Role: Co-Founder. Agent judgment for bio/quote OK when unblocked. **Task 5 BLOCKED** until real name supplied.
-2. **About Us styling:** Agent judgment for light polish against current brand CSS (Phase 2 Task 4).
-3. **Post-submit image surface:** BOTH My Listings **and** submission confirmation show thumbs.
-4. **Detail Owner/Contact:** Public = Call/WhatsApp CTAs only (no owner PII); admin = full owner details.
-5. **Seller Type:** Keep Developer + Owner + Broker.
-6. **Listing Intent + Listing Type:** YES — dual-write both.
+1. **Storage ops:** Assume Vercel has secrets set; implement **fail-fast logging**. If upload still fails, document exact `vercel env ls` / `vercel env add` commands for the user to verify (no invented secret values). **Diagnosis (Task 1):** Prod has `SUPABASE_SERVICE_KEY`, `SUPABASE_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_BUCKET`/`SUPABASE_STORAGE_BUCKET`, `STORAGE_BACKEND`. Local/prod prefer `SUPABASE_SERVICE_KEY` (`sb_secret_*`) first — supabase-py Storage rejects it as **Invalid API key**; classic JWT in `SUPABASE_KEY` uploads successfully. Bucket: `property-media`.
+2. **Approval path:** Sync from **property Status only** (for Phase 3 / Task 7). Note now; implement later.
+3. **Expected price:** Sell form field — **disable scripts altering input** (Phase 2 / Task 5). Note now; implement later.
+4. **Inventory print:** **HTML print** (Phase 4 / Task 10). Note now; implement later.
+5. **About / responsive:** **Agent judgment** under existing brand (Phase 5). Note now; implement later.
+6. **areas_list:** Inventory area filter includes **all statuses** (Phase 4 / Task 9). Note now; implement later.
 
-## Out of Scope
+## Implementation Order (agents)
 
-- Unrelated homepage redesign, chatbot, map, ML price predictor
-- Changing admin credentials or documenting secrets
-- Broad unlock of all frontend beyond the listed client items
-- Migrating historical local-only upload files unless needed for Discover fix (call out as follow-up data repair if many rows still point at `/uploads/`)
+1. Tasks 1 → 2 → 3 (storage) — **stop for human checkpoint**
+2. Tasks 4 ∥ 5 ∥ 6 (sell UX / price / privacy)
+3. Task 7 (My Listings sync)
+4. Tasks 8 ∥ 9 → 10 (admin scroll / filter / print)
+5. Tasks 11 → 12 (About + responsive)
+
+## Parallelization
+
+| Parallel-safe | Sequential |
+|---------------|------------|
+| Task 5 ∥ Task 6 ∥ Task 4 (after storage checkpoint) | 1 → 2 → 3 |
+| Task 8 ∥ Task 9 | 9 → 10 |
+| Task 7 ∥ Phase 4 | Bundle before deploy smoke |
+
+## Verification commands (repo)
+
+- Bundle: `py -3 scripts/vercel_bundle.py`
+- Prefer existing smoke / e2e scripts if present (`scripts/test_e2e_pipeline.py`) for sell + listings after storage fix
+- Manual prod/preview checklist per checkpoint above
