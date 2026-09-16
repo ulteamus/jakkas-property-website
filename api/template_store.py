@@ -3635,17 +3635,17 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <div class="founder-photo-wrap">
         <img
           src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}"
-          alt="Co-Founder - JAKKASH Property Consultancy"
+          alt="Co-Founder [INSERT_NAME_HERE] - JAKKASH Property Consultancy"
           class="founder-photo"
           onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';"
         >
       </div>
       <div class="leadership-copy">
         <p class="founder-label mb-1">Co-Founder</p>
-        <h3 class="founder-name">JAKKASH Leadership</h3>
+        <h3 class="founder-name">[INSERT_NAME_HERE]</h3>
         <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
         <blockquote class="about-quote-card mb-3">
-          <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
+          <p class="mb-0">"Clarity before commitment — every listing should earn a client's trust."</p>
         </blockquote>
         <p class="mb-0 text-muted">
           Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
@@ -4143,29 +4143,67 @@ document.getElementById('contactNameInput')?.focus();
       <h1 class="h3 mt-2">{{ property.property_name }}</h1>
       <p class="text-muted mb-2"><i class="bi bi-geo-alt"></i> {{ property.area_name }}, Surat</p>
       <p class="price fs-3 fw-bold">₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</p>
-      <ul class="list-unstyled detail-meta-list">
-        <li><strong>Property ID:</strong> #{{ property.id }}</li>
-        <li><strong>Property Name:</strong> {{ property.property_name }}</li>
-        <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
-        <li><strong>Listing Intent:</strong> {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}</li>
-        {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
-        <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
-        <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
-      </ul>
-      {% if property.amenities %}
-      <div class="mb-3">
-        <h6 class="mb-2">Amenities</h6>
-        {% for a in property.amenities %}
-        <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
-        {% endfor %}
+
+      <div class="jk-tab-slider detail-info-tabs mb-3" data-jk-tabs="detail">
+        <div class="jk-tab-bar" role="tablist" aria-label="Property information">
+          <button type="button" class="jk-tab is-active" role="tab" id="detailTabOwner" aria-controls="detailPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabContact" aria-controls="detailPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabIntent" aria-controls="detailPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
+        </div>
+        <div class="jk-tab-panels">
+          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelOwner" aria-labelledby="detailTabOwner" data-jk-tab-panel="owner">
+            <p class="text-muted small mb-3">Owner identity is handled privately. Reach our brokerage team to discuss this listing.</p>
+            <div class="d-grid gap-2">
+              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+                <i class="bi bi-whatsapp"></i> WhatsApp Broker
+              </a>
+              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
+            </div>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelContact" aria-labelledby="detailTabContact" data-jk-tab-panel="contact" hidden>
+            <p class="text-muted small mb-3">Prefer a quick call or chat? Use the brokerage lines below — no owner phone or email is shown publicly.</p>
+            <div class="d-grid gap-2">
+              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
+              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+                <i class="bi bi-whatsapp"></i> WhatsApp Broker
+              </a>
+            </div>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property" hidden>
+            <ul class="list-unstyled detail-meta-list mb-3">
+              <li><strong>Property ID:</strong> #{{ property.id }}</li>
+              <li><strong>Property Name:</strong> {{ property.property_name }}</li>
+              <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
+              {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
+              <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
+              <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
+            </ul>
+            {% if property.amenities %}
+            <div class="mb-3">
+              <h6 class="mb-2">Amenities</h6>
+              {% for a in property.amenities %}
+              <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <p class="mb-0">{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelIntent" aria-labelledby="detailTabIntent" data-jk-tab-panel="intent" hidden>
+            <p class="mb-2">
+              <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent bg-info{% else %}badge-buy bg-success{% endif %}">
+                {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}
+              </span>
+            </p>
+            <ul class="list-unstyled detail-meta-list mb-0">
+              <li><strong>Listing Intent:</strong> {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}</li>
+              <li><strong>Asking Price:</strong> ₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</li>
+            </ul>
+          </div>
+        </div>
       </div>
-      {% endif %}
-      <p>{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
+
       <div class="d-grid gap-2">
-        <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-          <i class="bi bi-whatsapp"></i> WhatsApp Broker
-        </a>
-        <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
         <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </a>
@@ -4345,37 +4383,47 @@ document.getElementById('contactNameInput')?.focus();
 
 <section class="jv-section" id="about">
   <div class="container">
-    <div class="jv-about-split scroll-reveal mb-5">
+    <div class="jv-about-split scroll-reveal mb-4 mb-md-5">
       <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
-        <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
+        <h2 class="jv-section-title jv-about-title">A modern living space with trusted guidance.</h2>
       </div>
       <div class="jv-about-body">
-        <p class="jv-body-text">
+        <p class="jv-body-text jv-about-lede">
           {{ company_name }} delivers transparent, customer-focused real estate services across Surat —
           whether you are buying, selling, or renting residential and commercial property.
         </p>
-        <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
+        <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-1">Learn more</a>
       </div>
     </div>
-    <h3 class="section-title section-title-center mb-4 scroll-reveal">Leadership</h3>
+    <h3 class="section-title section-title-center jv-about-leadership-title mb-3 mb-md-4 scroll-reveal">Leadership</h3>
     <div class="row g-4 leadership-row">
       <div class="col-12 col-md-6">
         <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="Founder Kalpesh Chunawala" class="founder-photo">
-          <p class="founder-label mb-1">Founder</p>
-          <h4 class="founder-name">Kalpesh Chunawala</h4>
-          <blockquote class="about-quote-card mb-3"><p class="mb-0">"A property is the foundation of dreams, security, and future generations."</p></blockquote>
-          <p class="mb-0 text-muted">Built JAKKASH on verified listings and honest advice. Helps Surat families close homes with clarity and speed.</p>
+          <div class="founder-photo-wrap">
+            <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="Founder Kalpesh Chunawala" class="founder-photo">
+          </div>
+          <div class="leadership-copy">
+            <p class="founder-label mb-1">Founder</p>
+            <h4 class="founder-name">Kalpesh Chunawala</h4>
+            <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+            <blockquote class="about-quote-card mb-3"><p class="mb-0">"A property is the foundation of dreams, security, and future generations."</p></blockquote>
+            <p class="mb-0 text-muted">Built JAKKASH on verified listings and honest advice. Helps Surat families close homes with clarity and speed.</p>
+          </div>
         </article>
       </div>
       <div class="col-12 col-md-6">
         <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-          <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
-          <p class="founder-label mb-1">Co-Founder</p>
-          <h4 class="founder-name">JAKKASH Leadership</h4>
-          <blockquote class="about-quote-card mb-3"><p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p></blockquote>
-          <p class="mb-0 text-muted">Drives client success and listing quality so rentals and sales move smoothly from inquiry to handover.</p>
+          <div class="founder-photo-wrap">
+            <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder [INSERT_NAME_HERE]" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
+          </div>
+          <div class="leadership-copy">
+            <p class="founder-label mb-1">Co-Founder</p>
+            <h4 class="founder-name">[INSERT_NAME_HERE]</h4>
+            <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+            <blockquote class="about-quote-card mb-3"><p class="mb-0">"Clarity before commitment — every listing should earn a client's trust."</p></blockquote>
+            <p class="mb-0 text-muted">Keeps pipelines moving with careful follow-through so rentals and sales stay transparent from first call to handover.</p>
+          </div>
         </article>
       </div>
     </div>
@@ -4845,17 +4893,11 @@ document.getElementById('contactNameInput')?.focus();
 <section class="container py-4 py-md-5 jk-flow sell-page">
 
   <header class="mb-4">
-
     <h1 class="section-title">Sell / Rent Your Property</h1>
-
     <p class="text-muted mb-0">
-
       Submit your listing details. Every submission is marked as <strong>Pending Approval</strong> and
-
       becomes public only after admin verification.
-
     </p>
-
   </header>
 
   <div id="sellSubmitConfirm" class="content-card mb-4 p-3 d-none" role="status" aria-live="polite">
@@ -4866,331 +4908,194 @@ document.getElementById('contactNameInput')?.focus();
   </div>
 
   <form method="POST" enctype="multipart/form-data" class="submission-form card p-3 p-md-4 p-lg-5" id="sellPropertyForm">
-
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-
-
-    <div class="mb-4">
-      <label class="form-label fw-semibold">Listing Intent *</label>
-      <input type="hidden" id="listingIntentInput" name="listing_intent" value="sell">
-      <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
-        <button type="button" class="sell-option-chip btn-orange is-active" data-listing-intent="sell">Sell Property</button>
-        <button type="button" class="sell-option-chip" data-listing-intent="rent">Rent Property</button>
+    <div class="jk-tab-slider" data-jk-tabs="sell">
+      <div class="jk-tab-bar" role="tablist" aria-label="Sell form sections">
+        <button type="button" class="jk-tab is-active" role="tab" id="sellTabOwner" aria-controls="sellPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
+        <button type="button" class="jk-tab" role="tab" id="sellTabContact" aria-controls="sellPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
+        <button type="button" class="jk-tab" role="tab" id="sellTabProperty" aria-controls="sellPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
+        <button type="button" class="jk-tab" role="tab" id="sellTabIntent" aria-controls="sellPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
       </div>
-    </div>
 
-    <h5 class="mb-3" id="contactSectionTitle">Owner Details (Mandatory)</h5>
-
-    <div class="row g-3 sell-contact-row">
-
-      <div class="col-12">
-
-        <label class="form-label">Seller Type *</label>
-
-        <input type="hidden" id="submitterTypeInput" name="submitter_type" value="owner">
-        <input type="hidden" id="sellerTypeInput" name="seller_type" value="owner">
-
-        <div class="sell-option-chips" role="group" aria-label="Seller type">
-
-          <button type="button" class="sell-option-chip is-active" data-submitter-type="owner">Owner</button>
-
-          <button type="button" class="sell-option-chip" data-submitter-type="broker">Broker</button>
-
-          <button type="button" class="sell-option-chip" data-submitter-type="developer">Developer</button>
-
+      <div class="jk-tab-panels">
+        <div class="jk-tab-panel is-active" role="tabpanel" id="sellPanelOwner" aria-labelledby="sellTabOwner" data-jk-tab-panel="owner">
+          <h5 class="mb-3" id="contactSectionTitle">Owner Details (Mandatory)</h5>
+          <div class="row g-3 sell-contact-row">
+            <div class="col-12">
+              <label class="form-label">Seller Type *</label>
+              <input type="hidden" id="submitterTypeInput" name="submitter_type" value="owner">
+              <input type="hidden" id="sellerTypeInput" name="seller_type" value="owner">
+              <div class="sell-option-chips" role="group" aria-label="Seller type">
+                <button type="button" class="sell-option-chip is-active" data-submitter-type="owner">Owner</button>
+                <button type="button" class="sell-option-chip" data-submitter-type="broker">Broker</button>
+                <button type="button" class="sell-option-chip" data-submitter-type="developer">Developer</button>
+              </div>
+            </div>
+            <div class="col-12 sell-contact-field">
+              <label class="form-label" for="contactNameInput" id="contactNameLabel">Owner Name *</label>
+              <input class="form-control" id="contactNameInput" name="owner_name" placeholder="Owner Name *" required>
+            </div>
+          </div>
         </div>
 
-      </div>
-
-      <div class="col-12 col-md-6 sell-contact-field">
-
-        <label class="form-label" for="contactNameInput" id="contactNameLabel">Owner Name *</label>
-
-        <input class="form-control" id="contactNameInput" name="owner_name" placeholder="Owner Name *" required>
-
-      </div>
-
-      <div class="col-12 col-md-6 sell-contact-field">
-
-        <label class="form-label" for="ownerMobileInput">Mobile Number *</label>
-
-        <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" minlength="10" maxlength="15" required>
-
-      </div>
-
-      <div class="col-12 col-md-6 sell-contact-field">
-
-        <label class="form-label" for="ownerAltMobileInput">Alternate Mobile</label>
-
-        <input class="form-control" id="ownerAltMobileInput" name="owner_alt_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="Alternate mobile (optional)" maxlength="15">
-
-      </div>
-
-      <div class="col-12 col-md-6 sell-contact-field">
-
-        <label class="form-label" for="ownerEmailInput">Email Address</label>
-
-        <input type="email" class="form-control" id="ownerEmailInput" name="owner_email" placeholder="Email address (optional)">
-
-      </div>
-
-      <div class="col-12 sell-contact-field">
-
-        <label class="form-label" for="ownerAddressInput">Full Residential Address *</label>
-
-        <textarea class="form-control" id="ownerAddressInput" name="owner_address" rows="2" placeholder="Full residential address *" required></textarea>
-
-      </div>
-
-    </div>
-
-
-
-    <h5 class="mt-4 mb-3">Property Details</h5>
-
-
-
-    <div class="row g-3">
-
-      <div class="col-12 col-md-4">
-
-        <label class="form-label" for="sellCitySelect">City *</label>
-
-        <select class="form-select" id="sellCitySelect" name="city" required>
-
-          {% for city in city_options %}
-
-          <option value="{{ city }}" {% if city == 'Surat' %}selected{% endif %}>{{ city }}</option>
-
-          {% endfor %}
-
-        </select>
-
-      </div>
-
-      <div class="col-12 col-md-8">
-
-        <label class="form-label" for="sellLocationInput">Location / Area *</label>
-
-        <input class="form-control" id="sellLocationInput" name="location_area" list="suratLocalities" placeholder="e.g. Vesu, Adajan, Pal, Piplod" required autocomplete="off">
-
-        <datalist id="suratLocalities">
-
-          {% for loc in surat_localities %}
-
-          <option value="{{ loc }}"></option>
-
-          {% endfor %}
-
-        </datalist>
-
-      </div>
-
-
-
-      <div class="col-12">
-
-        <label class="form-label">Property Type *</label>
-
-        <input type="hidden" id="propertyTypeInput" name="property_type" value="">
-
-        <div class="sell-option-chips sell-property-type-chips" role="group" aria-label="Property type">
-
-          <button type="button" class="sell-option-chip" data-property-type="apartment">Apartment / Flat</button>
-
-          <button type="button" class="sell-option-chip" data-property-type="villa">Villa</button>
-
-          <button type="button" class="sell-option-chip" data-property-type="bungalow">Bungalow</button>
-
-          <button type="button" class="sell-option-chip" data-property-type="plot">Plot / Land</button>
-
-          <button type="button" class="sell-option-chip" data-property-type="shop">Shop</button>
-
-          <button type="button" class="sell-option-chip" data-property-type="office">Office</button>
-
+        <div class="jk-tab-panel" role="tabpanel" id="sellPanelContact" aria-labelledby="sellTabContact" data-jk-tab-panel="contact" hidden>
+          <h5 class="mb-3">Contact Details</h5>
+          <div class="row g-3 sell-contact-row">
+            <div class="col-12 col-md-6 sell-contact-field">
+              <label class="form-label" for="ownerMobileInput">Mobile Number *</label>
+              <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" minlength="10" maxlength="15" required>
+            </div>
+            <div class="col-12 col-md-6 sell-contact-field">
+              <label class="form-label" for="ownerAltMobileInput">Alternate Mobile</label>
+              <input class="form-control" id="ownerAltMobileInput" name="owner_alt_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="Alternate mobile (optional)" maxlength="15">
+            </div>
+            <div class="col-12 col-md-6 sell-contact-field">
+              <label class="form-label" for="ownerEmailInput">Email Address</label>
+              <input type="email" class="form-control" id="ownerEmailInput" name="owner_email" placeholder="Email address (optional)">
+            </div>
+            <div class="col-12 sell-contact-field">
+              <label class="form-label" for="ownerAddressInput">Full Residential Address *</label>
+              <textarea class="form-control" id="ownerAddressInput" name="owner_address" rows="2" placeholder="Full residential address *" required></textarea>
+            </div>
+          </div>
         </div>
 
-        <div class="form-text">Select the type that best matches your property.</div>
+        <div class="jk-tab-panel" role="tabpanel" id="sellPanelProperty" aria-labelledby="sellTabProperty" data-jk-tab-panel="property" hidden>
+          <h5 class="mb-3">Property Details</h5>
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="sellCitySelect">City *</label>
+              <select class="form-select" id="sellCitySelect" name="city" required>
+                {% for city in city_options %}
+                <option value="{{ city }}" {% if city == 'Surat' %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="form-label" for="sellLocationInput">Location / Area *</label>
+              <input class="form-control" id="sellLocationInput" name="location_area" list="suratLocalities" placeholder="e.g. Vesu, Adajan, Pal, Piplod" required autocomplete="off">
+              <datalist id="suratLocalities">
+                {% for loc in surat_localities %}
+                <option value="{{ loc }}"></option>
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Property Type *</label>
+              <input type="hidden" id="propertyTypeInput" name="property_type" value="">
+              <div class="sell-option-chips sell-property-type-chips" role="group" aria-label="Property type">
+                <button type="button" class="sell-option-chip" data-property-type="apartment">Apartment / Flat</button>
+                <button type="button" class="sell-option-chip" data-property-type="villa">Villa</button>
+                <button type="button" class="sell-option-chip" data-property-type="bungalow">Bungalow</button>
+                <button type="button" class="sell-option-chip" data-property-type="plot">Plot / Land</button>
+                <button type="button" class="sell-option-chip" data-property-type="shop">Shop</button>
+                <button type="button" class="sell-option-chip" data-property-type="office">Office</button>
+              </div>
+              <div class="form-text">Select the type that best matches your property.</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="propertyTitleInput">Property Title *</label>
+              <input class="form-control" id="propertyTitleInput" name="property_title" placeholder="e.g. 3 BHK flat in Vesu" required>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3" id="bhkWrap">
+              <label class="form-label" for="bhkInput">BHK Number</label>
+              <input class="form-control" id="bhkInput" type="number" name="bhk" min="0" placeholder="BHK">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 d-none" id="blockWingWrap">
+              <label class="form-label" for="blockWingInput">Block / Wing</label>
+              <input class="form-control" id="blockWingInput" name="block_wing" placeholder="e.g. A, B, C">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3" id="unitNumberWrap">
+              <label class="form-label" for="unitNumberInput" id="unitNumberLabel">Unit Number</label>
+              <input class="form-control" id="unitNumberInput" name="unit_number" placeholder="e.g. 101, 903">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 d-none" id="apartmentNumberWrap">
+              <label class="form-label" for="apartmentNumberInput">Apartment Number</label>
+              <input class="form-control" id="apartmentNumberInput" name="apartment_number" placeholder="Apartment Number">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 d-none" id="flatNumberWrap">
+              <label class="form-label" for="flatNumberInput">Flat Number</label>
+              <input class="form-control" id="flatNumberInput" name="flat_number" placeholder="Flat Number">
+            </div>
+          </div>
 
-      </div>
+          <h5 class="mt-4 mb-3">Area &amp; Expected Price</h5>
+          <div class="row g-3 sell-area-price-row">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="areaValueInput" id="areaValueLabel">Enter the area in sqft *</label>
+              <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter the area in sqft" required min="0.01" step="any">
+              <label class="form-label mt-3">Area Unit *</label>
+              <input type="hidden" id="areaUnitInput" name="area_unit" value="sq_ft">
+              <div class="sell-option-chips" role="group" aria-label="Area unit">
+                <button type="button" class="sell-option-chip is-active" data-area-unit="sq_ft">Sq. Ft.</button>
+                <button type="button" class="sell-option-chip" data-area-unit="sq_yard">Sq. Yard</button>
+                <button type="button" class="sell-option-chip" data-area-unit="vigha">Vigha</button>
+                <button type="button" class="sell-option-chip" data-area-unit="sq_meter">Sq. Meter</button>
+              </div>
+              <input type="hidden" id="areaSqFtInput" name="area_sq_ft">
+              <div class="form-text" id="areaConvertedHint"></div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
+              <input class="form-control" id="expectedPriceInput" type="number" name="price" placeholder="Enter expected price" min="1" step="1" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="propertyAddressInput">Property Address *</label>
+              <textarea class="form-control" id="propertyAddressInput" name="property_address" rows="2" placeholder="Full property address *" required></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="descriptionInput">Property Description</label>
+              <textarea class="form-control" id="descriptionInput" name="description" rows="4" placeholder="Describe your property (optional)"></textarea>
+            </div>
+          </div>
 
+          <h5 class="mt-4 mb-3">Amenities</h5>
+          <div class="row g-2">
+            {% for amenity in ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply'] %}
+            <div class="col-6 col-md-4 col-lg-3">
+              <label class="amenity-check">
+                <input type="checkbox" name="amenities" value="{{ amenity }}">
+                <span>{{ amenity }}</span>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
 
-
-      <div class="col-12 col-md-6">
-
-        <label class="form-label" for="propertyTitleInput">Property Title *</label>
-
-        <input class="form-control" id="propertyTitleInput" name="property_title" placeholder="e.g. 3 BHK flat in Vesu" required>
-
-      </div>
-
-
-
-      <div class="col-12 col-sm-6 col-md-3" id="bhkWrap">
-
-        <label class="form-label" for="bhkInput">BHK Number</label>
-
-        <input class="form-control" id="bhkInput" type="number" name="bhk" min="0" placeholder="BHK">
-
-      </div>
-
-
-
-      <div class="col-12 col-sm-6 col-md-3 d-none" id="blockWingWrap">
-
-        <label class="form-label" for="blockWingInput">Block / Wing</label>
-
-        <input class="form-control" id="blockWingInput" name="block_wing" placeholder="e.g. A, B, C">
-
-      </div>
-
-
-
-      <div class="col-12 col-sm-6 col-md-3" id="unitNumberWrap">
-
-        <label class="form-label" for="unitNumberInput" id="unitNumberLabel">Unit Number</label>
-
-        <input class="form-control" id="unitNumberInput" name="unit_number" placeholder="e.g. 101, 903">
-
-      </div>
-
-
-
-      <div class="col-12 col-sm-6 col-md-3 d-none" id="apartmentNumberWrap">
-
-        <label class="form-label" for="apartmentNumberInput">Apartment Number</label>
-
-        <input class="form-control" id="apartmentNumberInput" name="apartment_number" placeholder="Apartment Number">
-
-      </div>
-
-
-
-      <div class="col-12 col-sm-6 col-md-3 d-none" id="flatNumberWrap">
-
-        <label class="form-label" for="flatNumberInput">Flat Number</label>
-
-        <input class="form-control" id="flatNumberInput" name="flat_number" placeholder="Flat Number">
-
-      </div>
-
-    </div>
-
-
-
-    <h5 class="mt-4 mb-3">Area &amp; Expected Price</h5>
-
-    <div class="row g-3 sell-area-price-row">
-
-      <div class="col-12 col-md-6">
-
-        <label class="form-label" for="areaValueInput" id="areaValueLabel">Enter the area in sqft *</label>
-
-        <input class="form-control" id="areaValueInput" type="number" name="area_value" placeholder="Enter the area in sqft" required min="0.01" step="any">
-
-        <label class="form-label mt-3">Area Unit *</label>
-
-        <input type="hidden" id="areaUnitInput" name="area_unit" value="sq_ft">
-
-        <div class="sell-option-chips" role="group" aria-label="Area unit">
-
-          <button type="button" class="sell-option-chip is-active" data-area-unit="sq_ft">Sq. Ft.</button>
-
-          <button type="button" class="sell-option-chip" data-area-unit="sq_yard">Sq. Yard</button>
-
-          <button type="button" class="sell-option-chip" data-area-unit="vigha">Vigha</button>
-
-          <button type="button" class="sell-option-chip" data-area-unit="sq_meter">Sq. Meter</button>
-
+          <h5 class="mt-4 mb-3">Media Upload</h5>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="sellImagesInput">Selected Photos List</label>
+              <input class="form-control" id="sellImagesInput" type="file" name="images" accept="image/*" multiple>
+              <div id="sellImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="sellVideosInput">Selected Videos List</label>
+              <input class="form-control" id="sellVideosInput" type="file" name="videos" accept="video/*" multiple>
+              <div id="sellVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
+            </div>
+          </div>
         </div>
 
-        <input type="hidden" id="areaSqFtInput" name="area_sq_ft">
-
-        <div class="form-text" id="areaConvertedHint"></div>
-
-      </div>
-
-
-
-      <div class="col-12 col-md-6">
-
-        <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
-
-        <input class="form-control" id="expectedPriceInput" type="number" name="price" placeholder="Enter expected price" min="1" step="1" required>
-
-      </div>
-
-
-
-      <div class="col-12">
-
-        <label class="form-label" for="propertyAddressInput">Property Address *</label>
-
-        <textarea class="form-control" id="propertyAddressInput" name="property_address" rows="2" placeholder="Full property address *" required></textarea>
-
-      </div>
-
-      <div class="col-12">
-
-        <label class="form-label" for="descriptionInput">Property Description</label>
-
-        <textarea class="form-control" id="descriptionInput" name="description" rows="4" placeholder="Describe your property (optional)"></textarea>
-
-      </div>
-
-    </div>
-
-
-
-    <h5 class="mt-4 mb-3">Amenities</h5>
-
-    <div class="row g-2">
-
-      {% for amenity in ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply'] %}
-
-      <div class="col-6 col-md-4 col-lg-3">
-
-        <label class="amenity-check">
-
-          <input type="checkbox" name="amenities" value="{{ amenity }}">
-
-          <span>{{ amenity }}</span>
-
-        </label>
-
-      </div>
-
-      {% endfor %}
-
-    </div>
-
-
-
-    <h5 class="mt-4 mb-3">Media Upload</h5>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="sellImagesInput">Selected Photos List</label>
-        <input class="form-control" id="sellImagesInput" type="file" name="images" accept="image/*" multiple>
-        <div id="sellImagesPreview" class="media-file-list media-file-list--photos d-none" aria-live="polite"></div>
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="sellVideosInput">Selected Videos List</label>
-        <input class="form-control" id="sellVideosInput" type="file" name="videos" accept="video/*" multiple>
-        <div id="sellVideosPreview" class="media-file-list media-file-list--videos d-none" aria-live="polite"></div>
+        <div class="jk-tab-panel" role="tabpanel" id="sellPanelIntent" aria-labelledby="sellTabIntent" data-jk-tab-panel="intent" hidden>
+          <h5 class="mb-3">Listing Intent</h5>
+          <div class="mb-2">
+            <label class="form-label fw-semibold">Listing Intent *</label>
+            <input type="hidden" id="listingIntentInput" name="listing_intent" value="sell">
+            <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
+              <button type="button" class="sell-option-chip btn-orange is-active" data-listing-intent="sell">Sell Property</button>
+              <button type="button" class="sell-option-chip" data-listing-intent="rent">Rent Property</button>
+            </div>
+            <p class="form-text mb-0 mt-2">Choose whether this listing is for sale or for rent. You can still edit other tabs before submitting.</p>
+          </div>
+        </div>
       </div>
     </div>
-
-
 
     <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-4">
-
       <button class="btn btn-jk-accent btn-lg w-100 w-sm-auto" type="submit" id="sellSubmitBtn">Submit For Selling</button>
-
       <a href="{{ url_for('public.listings') }}" class="btn btn-outline-secondary btn-lg w-100 w-sm-auto">Browse Listings</a>
-
     </div>
-
   </form>
 
 </section>
@@ -5201,7 +5106,6 @@ document.getElementById('contactNameInput')?.focus();
 <script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/sell_property.js') }}"></script>
 {% endblock %}
-
 """,
     "public/services.html": """{% extends "public/base.html" %}
 {% block title %}Services - {{ company_name }}{% endblock %}

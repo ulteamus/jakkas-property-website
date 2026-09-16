@@ -104,37 +104,47 @@
 
 <section class="jv-section" id="about">
   <div class="container">
-    <div class="jv-about-split scroll-reveal mb-5">
+    <div class="jv-about-split scroll-reveal mb-4 mb-md-5">
       <div class="jv-about-heading">
         <p class="jv-eyebrow jv-eyebrow--dark">About</p>
-        <h2 class="jv-section-title">A modern living space with trusted guidance.</h2>
+        <h2 class="jv-section-title jv-about-title">A modern living space with trusted guidance.</h2>
       </div>
       <div class="jv-about-body">
-        <p class="jv-body-text">
+        <p class="jv-body-text jv-about-lede">
           {{ company_name }} delivers transparent, customer-focused real estate services across Surat —
           whether you are buying, selling, or renting residential and commercial property.
         </p>
-        <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-2">Learn more</a>
+        <a href="{{ url_for('public.about') }}" class="btn btn-jk-accent mt-1">Learn more</a>
       </div>
     </div>
-    <h3 class="section-title section-title-center mb-4 scroll-reveal">Leadership</h3>
+    <h3 class="section-title section-title-center jv-about-leadership-title mb-3 mb-md-4 scroll-reveal">Leadership</h3>
     <div class="row g-4 leadership-row">
       <div class="col-12 col-md-6">
         <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-          <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="Founder Kalpesh Chunawala" class="founder-photo">
-          <p class="founder-label mb-1">Founder</p>
-          <h4 class="founder-name">Kalpesh Chunawala</h4>
-          <blockquote class="about-quote-card mb-3"><p class="mb-0">"A property is the foundation of dreams, security, and future generations."</p></blockquote>
-          <p class="mb-0 text-muted">Built JAKKASH on verified listings and honest advice. Helps Surat families close homes with clarity and speed.</p>
+          <div class="founder-photo-wrap">
+            <img src="{{ url_for('static', filename='img/founder-photo.webp') }}" alt="Founder Kalpesh Chunawala" class="founder-photo">
+          </div>
+          <div class="leadership-copy">
+            <p class="founder-label mb-1">Founder</p>
+            <h4 class="founder-name">Kalpesh Chunawala</h4>
+            <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+            <blockquote class="about-quote-card mb-3"><p class="mb-0">"A property is the foundation of dreams, security, and future generations."</p></blockquote>
+            <p class="mb-0 text-muted">Built JAKKASH on verified listings and honest advice. Helps Surat families close homes with clarity and speed.</p>
+          </div>
         </article>
       </div>
       <div class="col-12 col-md-6">
         <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-          <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
-          <p class="founder-label mb-1">Co-Founder</p>
-          <h4 class="founder-name">JAKKASH Leadership</h4>
-          <blockquote class="about-quote-card mb-3"><p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p></blockquote>
-          <p class="mb-0 text-muted">Drives client success and listing quality so rentals and sales move smoothly from inquiry to handover.</p>
+          <div class="founder-photo-wrap">
+            <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder [INSERT_NAME_HERE]" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
+          </div>
+          <div class="leadership-copy">
+            <p class="founder-label mb-1">Co-Founder</p>
+            <h4 class="founder-name">[INSERT_NAME_HERE]</h4>
+            <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+            <blockquote class="about-quote-card mb-3"><p class="mb-0">"Clarity before commitment — every listing should earn a client's trust."</p></blockquote>
+            <p class="mb-0 text-muted">Keeps pipelines moving with careful follow-through so rentals and sales stay transparent from first call to handover.</p>
+          </div>
         </article>
       </div>
     </div>

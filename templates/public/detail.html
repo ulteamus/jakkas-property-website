@@ -54,29 +54,67 @@
       <h1 class="h3 mt-2">{{ property.property_name }}</h1>
       <p class="text-muted mb-2"><i class="bi bi-geo-alt"></i> {{ property.area_name }}, Surat</p>
       <p class="price fs-3 fw-bold">₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</p>
-      <ul class="list-unstyled detail-meta-list">
-        <li><strong>Property ID:</strong> #{{ property.id }}</li>
-        <li><strong>Property Name:</strong> {{ property.property_name }}</li>
-        <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
-        <li><strong>Listing Intent:</strong> {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}</li>
-        {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
-        <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
-        <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
-      </ul>
-      {% if property.amenities %}
-      <div class="mb-3">
-        <h6 class="mb-2">Amenities</h6>
-        {% for a in property.amenities %}
-        <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
-        {% endfor %}
+
+      <div class="jk-tab-slider detail-info-tabs mb-3" data-jk-tabs="detail">
+        <div class="jk-tab-bar" role="tablist" aria-label="Property information">
+          <button type="button" class="jk-tab is-active" role="tab" id="detailTabOwner" aria-controls="detailPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabContact" aria-controls="detailPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabIntent" aria-controls="detailPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
+        </div>
+        <div class="jk-tab-panels">
+          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelOwner" aria-labelledby="detailTabOwner" data-jk-tab-panel="owner">
+            <p class="text-muted small mb-3">Owner identity is handled privately. Reach our brokerage team to discuss this listing.</p>
+            <div class="d-grid gap-2">
+              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+                <i class="bi bi-whatsapp"></i> WhatsApp Broker
+              </a>
+              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
+            </div>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelContact" aria-labelledby="detailTabContact" data-jk-tab-panel="contact" hidden>
+            <p class="text-muted small mb-3">Prefer a quick call or chat? Use the brokerage lines below — no owner phone or email is shown publicly.</p>
+            <div class="d-grid gap-2">
+              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
+              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+                <i class="bi bi-whatsapp"></i> WhatsApp Broker
+              </a>
+            </div>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property" hidden>
+            <ul class="list-unstyled detail-meta-list mb-3">
+              <li><strong>Property ID:</strong> #{{ property.id }}</li>
+              <li><strong>Property Name:</strong> {{ property.property_name }}</li>
+              <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
+              {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
+              <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
+              <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
+            </ul>
+            {% if property.amenities %}
+            <div class="mb-3">
+              <h6 class="mb-2">Amenities</h6>
+              {% for a in property.amenities %}
+              <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <p class="mb-0">{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelIntent" aria-labelledby="detailTabIntent" data-jk-tab-panel="intent" hidden>
+            <p class="mb-2">
+              <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent bg-info{% else %}badge-buy bg-success{% endif %}">
+                {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}
+              </span>
+            </p>
+            <ul class="list-unstyled detail-meta-list mb-0">
+              <li><strong>Listing Intent:</strong> {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}</li>
+              <li><strong>Asking Price:</strong> ₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</li>
+            </ul>
+          </div>
+        </div>
       </div>
-      {% endif %}
-      <p>{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
+
       <div class="d-grid gap-2">
-        <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-          <i class="bi bi-whatsapp"></i> WhatsApp Broker
-        </a>
-        <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
         <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
           <i class="bi bi-send"></i> Send Inquiry
         </a>

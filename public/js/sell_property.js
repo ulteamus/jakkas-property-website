@@ -304,6 +304,45 @@
   syncPropertyType();
   updateAreaSqFt();
 
+  /* Horizontal tab slider */
+  const tabRoot = form.querySelector('[data-jk-tabs="sell"]');
+  const tabButtons = tabRoot ? Array.from(tabRoot.querySelectorAll('[data-jk-tab]')) : [];
+  const tabPanels = tabRoot ? Array.from(tabRoot.querySelectorAll('[data-jk-tab-panel]')) : [];
+
+  function activateSellTab(name, opts) {
+    if (!tabRoot || !name) return;
+    tabButtons.forEach((btn) => {
+      const on = btn.getAttribute('data-jk-tab') === name;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && opts && opts.scrollTab) {
+        btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+      }
+    });
+    tabPanels.forEach((panel) => {
+      const on = panel.getAttribute('data-jk-tab-panel') === name;
+      panel.classList.toggle('is-active', on);
+      if (on) panel.removeAttribute('hidden');
+      else panel.setAttribute('hidden', '');
+    });
+  }
+
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activateSellTab(btn.getAttribute('data-jk-tab'), { scrollTab: true });
+    });
+  });
+
+  form.addEventListener(
+    'invalid',
+    (e) => {
+      const panel = e.target && e.target.closest ? e.target.closest('[data-jk-tab-panel]') : null;
+      if (!panel) return;
+      activateSellTab(panel.getAttribute('data-jk-tab-panel'), { scrollTab: true });
+    },
+    true
+  );
+
   if (window.MediaFileManager) {
     MediaFileManager.bind(
       document.getElementById('sellImagesInput'),

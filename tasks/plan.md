@@ -61,15 +61,15 @@ Co-founder name (human input) + About styling prefs
 
 ### Phase 2: Public UI (client-authorized)
 
-- [ ] Task 4: About Us homepage visual adjustments
-- [ ] Task 5: Co-founder name + profile image alignment
-- [ ] Task 6: Horizontal tab slider on Sell Property form
-- [ ] Task 7: Horizontal tab slider on property details
+- [x] Task 4: About Us homepage visual adjustments
+- [x] Task 5: Co-founder name placeholder `[INSERT_NAME_HERE]` + profile image alignment
+- [x] Task 6: Horizontal tab slider on Sell Property form
+- [x] Task 7: Horizontal tab slider on property details
 
 ### Checkpoint: Public UI
 - [ ] About / leadership look acceptable on mobile + desktop
 - [ ] Sell + detail tabs scroll horizontally without wrap jank
-- [ ] `vercel_bundle.py` run after template/static edits
+- [x] `vercel_bundle.py` run after template/static edits
 
 ### Phase 3: Admin parity & moderation
 

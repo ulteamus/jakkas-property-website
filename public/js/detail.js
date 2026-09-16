@@ -6,21 +6,25 @@ document.querySelectorAll('.gallery-thumb').forEach(th => {
   });
 });
 
-document.querySelector('.btn-call')?.addEventListener('click', () => {
-  const pid = document.querySelector('[data-property-id]')?.dataset.propertyId;
-  apiFetch('/api/event/call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ property_id: pid }) });
+document.querySelectorAll('.btn-call').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const pid = document.querySelector('[data-property-id]')?.dataset.propertyId;
+    apiFetch('/api/event/call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ property_id: pid }) });
+  });
 });
 
-document.querySelector('.btn-whatsapp')?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  const pid = document.querySelector('[data-property-id]')?.dataset.propertyId;
-  const r = await apiFetch('/api/whatsapp/interest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ property_id: pid }),
+document.querySelectorAll('.btn-whatsapp').forEach((btn) => {
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const pid = document.querySelector('[data-property-id]')?.dataset.propertyId;
+    const r = await apiFetch('/api/whatsapp/interest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ property_id: pid }),
+    });
+    const d = await r.json();
+    if (d.whatsapp_url) window.open(d.whatsapp_url, '_blank');
   });
-  const d = await r.json();
-  if (d.whatsapp_url) window.open(d.whatsapp_url, '_blank');
 });
 
 function showShareFallback(title, url, image) {
@@ -218,3 +222,29 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   alert(d.message || d.error);
   if (d.success) e.target.reset();
 });
+
+(function initDetailTabs() {
+  const root = document.querySelector('[data-jk-tabs="detail"]');
+  if (!root) return;
+  const buttons = Array.from(root.querySelectorAll('[data-jk-tab]'));
+  const panels = Array.from(root.querySelectorAll('[data-jk-tab-panel]'));
+
+  function activate(name) {
+    buttons.forEach((btn) => {
+      const on = btn.getAttribute('data-jk-tab') === name;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on) btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    });
+    panels.forEach((panel) => {
+      const on = panel.getAttribute('data-jk-tab-panel') === name;
+      panel.classList.toggle('is-active', on);
+      if (on) panel.removeAttribute('hidden');
+      else panel.setAttribute('hidden', '');
+    });
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => activate(btn.getAttribute('data-jk-tab')));
+  });
+})();

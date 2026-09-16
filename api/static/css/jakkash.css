@@ -223,11 +223,67 @@ h1, h2, h3, h4, h5, h6,
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2.5rem;
-  align-items: center;
+  align-items: start;
 }
 .jv-about-heading { grid-column: 1; grid-row: 1; }
 .jv-about-body { grid-column: 1; grid-row: 2; }
 .jv-about-media { grid-column: 2; grid-row: 1 / span 2; }
+#about .jv-about-title {
+  max-width: 18ch;
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 0.35rem;
+}
+#about .jv-about-lede {
+  max-width: 42ch;
+  line-height: 1.65;
+  color: #4d5262;
+}
+#about .jv-about-leadership-title {
+  letter-spacing: -0.015em;
+}
+#about .leadership-row .leadership-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+  height: 100%;
+}
+#about .founder-photo-wrap {
+  width: min(200px, 58%);
+  max-width: 200px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin: 0 auto 0.15rem;
+  background: #f3f4f6;
+  box-sizing: border-box;
+  box-shadow: 0 18px 36px rgba(20, 25, 36, 0.18), 0 0 0 3px rgba(235, 123, 47, 0.32);
+}
+#about .founder-photo-wrap .founder-photo {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+#about .leadership-copy {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#about .about-quote-card {
+  width: 100%;
+  max-width: 100%;
+}
 @media (min-width: 992px) {
   .public-main-nav {
     flex-wrap: nowrap;
@@ -1467,6 +1523,70 @@ body.drawer-open {
 .sell-property-type-chips .sell-option-chip {
   min-width: 8.5rem;
   text-align: center;
+}
+
+/* Horizontal section tabs (sell + detail) */
+.jk-tab-slider {
+  width: 100%;
+}
+.jk-tab-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding: 0.15rem 0.1rem 0.65rem;
+  margin: 0 0 0.75rem;
+  border-bottom: 1px solid #e8eaef;
+  scrollbar-width: thin;
+}
+.jk-tab-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.jk-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  white-space: nowrap;
+  border: 1px solid #e3e4ea;
+  background: #fff;
+  color: #3b4250;
+  border-radius: 999px;
+  padding: 0.55rem 1.05rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.2;
+  transition: background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+}
+.jk-tab:hover {
+  border-color: #d9a078;
+  color: #9a4f1f;
+}
+.jk-tab.is-active,
+.jk-tab[aria-selected="true"] {
+  background: #e67e22;
+  border-color: #e67e22;
+  color: #fff;
+}
+.jk-tab:focus-visible {
+  outline: 2px solid #e67e22;
+  outline-offset: 2px;
+}
+.jk-tab-panel {
+  display: none;
+  padding-top: 0.25rem;
+}
+.jk-tab-panel.is-active {
+  display: block;
+}
+.detail-info-tabs .jk-tab-panel {
+  min-height: 7.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jk-tab {
+    transition: none;
+  }
 }
 .amenity-check {
   border: 1px solid #e3e4ea;

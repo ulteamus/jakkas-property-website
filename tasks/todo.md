@@ -31,25 +31,25 @@
 
 ## Phase 2 — Public UI (client-authorized)
 
-- [ ] **Task 4 (S):** About Us homepage minor styling
+- [x] **Task 4 (S):** About Us homepage minor styling
   - AC: polished `#about` only; mobile + desktop
   - Verify: `/#about` screenshots
   - Files: `templates/public/home.html`, `static/css/jakkash.css`
   - Deps: open Q on exact prefs (else judgment)
 
-- [ ] **Task 5 (S):** Co-founder real name + photo alignment
-  - AC: no “JAKKASH Leadership” placeholder; alignment matches founder
+- [x] **Task 5 (S):** Co-founder placeholder name + photo alignment
+  - AC: no “JAKKASH Leadership” placeholder; uses `[INSERT_NAME_HERE]`; alignment matches founder
   - Verify: `/` and `/about`
   - Files: `home.html`, `about.html`, `jakkash.css`
-  - Deps: **human must supply co-founder name**
+  - Deps: user will replace `[INSERT_NAME_HERE]` in HTML later
 
-- [ ] **Task 6 (M):** Horizontal tab slider on Sell form (Owner, Contact, Property Details, Listing Intent)
+- [x] **Task 6 (M):** Horizontal tab slider on Sell form (Owner, Contact, Property Details, Listing Intent)
   - AC: horizontal scroll tabs; no awkward tab wrap; POST contract unchanged
   - Verify: mobile tab scroll + successful submit
   - Files: `templates/public/sell_property.html`, `static/js/sell_property.js`, `static/css/jakkash.css`
   - Deps: none (better after Task 2 for E2E)
 
-- [ ] **Task 7 (M):** Horizontal tab slider on property details (same four tabs; respect PII)
+- [x] **Task 7 (M):** Horizontal tab slider on property details (same four tabs; respect PII)
   - AC: matching UX; no new public PII leaks
   - Verify: `/property/<slug>` mobile + desktop; view-source PII check
   - Files: `templates/public/detail.html`, CSS (+ small JS if needed)
@@ -58,7 +58,7 @@
 ### Checkpoint — Public UI
 - [ ] About + co-founder accepted
 - [ ] Sell + detail tabs OK
-- [ ] Run `py -3 scripts/vercel_bundle.py` after template/static edits
+- [x] Run `py -3 scripts/vercel_bundle.py` after template/static edits
 
 ## Phase 3 — Admin parity & moderation
 
@@ -86,7 +86,7 @@
 - [ ] Client review ready
 
 ## Open questions (RESOLVED)
-- [x] Co-founder name: still `[INSERT CO-FOUNDER NAME]` placeholder (user forgot). Role: Co-Founder. Agent judgment for bio/quote. **Task 5 BLOCKED** until real name.
+- [x] Co-founder name: placeholder is exact string `[INSERT_NAME_HERE]` (user will edit HTML later). Role: Co-Founder. Agent judgment used for bio/quote.
 - [x] About Us: agent judgment for light polish (Phase 2).
 - [x] Post-submit thumbs: BOTH My Listings AND submission confirmation.
 - [x] Detail Owner/Contact: public = Call/WhatsApp CTAs only (no owner PII); admin = full owner details.
@@ -94,9 +94,9 @@
 - [x] Dual-write Listing Intent AND Listing Type: YES.
 
 ## Phase 2 blockers
-- [ ] **Task 5 BLOCKED** — waiting on real co-founder name
+- [x] **Task 5 unblocked** — using `[INSERT_NAME_HERE]` until real name is pasted in templates
 
 ## Reminder before each deploy
-- [x] Edit `templates/` + `static/` (canonical) — Phase 1 done
-- [x] `py -3 scripts/vercel_bundle.py` — ran after Phase 1 template/static edits
+- [x] Edit `templates/` + `static/` (canonical) — Phase 1 + Phase 2 done
+- [x] `py -3 scripts/vercel_bundle.py` — ran after Phase 1; re-run after Phase 2
 - [ ] Confirm Vercel storage env (no secrets in plan/todo) — deploy still needed for live verify of sell uploads
