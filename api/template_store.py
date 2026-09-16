@@ -3801,14 +3801,14 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
       <div class="founder-photo-wrap">
         <img
           src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}"
-          alt="Co-Founder [INSERT_NAME_HERE] - JAKKASH Property Consultancy"
+          alt="Co-Founder [p2] - JAKKASH Property Consultancy"
           class="founder-photo"
           onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';"
         >
       </div>
       <div class="leadership-copy">
         <p class="founder-label mb-1">Co-Founder</p>
-        <h3 class="founder-name">[INSERT_NAME_HERE]</h3>
+        <h3 class="founder-name">[p2]</h3>
         <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
         <blockquote class="about-quote-card mb-3">
           <p class="mb-0">"Clarity before commitment — every listing should earn a client's trust."</p>
@@ -4581,11 +4581,11 @@ document.getElementById('contactNameInput')?.focus();
       <div class="col-12 col-md-6">
         <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
           <div class="founder-photo-wrap">
-            <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder [INSERT_NAME_HERE]" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
+            <img src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}" alt="Co-Founder [p2]" class="founder-photo" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';">
           </div>
           <div class="leadership-copy">
             <p class="founder-label mb-1">Co-Founder</p>
-            <h4 class="founder-name">[INSERT_NAME_HERE]</h4>
+            <h4 class="founder-name">[p2]</h4>
             <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
             <blockquote class="about-quote-card mb-3"><p class="mb-0">"Clarity before commitment — every listing should earn a client's trust."</p></blockquote>
             <p class="mb-0 text-muted">Keeps pipelines moving with careful follow-through so rentals and sales stay transparent from first call to handover.</p>
