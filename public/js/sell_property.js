@@ -240,14 +240,50 @@
         res.status === 201 ||
         (payload && (payload.success === true || payload.status === 'success'));
       if (ok) {
-        form.reset();
-        syncListingIntent();
-        syncSubmitterFields();
-        syncPropertyType();
-        updateAreaSqFt();
         const msg =
           (payload && (payload.message || payload.error)) ||
           'Property submitted successfully! Our team will review and approve it shortly.';
+        const serverThumbs = (payload && Array.isArray(payload.image_urls)) ? payload.image_urls : [];
+        const localFiles = fd.getAll('images').filter((f) => f && typeof f !== 'string' && f.size);
+        const confirmBox = document.getElementById('sellSubmitConfirm');
+        const confirmMsg = document.getElementById('sellSubmitConfirmMsg');
+        const confirmThumbs = document.getElementById('sellSubmitConfirmThumbs');
+        if (confirmBox && confirmThumbs) {
+          if (confirmMsg) confirmMsg.textContent = msg;
+          confirmThumbs.innerHTML = '';
+          const urls = serverThumbs.length
+            ? serverThumbs
+            : localFiles.slice(0, 8).map((f) => URL.createObjectURL(f));
+          urls.forEach((src) => {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = 'Uploaded listing photo';
+            img.className = 'rounded border';
+            img.style.cssText = 'width:96px;height:72px;object-fit:cover;';
+            img.onerror = function () {
+              this.onerror = null;
+              this.src = '/static/img/default-property.jpg';
+            };
+            confirmThumbs.appendChild(img);
+          });
+          if (!urls.length) {
+            confirmThumbs.innerHTML = '<p class="small text-muted mb-0">No photos were attached to this submission.</p>';
+          }
+          if (payload && payload.media_warning) {
+            const warn = document.createElement('p');
+            warn.className = 'small text-warning mb-0 mt-2';
+            warn.textContent = payload.media_warning;
+            confirmThumbs.appendChild(warn);
+          }
+          confirmBox.classList.remove('d-none');
+          form.classList.add('d-none');
+          confirmBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Also land on My Listings after a short beat so both surfaces show thumbs.
+          setTimeout(() => {
+            window.location.href = '/my-listings';
+          }, 2200);
+          return;
+        }
         alert(msg);
         window.location.href = '/my-listings';
         return;

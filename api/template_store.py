@@ -2087,16 +2087,24 @@ TEMPLATES = {
       <input type="file" class="form-control" id="adminDocsInput" name="documents" multiple accept=".pdf">
       <div id="adminDocsPreview" class="media-file-list d-none" aria-live="polite"></div>
     </div>
-    {% set existing_images = (media.images if media else []) or [] %}
-    {% set existing_videos = (media.videos if media else []) or [] %}
-    {% if property and (existing_images or existing_videos) %}
+    {% set existing_images = (media.images if media else []) or (property.images if property and property.images else []) or [] %}
+    {% set existing_videos = (media.videos if media else []) or (property.videos if property and property.videos else []) or [] %}
+    {% if property and (existing_images or existing_videos or property.primary_image) %}
     <div class="col-12">
       <label class="form-label fw-semibold">Existing Gallery</label>
       <div class="admin-media-grid row g-2">
-        {% for img in existing_images %}
+        {% if property.primary_image and not existing_images %}
         <div class="col-6 col-md-3 col-lg-2">
-          <a href="{{ media_url(img.file_path) }}" target="_blank" rel="noopener">
-            <img src="{{ media_url(img.file_path) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+          <a href="{{ media_url(property.primary_image) }}" target="_blank" rel="noopener">
+            <img src="{{ media_url(property.primary_image) }}" alt="Primary image" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
+          </a>
+        </div>
+        {% endif %}
+        {% for img in existing_images %}
+        {% set img_path = img.file_path if img.file_path is defined else img %}
+        <div class="col-6 col-md-3 col-lg-2">
+          <a href="{{ media_url(img_path) }}" target="_blank" rel="noopener">
+            <img src="{{ media_url(img_path) }}" alt="Property image {{ loop.index }}" class="img-fluid rounded border w-100" style="aspect-ratio:4/3;object-fit:cover;">
           </a>
         </div>
         {% endfor %}
@@ -2104,8 +2112,13 @@ TEMPLATES = {
       {% if existing_videos %}
       <div class="row g-3 mt-2">
         {% for vid in existing_videos %}
+        {% set vid_path = vid.file_path if vid.file_path is defined else vid %}
         <div class="col-12 col-md-6 col-lg-4">
-          <video controls preload="metadata" class="w-100 rounded border" style="max-height:240px;background:#111;" src="{{ media_url(vid.file_path) }}"></video>
+          {% if vid_path and (vid_path.startswith('http://') or vid_path.startswith('https://')) and ('youtube' in vid_path or 'youtu.be' in vid_path or 'vimeo' in vid_path) %}
+          <a class="btn btn-outline-primary" href="{{ vid_path }}" target="_blank" rel="noopener">Open video</a>
+          {% else %}
+          <video controls preload="metadata" class="w-100 rounded border" style="max-height:240px;background:#111;" src="{{ media_url(vid_path) }}"></video>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -3495,9 +3508,25 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% block title %}About Us - {{ company_name }}{% endblock %}
 {% block extra_css %}
 <style>
-  /* Page-local: symmetric founder cards — stacked photo+copy, equal height on desktop. */
-  #leadership .leadership-row {
+  /* About page: one composition width for hero + leadership; equal founder cards. */
+  .about-page-shell {
+    max-width: 1100px;
+    margin-inline: auto;
+  }
+  .about-hero .about-page-shell,
+  #leadership.about-page-shell {
+    width: 100%;
+  }
+  .about-hero-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #leadership .leadership-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
     align-items: stretch;
+    width: 100%;
   }
   #leadership .leadership-card {
     display: flex;
@@ -3506,7 +3535,10 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
     text-align: center;
     gap: 0.75rem;
     height: 100%;
-    overflow: visible;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
     position: relative;
     opacity: 1 !important;
     transform: none !important;
@@ -3515,32 +3547,46 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
     display: none !important;
   }
   #leadership .founder-photo-wrap {
-    width: min(220px, 72%);
+    width: min(200px, 58%);
+    max-width: 200px;
     aspect-ratio: 1 / 1;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
     margin: 0 auto 0.25rem;
     background: #f3f4f6;
+    box-sizing: border-box;
   }
+  /* Override global .founder-photo clamp so photos stay inside the card. */
   #leadership .founder-photo-wrap .founder-photo {
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    border: 0 !important;
+    box-shadow: none !important;
     object-fit: cover;
     object-position: center top;
     display: block;
   }
   #leadership .leadership-copy {
     width: 100%;
+    max-width: 100%;
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    box-sizing: border-box;
     position: relative;
     z-index: 1;
   }
+  #leadership .about-quote-card {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
   @media (max-width: 767.98px) {
-    #leadership .leadership-row > [class*="col-"] + [class*="col-"] {
-      margin-top: 0.5rem;
+    #leadership .leadership-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
     }
   }
 </style>
@@ -3548,67 +3594,65 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 {% block content %}
 <section class="about-hero jk-flow py-5">
   <div class="container">
-    <article class="about-hero-card premium-hover-card reveal-on-scroll">
-      <p class="about-kicker mb-2">About {{ company_name }}</p>
-      <h1 class="about-hero-title">Trusted Property Guidance in Surat</h1>
-      <p class="about-hero-text mb-0">
-        {{ company_name }} helps buyers, sellers, and renters close clearer deals —
-        with verified listings, transparent advice, and end-to-end support.
-      </p>
-    </article>
+    <div class="about-page-shell">
+      <article class="about-hero-card premium-hover-card reveal-on-scroll">
+        <p class="about-kicker mb-2">About {{ company_name }}</p>
+        <h1 class="about-hero-title">Trusted Property Guidance in Surat</h1>
+        <p class="about-hero-text mb-0">
+          {{ company_name }} helps buyers, sellers, and renters close clearer deals —
+          with verified listings, transparent advice, and end-to-end support.
+        </p>
+      </article>
+    </div>
   </div>
 </section>
 
-<section class="container pb-5 jk-flow" id="leadership">
+<section class="container pb-5 jk-flow about-page-shell" id="leadership">
   <h2 class="section-title section-title-center mb-4">Leadership</h2>
-  <div class="row g-4 leadership-row">
-    <div class="col-12 col-md-6">
-      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-        <div class="founder-photo-wrap">
-          <img
-            src="{{ url_for('static', filename='img/founder-photo.webp') }}"
-            alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
-            class="founder-photo"
-          >
-        </div>
-        <div class="leadership-copy">
-          <p class="founder-label mb-1">Founder</p>
-          <h3 class="founder-name">Kalpesh Chunawala</h3>
-          <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
-          <blockquote class="about-quote-card mb-3">
-            <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
-          </blockquote>
-          <p class="mb-0 text-muted">
-            Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
-            His focus on verified inventory and clear communication has helped families close homes with confidence.
-          </p>
-        </div>
-      </article>
-    </div>
-    <div class="col-12 col-md-6">
-      <article class="leadership-card founder-card premium-hover-card reveal-on-scroll h-100">
-        <div class="founder-photo-wrap">
-          <img
-            src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}"
-            alt="Co-Founder - JAKKASH Property Consultancy"
-            class="founder-photo"
-            onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';"
-          >
-        </div>
-        <div class="leadership-copy">
-          <p class="founder-label mb-1">Co-Founder</p>
-          <h3 class="founder-name">JAKKASH Leadership</h3>
-          <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
-          <blockquote class="about-quote-card mb-3">
-            <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
-          </blockquote>
-          <p class="mb-0 text-muted">
-            Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
-            Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
-          </p>
-        </div>
-      </article>
-    </div>
+  <div class="leadership-grid">
+    <article class="leadership-card founder-card premium-hover-card reveal-on-scroll">
+      <div class="founder-photo-wrap">
+        <img
+          src="{{ url_for('static', filename='img/founder-photo.webp') }}"
+          alt="Kalpesh Chunawala - Founder of JAKKASH Property Consultancy"
+          class="founder-photo"
+        >
+      </div>
+      <div class="leadership-copy">
+        <p class="founder-label mb-1">Founder</p>
+        <h3 class="founder-name">Kalpesh Chunawala</h3>
+        <p class="founder-role mb-2">Founder · JAKKASH Property Consultancy</p>
+        <blockquote class="about-quote-card mb-3">
+          <p class="mb-0">"A property is not just a place to live; it is the foundation of dreams, security, and future generations."</p>
+        </blockquote>
+        <p class="mb-0 text-muted">
+          Built JAKKASH into a client-first consultancy known for honest pricing and reliable site visits across Surat.
+          His focus on verified inventory and clear communication has helped families close homes with confidence.
+        </p>
+      </div>
+    </article>
+    <article class="leadership-card founder-card premium-hover-card reveal-on-scroll">
+      <div class="founder-photo-wrap">
+        <img
+          src="{{ url_for('static', filename='images/team/co-founder.jpeg') }}"
+          alt="Co-Founder - JAKKASH Property Consultancy"
+          class="founder-photo"
+          onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/team/co-founder.jpg') }}';"
+        >
+      </div>
+      <div class="leadership-copy">
+        <p class="founder-label mb-1">Co-Founder</p>
+        <h3 class="founder-name">JAKKASH Leadership</h3>
+        <p class="founder-role mb-2">Co-Founder · Operations &amp; Client Success</p>
+        <blockquote class="about-quote-card mb-3">
+          <p class="mb-0">"Great brokerage is measured by trust delivered after the handshake."</p>
+        </blockquote>
+        <p class="mb-0 text-muted">
+          Strengthens day-to-day operations, listing quality, and client follow-through so every inquiry moves with speed.
+          Partners with the founder to keep rentals and sales pipelines transparent from first call to handover.
+        </p>
+      </div>
+    </article>
   </div>
 </section>
 
@@ -4383,13 +4427,18 @@ document.getElementById('contactNameInput')?.focus();
       <h2 class="jv-section-title mb-0">Testimonials &amp; Reviews</h2>
       <a href="{{ url_for('public.testimonials') }}" class="btn btn-jk-outline btn-sm">View all</a>
     </div>
-    <div class="row g-4 scroll-reveal-stagger">
-      {% for t in testimonials %}
+    {# is-visible: animations.js also tags .testimonial-card with scroll-reveal;
+       without is-visible those nested cards stay opacity:0 forever inside stagger. #}
+    <div class="row g-4">
+      {% set review_rows = reviews if (reviews is defined and reviews) else (testimonials if testimonials is defined else []) %}
+      {% for t in review_rows %}
       <div class="col-12 col-md-6 col-lg-4">
-        <article class="testimonial-card jv-testimonial h-100">
-          <div class="text-warning mb-2">{% for _ in range(t.rating|int) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
-          <p class="mb-3">"{{ t.review_text }}"</p>
-          <strong>{{ t.client_name }}</strong><br><small class="text-muted">{{ t.client_location }}</small>
+        <article class="testimonial-card jv-testimonial h-100 scroll-reveal is-visible">
+          {% set stars = (t['rating']|default(5)|int) %}
+          <div class="text-warning mb-2">{% for _ in range(stars if stars > 0 else 5) %}<i class="bi bi-star-fill"></i>{% endfor %}</div>
+          <p class="mb-3">"{{ t['review_text'] }}"</p>
+          <strong>{{ t['client_name'] }}</strong><br>
+          <small class="text-muted">{{ t['client_location'] }}</small>
         </article>
       </div>
       {% else %}
@@ -4546,7 +4595,7 @@ document.getElementById('contactNameInput')?.focus();
 
       <div class="filter-field">
         <label class="form-label">City</label>
-        <input class="form-control" name="city" id="f_city" value="Surat">
+        <input class="form-control" name="city" id="f_city" value="" placeholder="Surat (optional)">
       </div>
 
       <div class="filter-field">
@@ -4603,6 +4652,19 @@ document.getElementById('contactNameInput')?.focus();
   </nav>
   <h1 class="section-title">My Listings</h1>
   <p class="text-muted">Track pending, approved, and rejected property submissions.</p>
+  {% if user_id %}<p class="small text-muted mb-3">Session user id: <code>{{ user_id }}</code></p>{% endif %}
+
+  {% if confirm_images is defined and confirm_images %}
+  <div class="content-card mb-4 p-3 border border-success-subtle">
+    <h2 class="h5 mb-2">Submission received</h2>
+    <p class="text-muted small mb-3">Your listing is pending admin approval. Uploaded photos:</p>
+    <div class="d-flex flex-wrap gap-2">
+      {% for src in confirm_images %}
+      <img src="{{ src }}" alt="Uploaded listing photo" class="rounded border" style="width:96px;height:72px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <form method="POST" class="row g-2 align-items-end content-card mb-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -4620,6 +4682,7 @@ document.getElementById('contactNameInput')?.focus();
     <table class="table align-middle mb-0">
       <thead>
         <tr>
+          <th>Photos</th>
           <th>Title</th>
           <th>Status</th>
           <th>Price</th>
@@ -4630,6 +4693,18 @@ document.getElementById('contactNameInput')?.focus();
       <tbody>
         {% for s in submissions %}
         <tr>
+          <td style="width:120px">
+            {% set thumbs = s.thumb_urls if s.thumb_urls is defined else [] %}
+            {% if thumbs %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for src in thumbs[:3] %}
+              <img src="{{ src }}" alt="" class="rounded border" style="width:40px;height:40px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+              {% endfor %}
+            </div>
+            {% else %}
+            <img src="/static/img/default-property.jpg" alt="" class="rounded border" style="width:40px;height:40px;object-fit:cover;">
+            {% endif %}
+          </td>
           <td>
             <div class="fw-semibold">{{ s.property_title }}</div>
             <div class="small text-muted">{{ s.location_area or s.city }} · {{ s.property_type }}</div>
@@ -4662,6 +4737,16 @@ document.getElementById('contactNameInput')?.focus();
     {% for p in tracked_properties %}
     <div class="col-md-6 col-lg-4">
       <article class="content-card h-100 p-3">
+        {% set thumbs = p.thumb_urls if p.thumb_urls is defined else [] %}
+        {% if thumbs %}
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          {% for src in thumbs[:4] %}
+          <img src="{{ src }}" alt="" class="rounded border" style="width:72px;height:56px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+          {% endfor %}
+        </div>
+        {% else %}
+        <img src="{{ p.primary_image_url or '/static/img/default-property.jpg' }}" alt="" class="rounded border mb-2 w-100" style="height:140px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+        {% endif %}
         <div class="fw-semibold">{{ p.property_name }}</div>
         <div class="small text-muted mb-2">{{ p.area_name }} · {{ p.status }}</div>
         {% if p.slug and (p.status or '')|lower in ['available','approved','active'] %}
@@ -4773,7 +4858,12 @@ document.getElementById('contactNameInput')?.focus();
 
   </header>
 
-
+  <div id="sellSubmitConfirm" class="content-card mb-4 p-3 d-none" role="status" aria-live="polite">
+    <h2 class="h5 mb-2">Submission received</h2>
+    <p id="sellSubmitConfirmMsg" class="text-muted small mb-3"></p>
+    <div id="sellSubmitConfirmThumbs" class="d-flex flex-wrap gap-2 mb-3"></div>
+    <a class="btn btn-jk-accent" href="/my-listings">Go to My Listings</a>
+  </div>
 
   <form method="POST" enctype="multipart/form-data" class="submission-form card p-3 p-md-4 p-lg-5" id="sellPropertyForm">
 

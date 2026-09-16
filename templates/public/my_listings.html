@@ -12,6 +12,18 @@
   <p class="text-muted">Track pending, approved, and rejected property submissions.</p>
   {% if user_id %}<p class="small text-muted mb-3">Session user id: <code>{{ user_id }}</code></p>{% endif %}
 
+  {% if confirm_images is defined and confirm_images %}
+  <div class="content-card mb-4 p-3 border border-success-subtle">
+    <h2 class="h5 mb-2">Submission received</h2>
+    <p class="text-muted small mb-3">Your listing is pending admin approval. Uploaded photos:</p>
+    <div class="d-flex flex-wrap gap-2">
+      {% for src in confirm_images %}
+      <img src="{{ src }}" alt="Uploaded listing photo" class="rounded border" style="width:96px;height:72px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <form method="POST" class="row g-2 align-items-end content-card mb-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-6">
@@ -28,6 +40,7 @@
     <table class="table align-middle mb-0">
       <thead>
         <tr>
+          <th>Photos</th>
           <th>Title</th>
           <th>Status</th>
           <th>Price</th>
@@ -38,6 +51,18 @@
       <tbody>
         {% for s in submissions %}
         <tr>
+          <td style="width:120px">
+            {% set thumbs = s.thumb_urls if s.thumb_urls is defined else [] %}
+            {% if thumbs %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for src in thumbs[:3] %}
+              <img src="{{ src }}" alt="" class="rounded border" style="width:40px;height:40px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+              {% endfor %}
+            </div>
+            {% else %}
+            <img src="/static/img/default-property.jpg" alt="" class="rounded border" style="width:40px;height:40px;object-fit:cover;">
+            {% endif %}
+          </td>
           <td>
             <div class="fw-semibold">{{ s.property_title }}</div>
             <div class="small text-muted">{{ s.location_area or s.city }} · {{ s.property_type }}</div>
@@ -70,6 +95,16 @@
     {% for p in tracked_properties %}
     <div class="col-md-6 col-lg-4">
       <article class="content-card h-100 p-3">
+        {% set thumbs = p.thumb_urls if p.thumb_urls is defined else [] %}
+        {% if thumbs %}
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          {% for src in thumbs[:4] %}
+          <img src="{{ src }}" alt="" class="rounded border" style="width:72px;height:56px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+          {% endfor %}
+        </div>
+        {% else %}
+        <img src="{{ p.primary_image_url or '/static/img/default-property.jpg' }}" alt="" class="rounded border mb-2 w-100" style="height:140px;object-fit:cover;" onerror="this.onerror=null;this.src='/static/img/default-property.jpg';">
+        {% endif %}
         <div class="fw-semibold">{{ p.property_name }}</div>
         <div class="small text-muted mb-2">{{ p.area_name }} · {{ p.status }}</div>
         {% if p.slug and (p.status or '')|lower in ['available','approved','active'] %}

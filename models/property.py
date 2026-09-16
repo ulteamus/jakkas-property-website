@@ -41,6 +41,8 @@ def _ensure_schema():
         "is_active": "INTEGER DEFAULT 1",
         "approval_status": "TEXT DEFAULT 'approved'",
         "user_id": "TEXT",
+        "city": "TEXT DEFAULT 'Surat'",
+        "location": "TEXT",
     }
     extra_mysql = {
         "owner_admin_id": "INT NULL",
@@ -52,6 +54,8 @@ def _ensure_schema():
         "is_active": "TINYINT(1) DEFAULT 1",
         "approval_status": "VARCHAR(30) DEFAULT 'approved'",
         "user_id": "VARCHAR(64) NULL",
+        "city": "VARCHAR(120) DEFAULT 'Surat'",
+        "location": "VARCHAR(220) NULL",
     }
     if use_sqlite():
         cols = {str(row.get("name", "")).lower() for row in query_all("PRAGMA table_info(properties)")}
@@ -128,8 +132,33 @@ def _mask_coordinate(value):
 DEFAULT_PROPERTY_IMAGE_URL = "/static/img/default-property.jpg"
 
 
+def _supabase_public_object_url(rel: str) -> str | None:
+    """Build a Supabase public object URL for a storage-relative key, if configured."""
+    from config import SUPABASE_BUCKET, SUPABASE_URL
+
+    if not SUPABASE_URL:
+        return None
+    key = (rel or "").replace("\\", "/").lstrip("/")
+    if not key:
+        return None
+    bucket = (SUPABASE_BUCKET or "property-media").strip()
+    if key.startswith(f"{bucket}/"):
+        return f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{key}"
+    return f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{bucket}/{key}"
+
+
+def _is_vercel_runtime() -> bool:
+    import os
+
+    return bool((os.getenv("VERCEL") or "").strip())
+
+
 def public_image_url(path, external=False):
-    """Build a browser URL for a stored upload path, remote URL, or the default placeholder."""
+    """Build a browser URL for a stored upload path, remote URL, or the default placeholder.
+
+    On Vercel, local `/uploads/...` paths are ephemeral / ignored — prefer Supabase
+    public URLs when possible, otherwise the static default (never systematic 404s).
+    """
     raw = (path or "").strip()
     if not raw:
         url = DEFAULT_PROPERTY_IMAGE_URL
@@ -137,25 +166,41 @@ def public_image_url(path, external=False):
         # Supabase CDN / Cloudinary / any absolute URL — return unchanged.
         url = raw.rstrip("?")
     else:
-        rel = raw.replace("\\", "/").lstrip("/")
-        # Keys already prefixed with the public bucket name.
-        if rel.startswith("property-images/") or rel.startswith("properties/storage/"):
-            from config import SUPABASE_BUCKET, SUPABASE_URL
-
-            if SUPABASE_URL:
-                if rel.startswith(f"{SUPABASE_BUCKET}/"):
-                    url = f"{SUPABASE_URL}/storage/v1/object/public/{rel}"
-                else:
-                    url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{rel}"
+        # Normalize accidental absolute-path leftovers before branching.
+        rel = raw.replace("\\", "/").strip()
+        if rel.startswith("/static/"):
+            url = rel
+        elif rel.startswith("/uploads/"):
+            rel_key = rel[len("/uploads/") :].lstrip("/")
+            remote = _supabase_public_object_url(rel_key)
+            if remote:
+                url = remote
+            elif _is_vercel_runtime():
+                url = DEFAULT_PROPERTY_IMAGE_URL
             else:
-                url = f"/uploads/{rel}"
-        elif rel.startswith("static/") or rel.startswith("img/"):
-            url = f"/{rel}" if not rel.startswith("/") else rel
-        elif rel.startswith("/static/") or rel.startswith("/uploads/"):
-            url = rel if rel.startswith("/") else f"/{rel}"
+                url = rel
         else:
-            # Legacy local relative paths (properties/<id>/images/...).
-            url = f"/uploads/{rel}"
+            rel = rel.lstrip("/")
+            if rel.startswith("static/") or rel.startswith("img/"):
+                url = f"/{rel}"
+            elif (
+                rel.startswith("property-images/")
+                or rel.startswith("properties/")
+                or rel.startswith("property-media/")
+            ):
+                remote = _supabase_public_object_url(rel)
+                if remote:
+                    url = remote
+                elif _is_vercel_runtime():
+                    url = DEFAULT_PROPERTY_IMAGE_URL
+                else:
+                    url = f"/uploads/{rel}"
+            else:
+                # Unknown relative key — local uploads offline; never invent a CDN 404.
+                if _is_vercel_runtime():
+                    url = DEFAULT_PROPERTY_IMAGE_URL
+                else:
+                    url = f"/uploads/{rel}"
 
     if external and url.startswith("/"):
         try:
@@ -319,7 +364,17 @@ def find_duplicate(property_name, address, area_name=None, price=None, exclude_i
     return query_one(sql, params)
 
 
+# Home + /properties + detail share this public status set.
 PUBLIC_LISTING_STATUSES = ("available", "approved", "active")
+
+
+def _ci_like_sql(column: str) -> str:
+    """Case-insensitive LIKE — ILIKE on Postgres, LOWER(... ) LIKE on SQLite/MySQL."""
+    from database.db import use_postgres
+
+    if use_postgres():
+        return f"{column} ILIKE %s"
+    return f"LOWER(COALESCE({column}, '')) LIKE LOWER(%s)"
 
 
 def search(area=None, property_type=None, min_price=None, max_price=None,
@@ -331,7 +386,7 @@ def search(area=None, property_type=None, min_price=None, max_price=None,
     sql = "SELECT * FROM properties WHERE 1=1"
     params = []
     if not all_statuses and status:
-        # Public feed: treat available / approved / active as live listings.
+        # Public feed: available / approved / active (parity with home + detail).
         if status in PUBLIC_LISTING_STATUSES or status == "available":
             placeholders = ",".join(["%s"] * len(PUBLIC_LISTING_STATUSES))
             sql += f" AND LOWER(COALESCE(status,'')) IN ({placeholders})"
@@ -340,10 +395,31 @@ def search(area=None, property_type=None, min_price=None, max_price=None,
             sql += " AND status=%s"
             params.append(status)
 
-    area_filter = area or location or city
-    if area_filter:
-        sql += " AND (area_name LIKE %s OR address LIKE %s)"
-        params.extend([f"%{area_filter}%", f"%{area_filter}%"])
+    # City/location filters check dedicated columns (case-insensitive).
+    # Also match area_name/address so "Surat" still works when city was never written,
+    # and locality typed into City still finds area rows (legacy clients).
+    city_q = (city or "").strip() or None
+    location_q = (location or "").strip() or None
+    if city_q:
+        like = f"%{city_q}%"
+        sql += (
+            f" AND ({_ci_like_sql('city')} OR {_ci_like_sql('location')} "
+            f"OR {_ci_like_sql('area_name')} OR {_ci_like_sql('address')})"
+        )
+        params.extend([like, like, like, like])
+    if location_q and location_q != city_q:
+        like = f"%{location_q}%"
+        sql += (
+            f" AND ({_ci_like_sql('location')} OR {_ci_like_sql('city')} "
+            f"OR {_ci_like_sql('area_name')} OR {_ci_like_sql('address')})"
+        )
+        params.extend([like, like, like, like])
+
+    area_q = (area or "").strip() or None
+    if area_q:
+        like = f"%{area_q}%"
+        sql += f" AND ({_ci_like_sql('area_name')} OR {_ci_like_sql('address')} OR {_ci_like_sql('location')})"
+        params.extend([like, like, like])
 
     if property_type:
         property_types = _expand_property_types(property_type)
@@ -453,8 +529,8 @@ def create(data, created_by_admin_id=None):
         """INSERT INTO properties
            (property_name,slug,property_type,area_name,address,price,bhk,sq_ft,
             description,amenities,latitude,longitude,status,is_featured,listing_type,primary_image,owner_admin_id,creation_source,
-            block_wing,unit_number,listing_intent,seller_type)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            block_wing,unit_number,listing_intent,seller_type,city,location)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (
             data["property_name"], slug, property_type, data["area_name"],
             data.get("address"), data["price"], data.get("bhk", 0), data["sq_ft"],
@@ -463,6 +539,8 @@ def create(data, created_by_admin_id=None):
             bool(data.get("is_featured")), listing_type,
             data.get("primary_image"), created_by_admin_id or _default_owner_admin_id(), creation_source,
             block_wing, unit_number, listing_intent, seller_type,
+            (data.get("city") or "Surat").strip() or "Surat",
+            (data.get("location") or data.get("area_name") or "").strip() or None,
         ),
     )
     return get_by_id(pid)

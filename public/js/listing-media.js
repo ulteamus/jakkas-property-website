@@ -1,24 +1,42 @@
+const DEFAULT_PROPERTY_IMAGE = '/static/img/default-property.jpg';
+
 function mediaSrc(path) {
-  if (!path) return '/static/img/default-property.jpg';
+  if (!path) return DEFAULT_PROPERTY_IMAGE;
   const value = String(path).trim();
+  if (!value) return DEFAULT_PROPERTY_IMAGE;
   if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('/static/') || value.startsWith('static/')) {
+    return value.startsWith('/') ? value : `/${value}`;
+  }
+  // Prefer API-resolved urls; never invent /uploads/ for relative storage keys
+  // (those 404 on Vercel — static/property-uploads is ignored).
+  if (value.startsWith('/uploads/')) return DEFAULT_PROPERTY_IMAGE;
   if (value.startsWith('/')) return value;
-  return `/uploads/${value}`;
+  return DEFAULT_PROPERTY_IMAGE;
 }
 
 function listingMediaPaths(p) {
   const images = [];
   (p.images || []).forEach((img) => {
     const path = typeof img === 'string' ? img : (img.url || img.file_path);
-    if (path && !images.includes(path)) images.push(path);
+    const src = mediaSrc(path);
+    if (src && !images.includes(src)) images.push(src);
+  });
+  (p.listing_images || []).forEach((path) => {
+    const src = mediaSrc(path);
+    if (src && !images.includes(src)) images.push(src);
   });
   const primary = p.primary_image_url || p.primary_image;
-  if (primary && !images.includes(primary)) {
-    images.unshift(primary);
+  const primarySrc = mediaSrc(primary);
+  if (primarySrc && primarySrc !== DEFAULT_PROPERTY_IMAGE && !images.includes(primarySrc)) {
+    images.unshift(primarySrc);
+  } else if (primarySrc === DEFAULT_PROPERTY_IMAGE && !images.length) {
+    // keep empty → empty-state placeholder rendered below
   }
   const videos = (p.videos || [])
     .map((v) => (typeof v === 'string' ? v : (v.url || v.file_path)))
-    .filter(Boolean);
+    .map((path) => mediaSrc(path))
+    .filter((src) => src && src !== DEFAULT_PROPERTY_IMAGE);
   return { images, videos };
 }
 

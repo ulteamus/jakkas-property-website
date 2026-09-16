@@ -30,11 +30,26 @@ def _attach_listing_media(properties):
     for p in properties:
         row = prop_model.to_dict(p, public=True)
         media = media_map.get(row["id"], {"images": [], "videos": []})
-        image_paths = [i["file_path"] for i in media.get("images", []) if i.get("file_path")]
-        if row.get("primary_image") and row["primary_image"] not in image_paths:
-            image_paths.insert(0, row["primary_image"])
-        row["listing_images"] = image_paths
-        row["listing_videos"] = [v["file_path"] for v in media.get("videos", []) if v.get("file_path")]
+        raw_images = [i["file_path"] for i in media.get("images", []) if i.get("file_path")]
+        if row.get("primary_image") and row["primary_image"] not in raw_images:
+            raw_images.insert(0, row["primary_image"])
+        # Resolve to browser-safe URLs (HTTPS remote or static default — never bare /uploads on Vercel).
+        image_urls = []
+        for path in raw_images:
+            url = prop_model.public_image_url(path)
+            if url and url not in image_urls:
+                image_urls.append(url)
+        if not row.get("primary_image") and raw_images:
+            row["primary_image"] = raw_images[0]
+            row["primary_image_url"] = prop_model.public_image_url(raw_images[0])
+        elif row.get("primary_image"):
+            row["primary_image_url"] = prop_model.public_image_url(row.get("primary_image"))
+        row["listing_images"] = image_urls
+        row["listing_videos"] = [
+            prop_model.public_image_url(v["file_path"])
+            for v in media.get("videos", [])
+            if v.get("file_path")
+        ]
         masked.append(row)
     return masked
 
@@ -74,7 +89,10 @@ def track_visitor():
 
 @public_bp.route("/")
 def home():
-    featured_properties = _attach_listing_media(prop_model.search(limit=9, sort="newest"))
+    # Public feed uses the same status set as /properties (available/approved/active).
+    featured_properties = _attach_listing_media(
+        prop_model.search(limit=9, sort="newest", status="available")
+    )
     home_stats = {"properties": 0, "clients": 0, "years": 10}
     try:
         home_stats = analytics_model.home_kpi_counts()
@@ -157,10 +175,27 @@ def services():
 
 @public_bp.route("/properties")
 def listings():
+    # Same public status set as home (`available` / `approved` / `active`).
+    sort = (request.args.get("sort") or "newest").strip() or "newest"
+    city = (request.args.get("city") or "").strip() or None
+    location = (request.args.get("location") or "").strip() or None
+    area = (request.args.get("area") or "").strip() or None
+    listing_properties = prop_model.search(
+        city=city,
+        location=location,
+        area=area,
+        property_type=(request.args.get("type") or "").strip() or None,
+        keyword=(request.args.get("q") or "").strip() or None,
+        sort=sort,
+        status="available",
+        limit=120,
+    )
     return render_template(
         "public/listings.html",
         areas=prop_model.areas_list(),
         categories=prop_model.categories_summary(),
+        properties=listing_properties,
+        listing_count=len(listing_properties),
     )
 
 
@@ -314,27 +349,66 @@ def sell_property():
                     "block_wing": block_wing,
                     "unit_number": unit_number,
                     "creation_source": "user_submission",
+                    "city": (request.form.get("city") or "Surat").strip() or "Surat",
+                    "location": (request.form.get("location_area") or area_name or "").strip() or None,
                 }
             )
 
             image_paths = []
             video_paths = []
-            try:
-                for i, upload in enumerate(request.files.getlist("images")):
+            media_errors = []
+            uploaded_images = [
+                f for f in request.files.getlist("images") if f and getattr(f, "filename", None)
+            ]
+            uploaded_videos = [
+                f for f in request.files.getlist("videos") if f and getattr(f, "filename", None)
+            ]
+            for i, upload in enumerate(uploaded_images):
+                try:
                     # Supabase public URL when STORAGE_BACKEND=supabase; else Cloudinary/local.
                     stored = save_upload(upload, created_property["id"], "images", ALLOWED_IMAGE)
                     if stored:
-                        prop_model.add_image(created_property["id"], stored, is_primary=(i == 0), sort_order=i)
+                        prop_model.add_image(
+                            created_property["id"], stored, is_primary=(i == 0), sort_order=i
+                        )
                         image_paths.append(stored)
+                    else:
+                        media_errors.append(f"Image {i + 1} was rejected or empty.")
+                except Exception as exc:
+                    current_app.logger.exception(
+                        "sell: image upload failed for property %s: %s",
+                        created_property.get("id"),
+                        exc,
+                    )
+                    media_errors.append(str(exc) or "Image upload failed.")
 
-                for i, upload in enumerate(request.files.getlist("videos")):
+            for i, upload in enumerate(uploaded_videos):
+                try:
                     stored = save_upload(upload, created_property["id"], "videos", ALLOWED_VIDEO)
                     if stored:
                         prop_model.add_video(created_property["id"], stored, sort_order=i)
                         video_paths.append(stored)
-            except Exception:
-                # Media failures must not undo a successful property write.
-                pass
+                    else:
+                        media_errors.append(f"Video {i + 1} was rejected or empty.")
+                except Exception as exc:
+                    current_app.logger.exception(
+                        "sell: video upload failed for property %s: %s",
+                        created_property.get("id"),
+                        exc,
+                    )
+                    media_errors.append(str(exc) or "Video upload failed.")
+
+            media_warning = None
+            if uploaded_images and not image_paths:
+                media_warning = (
+                    "Your listing was saved, but none of the photos could be uploaded. "
+                    "Please try again or contact us to attach photos."
+                )
+            elif media_errors and image_paths:
+                media_warning = (
+                    "Listing saved, but some media files failed to upload. "
+                    "You can add more photos later via our team."
+                )
 
             submission_id = submission_model.create_submission(
                 {
@@ -360,6 +434,7 @@ def sell_property():
                     "seller_type": submitter_type,
                     "property_address": request.form.get("property_address"),
                     "city": request.form.get("city") or "Surat",
+                    "location": request.form.get("location_area") or area_name,
                     "location_area": request.form.get("location_area"),
                     "description": request.form.get("description"),
                     "amenities": amenities,
@@ -371,7 +446,12 @@ def sell_property():
         except Exception:
             # Only error when the property row itself never landed.
             if created_property:
-                return _sell_success_response(created_property, submission_id)
+                return _sell_success_response(
+                    created_property,
+                    submission_id,
+                    image_paths=locals().get("image_paths") or [],
+                    media_warning=locals().get("media_warning"),
+                )
             return _sell_error_response()
 
         # Inquiry is best-effort CRM bookkeeping — never override a successful submit.
@@ -390,7 +470,12 @@ def sell_property():
         except Exception:
             pass
 
-        return _sell_success_response(created_property, submission_id)
+        return _sell_success_response(
+            created_property,
+            submission_id,
+            image_paths=image_paths,
+            media_warning=media_warning,
+        )
 
     return render_template(
         "public/sell_property.html",
@@ -460,13 +545,23 @@ def _track_my_listing(property_id, owner_mobile: str | None = None) -> None:
     _session_user_id()
 
 
-def _sell_success_response(created_property, submission_id=None):
+def _sell_success_response(created_property, submission_id=None, image_paths=None, media_warning=None):
     _track_my_listing(
         created_property["id"],
         request.form.get("owner_mobile"),
     )
     _attach_user_id(created_property["id"], submission_id)
+    image_urls = [
+        prop_model.public_image_url(path)
+        for path in (image_paths or [])
+        if path
+    ]
+    session["sell_confirm_images"] = image_urls[:12]
+    session["sell_confirm_property_id"] = created_property.get("id")
     message = "Property submitted successfully! Our team will review and approve it shortly."
+    if media_warning:
+        message = f"{message} {media_warning}"
+        flash(media_warning, "warning")
     if _wants_json():
         return jsonify({
             "success": True,
@@ -475,6 +570,8 @@ def _sell_success_response(created_property, submission_id=None):
             "property_id": created_property.get("id"),
             "property_status": created_property.get("status") or "reserved",
             "user_id": session.get("user_id"),
+            "image_urls": image_urls,
+            "media_warning": media_warning,
         }), 201
     flash(message, "success")
     return redirect(url_for("public.my_listings"))
@@ -555,12 +652,35 @@ def my_listings():
         except Exception:
             pass
 
+    # Resolve thumbs for submitter visibility (reserved listings are not public).
+    try:
+        media_map = prop_model.get_media_bulk([p["id"] for p in tracked_props if p.get("id")])
+    except Exception:
+        media_map = {}
+    for p in tracked_props:
+        media = media_map.get(p.get("id"), {"images": []})
+        paths = [i.get("file_path") for i in media.get("images", []) if i.get("file_path")]
+        if p.get("primary_image") and p["primary_image"] not in paths:
+            paths.insert(0, p["primary_image"])
+        p["thumb_urls"] = [prop_model.public_image_url(path) for path in paths[:6]]
+
+    for s in submissions:
+        raw_images = s.get("images") or []
+        if isinstance(raw_images, str):
+            raw_images = []
+        s["thumb_urls"] = [prop_model.public_image_url(path) for path in raw_images[:6] if path]
+
+    confirm_images = list(session.pop("sell_confirm_images", None) or [])
+    confirm_property_id = session.pop("sell_confirm_property_id", None)
+
     return render_template(
         "public/my_listings.html",
         mobile=mobile,
         user_id=user_id,
         submissions=submissions,
         tracked_properties=tracked_props,
+        confirm_images=confirm_images,
+        confirm_property_id=confirm_property_id,
     )
 
 

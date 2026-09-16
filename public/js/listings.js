@@ -182,6 +182,8 @@ document.querySelectorAll('.btn-intent').forEach((btn) => {
 
 document.getElementById('resetFilters')?.addEventListener('click', () => {
   form.reset();
+  const cityEl = form.elements.namedItem('city');
+  if (cityEl) cityEl.value = '';
   setIntent('');
   history.replaceState(null, '', location.pathname);
   load({ skipUrlSync: true });
@@ -189,6 +191,8 @@ document.getElementById('resetFilters')?.addEventListener('click', () => {
 
 document.getElementById('browseAllBtn')?.addEventListener('click', () => {
   form.reset();
+  const cityEl = form.elements.namedItem('city');
+  if (cityEl) cityEl.value = '';
   setIntent('');
   history.replaceState(null, '', location.pathname);
   load({ skipUrlSync: true });

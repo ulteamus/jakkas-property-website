@@ -97,6 +97,7 @@ def _serialize_property(p, media=None, public=True):
                 "is_primary": bool(i.get("is_primary")),
             }
             for i in media.get("images", [])
+            if i.get("file_path")
         ]
         videos = [
             {
@@ -105,7 +106,13 @@ def _serialize_property(p, media=None, public=True):
                 "title": v.get("title"),
             }
             for v in media.get("videos", [])
+            if v.get("file_path")
         ]
+    primary = p.get("primary_image")
+    primary_url = p.get("primary_image_url") or prop_model.public_image_url(primary)
+    if (not primary or primary_url == prop_model.DEFAULT_PROPERTY_IMAGE_URL) and images:
+        primary = images[0].get("file_path") or primary
+        primary_url = images[0].get("url") or prop_model.public_image_url(primary)
     return {
         "id": p.get("id"),
         "slug": p.get("slug"),
@@ -122,8 +129,8 @@ def _serialize_property(p, media=None, public=True):
         "longitude": safe_float(p["longitude"]) if p.get("longitude") is not None else None,
         "status": p.get("status"),
         "is_featured": bool(p.get("is_featured")),
-        "primary_image": p.get("primary_image"),
-        "primary_image_url": p.get("primary_image_url") or prop_model.public_image_url(p.get("primary_image")),
+        "primary_image": primary,
+        "primary_image_url": primary_url,
         "view_count": safe_int(p.get("view_count")),
         "listing_type": p.get("listing_type"),
         "listing_intent": p.get("listing_intent", "buy"),
