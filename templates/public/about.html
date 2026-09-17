@@ -2,23 +2,39 @@
 {% block title %}About Us - {{ company_name }}{% endblock %}
 {% block extra_css %}
 <style>
-  /* About page: one composition width for hero + leadership; equal founder cards. */
+  /* About page: shared composition width, clearer rhythm, equal founder cards. */
   .about-page-shell {
     max-width: 1100px;
     margin-inline: auto;
-  }
-  .about-hero .about-page-shell,
-  #leadership.about-page-shell {
     width: 100%;
+  }
+  .about-hero {
+    padding-block: clamp(2rem, 4vw, 3.25rem);
   }
   .about-hero-card {
     width: 100%;
     box-sizing: border-box;
+    padding: clamp(1.5rem, 3vw, 2.35rem) clamp(1.25rem, 3vw, 2.5rem);
+  }
+  .about-hero-title {
+    line-height: 1.15;
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+  .about-hero-text {
+    line-height: 1.7;
+    max-width: 62ch;
+  }
+  #leadership {
+    padding-block: 0 clamp(2rem, 4vw, 3rem);
+  }
+  #leadership .section-title {
+    margin-bottom: clamp(1.25rem, 2.5vw, 1.75rem);
   }
   #leadership .leadership-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.5rem;
+    gap: clamp(1rem, 2.5vw, 1.75rem);
     align-items: stretch;
     width: 100%;
   }
@@ -27,13 +43,14 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
     height: 100%;
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
+    padding: clamp(1.5rem, 2.5vw, 2.1rem) clamp(1rem, 2vw, 1.5rem);
     opacity: 1 !important;
     transform: none !important;
   }
@@ -41,17 +58,19 @@
     display: none !important;
   }
   #leadership .founder-photo-wrap {
-    width: min(200px, 58%);
-    max-width: 200px;
+    width: min(188px, 52%);
+    max-width: 188px;
     aspect-ratio: 1 / 1;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    margin: 0 auto 0.25rem;
+    margin: 0 auto;
     background: #f3f4f6;
     box-sizing: border-box;
+    border: 4px solid #fff;
+    box-shadow: 0 12px 28px rgba(20, 25, 36, 0.14), 0 0 0 2px rgba(235, 123, 47, 0.28);
   }
-  /* Override global .founder-photo clamp so photos stay inside the card. */
+  /* Keep portraits aligned and cropped consistently inside equal cards. */
   #leadership .founder-photo-wrap .founder-photo {
     width: 100% !important;
     height: 100% !important;
@@ -59,12 +78,13 @@
     border: 0 !important;
     box-shadow: none !important;
     object-fit: cover;
-    object-position: center top;
+    object-position: center 18%;
     display: block;
   }
   #leadership .leadership-copy {
     width: 100%;
-    max-width: 100%;
+    max-width: 36ch;
+    margin-inline: auto;
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -73,20 +93,73 @@
     position: relative;
     z-index: 1;
   }
+  #leadership .founder-name {
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  #leadership .founder-role {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
   #leadership .about-quote-card {
     max-width: 100%;
+    margin: 0.35rem 0 0.85rem;
+    padding: 1rem 0.95rem;
     box-sizing: border-box;
+  }
+  #leadership .leadership-copy > .text-muted {
+    line-height: 1.65;
+    font-size: 0.95rem;
+  }
+  .about-values {
+    padding-bottom: clamp(2rem, 4vw, 3rem);
+  }
+  .about-values .about-info-card {
+    min-height: 100%;
+  }
+  .about-values .about-info-card h3 {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .about-values .about-info-card p {
+    line-height: 1.65;
+  }
+  .about-stats-section {
+    padding-block: clamp(2rem, 4vw, 3.25rem);
+  }
+  .about-stats-section .section-title {
+    margin-bottom: clamp(1.1rem, 2.5vw, 1.6rem);
+  }
+  @media (max-width: 991.98px) {
+    #leadership .leadership-grid {
+      gap: 1.15rem;
+    }
+    #leadership .founder-photo-wrap {
+      width: min(168px, 48%);
+      max-width: 168px;
+    }
+    #leadership .leadership-copy {
+      max-width: 100%;
+    }
   }
   @media (max-width: 767.98px) {
     #leadership .leadership-grid {
       grid-template-columns: 1fr;
       gap: 1rem;
     }
+    .about-hero-title {
+      max-width: none;
+    }
+    #leadership .founder-photo-wrap {
+      width: min(160px, 46vw);
+      max-width: 160px;
+    }
   }
 </style>
 {% endblock %}
 {% block content %}
-<section class="about-hero jk-flow py-5">
+<section class="about-hero jk-flow">
   <div class="container">
     <div class="about-page-shell">
       <article class="about-hero-card premium-hover-card reveal-on-scroll">
@@ -101,8 +174,8 @@
   </div>
 </section>
 
-<section class="container pb-5 jk-flow about-page-shell" id="leadership">
-  <h2 class="section-title section-title-center mb-4">Leadership</h2>
+<section class="container jk-flow about-page-shell" id="leadership">
+  <h2 class="section-title section-title-center">Leadership</h2>
   <div class="leadership-grid">
     <article class="leadership-card founder-card premium-hover-card reveal-on-scroll">
       <div class="founder-photo-wrap">
@@ -150,8 +223,8 @@
   </div>
 </section>
 
-<section class="container pb-5 jk-flow">
-  <div class="row g-4">
+<section class="container jk-flow about-page-shell about-values">
+  <div class="row g-3 g-md-4">
     <div class="col-12">
       <article class="about-info-card premium-hover-card reveal-on-scroll">
         <div class="about-info-icon"><i class="bi bi-buildings"></i></div>
@@ -184,10 +257,10 @@
   </div>
 </section>
 
-<section class="about-stats-section py-5">
-  <div class="container">
+<section class="about-stats-section">
+  <div class="container about-page-shell">
     <h2 class="section-title section-title-center">Our Growth in Numbers</h2>
-    <div class="row g-4">
+    <div class="row g-3 g-lg-4">
       <div class="col-6 col-lg-3">
         <article class="about-stat-card premium-hover-card reveal-on-scroll h-100">
           <p class="about-stat-value" data-counter="{{ about_stats.properties_listed }}" data-suffix="+">0</p>

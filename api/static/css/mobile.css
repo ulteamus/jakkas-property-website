@@ -166,14 +166,22 @@
 
   /* About / content pages */
   .about-hero-card,
-  .founder-card,
   .about-info-card {
     padding: 1.25rem !important;
   }
 
-  .founder-photo {
+  .founder-card:not(#leadership .founder-card) {
+    padding: 1.25rem !important;
+  }
+
+  .founder-photo:not(#leadership .founder-photo) {
     width: min(220px, 72vw);
     height: auto;
+  }
+
+  .about-stat-label {
+    font-size: 0.85rem;
+    line-height: 1.35;
   }
 
   .submission-form,

@@ -812,6 +812,26 @@ body.admin-login-page {
   box-shadow: 0 0 0 0.22rem rgba(247, 148, 51, 0.2);
 }
 
+/* Tablet: keep filter chips wrapping; action buttons tappable */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .admin-filter-bar {
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+  .admin-filter-chip,
+  .admin-header-actions .btn {
+    min-height: 40px;
+  }
+  .admin-table-wrap > .table {
+    min-width: 680px;
+  }
+  body.admin-theme .table .btn,
+  body.admin-theme .table .btn-sm {
+    min-height: 36px;
+    padding-inline: 0.65rem;
+  }
+}
+
 @media (max-width: 1199.98px) {
   body.admin-theme .admin-main {
     padding-inline: 0.95rem;
@@ -904,6 +924,23 @@ body.admin-login-page {
 
   .admin-header-actions .btn {
     width: auto;
+    min-height: 42px;
+  }
+
+  .admin-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .admin-filter-chip {
+    min-height: 38px;
+  }
+
+  body.admin-theme .table .btn,
+  body.admin-theme .table .btn-sm {
+    min-height: 36px;
+    white-space: nowrap;
   }
 }
 

@@ -106,20 +106,22 @@
 
 ## Phase 5 — About + responsive polish
 
-- [ ] **Task 11 (S):** About Us layout improvements
+- [x] **Task 11 (S):** About Us layout improvements
   - AC: clearer layout on `/about`; brand-consistent; 375/768/1280 OK
   - Verify: screenshots
   - Files: `templates/public/about.html`, CSS → bundle
   - Deps: open Q on exact prefs (else judgment)
+  - **Done:** Shared page shell width; tighter hero/leadership rhythm; equal founder cards with consistent photo crop; vision/mission aligned to shell.
 
-- [ ] **Task 12 (M):** Mobile + tablet pass (authorized surfaces only)
+- [x] **Task 12 (M):** Mobile + tablet pass (authorized surfaces only)
   - AC: no critical overflow; sell Next/Submit usable; admin actions reachable
   - Verify: sell, detail, about, my-listings, admin tables at 375/768
   - Files: `jakkash.css`, `admin.css`, small authorized template tweaks
   - Deps: Tasks 4, 6, 8, 11
+  - **Done:** Sticky sell step nav + tap targets; detail CTA grid on tablet; my-listings table scroll; admin filter/action tap targets on phone/tablet.
 
 ### Checkpoint — Complete
-- [ ] All ACs met
+- [x] All ACs met *(Phase 5 code complete; deploy smoke still recommended)*
 - [ ] Bundle + deploy smoke: storage, sell, my-listings, admin inventory
 - [ ] Ready for client review
 

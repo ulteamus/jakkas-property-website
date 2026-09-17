@@ -101,11 +101,11 @@ About layout + mobile/tablet polish (authorized surfaces only)
 
 ### Phase 5: About + responsive polish
 
-- [ ] Task 11: About Us layout improvements (authorized page only)
-- [ ] Task 12: Mobile + tablet pass on authorized surfaces (sell, detail, about, my-listings, admin tables)
+- [x] Task 11: About Us layout improvements (authorized page only)
+- [x] Task 12: Mobile + tablet pass on authorized surfaces (sell, detail, about, my-listings, admin tables)
 
 ### Checkpoint: Complete
-- [ ] All acceptance criteria met
+- [x] All acceptance criteria met *(Phase 5 implemented; human deploy smoke still open)*
 - [ ] Bundle + deploy smoke on storage + sell + my-listings + admin inventory
 - [ ] Ready for human / client review
 
@@ -374,11 +374,13 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Client-authorized polish on `templates/public/about.html` (+ related CSS). Improve layout rhythm/alignment without redesigning the whole site. Scope: About page (and homepage `#about` only if the same issue is visible there — prefer About page first).
 
 **Acceptance criteria:**
-- [ ] About layout improved per client feedback (clearer hierarchy, less cramped sections)
-- [ ] Desktop + tablet + mobile acceptable
+- [x] About layout improved per client feedback (clearer hierarchy, less cramped sections)
+- [x] Desktop + tablet + mobile acceptable
 
 **Verification:**
 - [ ] `/about` screenshots at 375 / 768 / 1280
+
+**Implementation (2026-09-17):** Shared `about-page-shell` width across hero/leadership/values/stats; clamp spacing; equal leadership cards with consistent photo crop (`object-position: center 18%`); vision/mission under same shell.
 
 **Dependencies:** Open question on exact visual prefs (else judgment within existing brand)
 
@@ -396,13 +398,15 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Rigorous pass across **authorized** surfaces only: sell wizard, public detail, about, my-listings, admin sell-properties + properties tables. Fix overflow, tap targets, tab/step nav, and table scroll regressions introduced by earlier phases.
 
 **Acceptance criteria:**
-- [ ] No critical horizontal page overflow on 375 / 768
-- [ ] Sell Next/Submit usable on mobile
-- [ ] Admin actions reachable (ties to Task 8)
+- [x] No critical horizontal page overflow on 375 / 768
+- [x] Sell Next/Submit usable on mobile
+- [x] Admin actions reachable (ties to Task 8)
 
 **Verification:**
 - [ ] Checklist pass on listed routes
 - [ ] Spot-check after bundle
+
+**Implementation (2026-09-17):** Sticky sell step nav + 48px tap targets; `w-sm-auto`; detail CTA 2-col tablet grid; my-listings table horizontal scroll; admin filter/action min-heights on phone/tablet. Bundle via `vercel_bundle.py`.
 
 **Dependencies:** Tasks 4, 6, 8, 11
 

@@ -1592,6 +1592,72 @@ body.drawer-open {
 .sell-step-nav #sellNextBtn,
 .sell-step-nav #sellSubmitBtn {
   min-width: 8.5rem;
+  min-height: 48px;
+}
+/* Bootstrap-style width utility used by sell wizard actions */
+@media (min-width: 576px) {
+  .w-sm-auto {
+    width: auto !important;
+  }
+}
+.detail-team-cta .d-grid {
+  gap: 0.65rem;
+}
+.detail-team-cta .btn {
+  min-height: 44px;
+  justify-content: center;
+}
+/* My Listings: keep table on-page without widening the viewport */
+.my-listings-table-wrap,
+.content-card.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.my-listings-table-wrap .table,
+.content-card.table-responsive .table {
+  min-width: 640px;
+  margin-bottom: 0;
+}
+@media (max-width: 767.98px) {
+  .sell-step-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-top: 1.25rem !important;
+    padding: 0.75rem 0.15rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 28%);
+  }
+  .sell-step-nav .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+  .jk-tab {
+    padding: 0.6rem 0.95rem;
+    min-height: 44px;
+  }
+  .detail-team-cta {
+    padding: 1rem !important;
+  }
+  .detail-info-tabs .jk-tab-bar {
+    margin-bottom: 0.5rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .sell-step-nav .btn {
+    min-height: 46px;
+  }
+  .sell-area-price-row #areaUnitSelect {
+    max-width: 100%;
+  }
+  .detail-team-cta .d-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .detail-team-cta .d-grid > :first-child,
+  .detail-team-cta .d-grid > :last-child {
+    grid-column: 1 / -1;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .jk-tab {
