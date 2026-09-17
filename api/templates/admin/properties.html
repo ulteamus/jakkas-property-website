@@ -3,14 +3,33 @@
 {% block page_heading %}Property Inventory{% endblock %}
 {% block page_subheading %}Manage listings, monitor inventory status, and jump into edits or submission reviews quickly.{% endblock %}
 {% block page_actions %}
+<a
+  class="btn btn-outline-secondary btn-sm"
+  target="_blank"
+  href="{{ url_for('admin.print_properties', status=selected_status if selected_status != 'all' else None, area=area_filter if area_filter else None) }}"
+>
+  <i class="bi bi-printer me-1"></i>Print View
+</a>
 <a href="{{ url_for('admin.property_form') }}" class="btn btn-jk-accent btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Property</a>
 {% endblock %}
 {% block content %}
-<div class="admin-filter-bar mb-2" role="group" aria-label="Property status filter">
-  <a href="{{ url_for('admin.properties') }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Property inventory filters">
+  <a href="{{ url_for('admin.properties', area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
   {% for status in statuses %}
-  <a href="{{ url_for('admin.properties', status=status) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|replace('_', ' ')|title }}</a>
+  <a href="{{ url_for('admin.properties', status=status, area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|replace('_', ' ')|title }}</a>
   {% endfor %}
+  <form method="get" class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+    {% if selected_status and selected_status != 'all' %}
+    <input type="hidden" name="status" value="{{ selected_status }}">
+    {% endif %}
+    <label class="form-label mb-0 small text-muted" for="inventoryAreaFilter">Area</label>
+    <select class="form-select form-select-sm" id="inventoryAreaFilter" name="area" onchange="this.form.submit()" style="min-width: 140px;">
+      <option value="">All areas</option>
+      {% for area in area_options %}
+      <option value="{{ area }}" {% if area_filter == area %}selected{% endif %}>{{ area }}</option>
+      {% endfor %}
+    </select>
+  </form>
 </div>
 <div class="admin-table-wrap table-responsive">
   <table class="table align-middle">
@@ -24,7 +43,7 @@
         <th>Source</th>
         <th>Status</th>
         <th>Views</th>
-        <th>Actions</th>
+        <th style="min-width: 220px;">Actions</th>
       </tr>
     </thead>
     <tbody>

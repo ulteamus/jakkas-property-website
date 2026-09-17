@@ -78,27 +78,31 @@
 
 ## Phase 4 — Admin table scroll, inventory filter, print
 
-- [ ] **Task 8 (S):** Horizontal scroll — actions not clipped
+- [x] **Task 8 (S):** Horizontal scroll — actions not clipped
   - AC: Sell Properties (+ inventory) Actions reachable; fix `.admin-table-wrap { overflow: hidden }`
   - Verify: `/admin/sell-properties` + `/admin/properties` at 1024 + mobile
   - Files: `static/css/admin.css`, maybe table wrappers → bundle
   - Deps: none
+  - **Done:** `.admin-table-wrap` → `overflow-x: auto`; table min-width 720px (desktop + mobile).
 
-- [ ] **Task 9 (S–M):** Property Inventory area filter (Adajan, Vesu, …)
+- [x] **Task 9 (S–M):** Property Inventory area filter (Adajan, Vesu, …)
   - AC: area select filters list; works with status chips + pagination
   - Verify: filter combo reserved + area
   - Files: `routes/admin_portal.py`, `models/property.py`, `templates/admin/properties.html`
   - Deps: none (∥ Task 8)
+  - **Done:** Area select on inventory; `areas_list(all_statuses=True)` + known Surat options; status chips preserve area.
 
-- [ ] **Task 10 (M):** Property Inventory Print View (filtered)
+- [x] **Task 10 (M):** Property Inventory Print View (filtered)
   - AC: print respects filters; readable print layout (cap documented if any)
   - Verify: filter → print rows match
   - Files: `routes/admin_portal.py`, new `templates/admin/properties_print.html`, `properties.html` button → bundle
   - Deps: Task 9
+  - **Done:** Print View button → `/admin/properties/print` HTML report of filtered set (cap 1000).
 
 ### Checkpoint — Admin inventory
-- [ ] Actions scrollable
-- [ ] Area filter + print OK
+- [x] Actions scrollable
+- [x] Area filter + print OK
+  - *(Human smoke: 1024px scroll, Adajan filter, Print View match)*
 
 ## Phase 5 — About + responsive polish
 

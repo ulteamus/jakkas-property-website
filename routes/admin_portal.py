@@ -372,6 +372,7 @@ def dashboard():
 @permission_required("manage_properties")
 def properties():
     status = request.args.get("status") or None
+    area_filter = (request.args.get("area") or "").strip()
     try:
         page = max(1, int(request.args.get("page") or 1))
     except (TypeError, ValueError):
@@ -380,6 +381,7 @@ def properties():
     offset = (page - 1) * limit
     props = prop_model.to_dict_list(
         prop_model.search(
+            area=area_filter or None,
             status=status or "available",
             limit=limit,
             offset=offset,
@@ -392,15 +394,52 @@ def properties():
         [prop.get("id") for prop in props if prop.get("status") == "reserved"],
         status="pending",
     )
+    area_options = sorted(
+        {
+            *(SELL_AREA_FILTER_OPTIONS or []),
+            *(prop_model.areas_list(all_statuses=True) or []),
+        },
+        key=lambda name: name.lower(),
+    )
     return render_template(
         "admin/properties.html",
         properties=props,
         statuses=["available", "sold", "rented", "reserved"],
         selected_status=status or "all",
+        area_filter=area_filter,
+        area_options=area_options,
         submission_map=submission_map,
         page=page,
         page_size=limit,
         has_more=len(props) >= limit,
+    )
+
+
+@admin_bp.route("/properties/print")
+@permission_required("manage_properties")
+def print_properties():
+    """HTML print view of Property Inventory for the active status + area filters."""
+    status = request.args.get("status") or None
+    area_filter = (request.args.get("area") or "").strip()
+    print_cap = 1000
+    props = prop_model.to_dict_list(
+        prop_model.search(
+            area=area_filter or None,
+            status=status or "available",
+            limit=print_cap,
+            offset=0,
+            all_statuses=(status is None),
+            owner_admin_id=_owner_scope_admin_id(),
+        ),
+        public=False,
+    )
+    return render_template(
+        "admin/properties_print.html",
+        properties=props,
+        selected_status=status or "all",
+        area_filter=area_filter,
+        print_cap=print_cap,
+        truncated=len(props) >= print_cap,
     )
 
 

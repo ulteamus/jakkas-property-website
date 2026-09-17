@@ -1912,14 +1912,33 @@ TEMPLATES = {
 {% block page_heading %}Property Inventory{% endblock %}
 {% block page_subheading %}Manage listings, monitor inventory status, and jump into edits or submission reviews quickly.{% endblock %}
 {% block page_actions %}
+<a
+  class="btn btn-outline-secondary btn-sm"
+  target="_blank"
+  href="{{ url_for('admin.print_properties', status=selected_status if selected_status != 'all' else None, area=area_filter if area_filter else None) }}"
+>
+  <i class="bi bi-printer me-1"></i>Print View
+</a>
 <a href="{{ url_for('admin.property_form') }}" class="btn btn-jk-accent btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Property</a>
 {% endblock %}
 {% block content %}
-<div class="admin-filter-bar mb-2" role="group" aria-label="Property status filter">
-  <a href="{{ url_for('admin.properties') }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Property inventory filters">
+  <a href="{{ url_for('admin.properties', area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
   {% for status in statuses %}
-  <a href="{{ url_for('admin.properties', status=status) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|replace('_', ' ')|title }}</a>
+  <a href="{{ url_for('admin.properties', status=status, area=area_filter if area_filter else None) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|replace('_', ' ')|title }}</a>
   {% endfor %}
+  <form method="get" class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+    {% if selected_status and selected_status != 'all' %}
+    <input type="hidden" name="status" value="{{ selected_status }}">
+    {% endif %}
+    <label class="form-label mb-0 small text-muted" for="inventoryAreaFilter">Area</label>
+    <select class="form-select form-select-sm" id="inventoryAreaFilter" name="area" onchange="this.form.submit()" style="min-width: 140px;">
+      <option value="">All areas</option>
+      {% for area in area_options %}
+      <option value="{{ area }}" {% if area_filter == area %}selected{% endif %}>{{ area }}</option>
+      {% endfor %}
+    </select>
+  </form>
 </div>
 <div class="admin-table-wrap table-responsive">
   <table class="table align-middle">
@@ -1933,7 +1952,7 @@ TEMPLATES = {
         <th>Source</th>
         <th>Status</th>
         <th>Views</th>
-        <th>Actions</th>
+        <th style="min-width: 220px;">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -2001,6 +2020,69 @@ TEMPLATES = {
   </table>
 </div>
 {% endblock %}
+""",
+    "admin/properties_print.html": """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Inventory Print</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body class="p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4 class="mb-0">Property Inventory Report</h4>
+    <button class="btn btn-dark btn-sm" onclick="window.print()">Print</button>
+  </div>
+  <div class="mb-2 small text-muted">
+    Status: {{ selected_status|replace('_', ' ')|title }}
+    | Area: {{ area_filter if area_filter else 'All areas' }}
+    | Rows: {{ properties|length }}{% if truncated %} (capped at {{ print_cap }}){% endif %}
+  </div>
+  {% if truncated %}
+  <p class="small text-warning no-print">Showing first {{ print_cap }} matching properties. Narrow filters to print a smaller set.</p>
+  {% endif %}
+  <table class="table table-sm table-bordered align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Area</th>
+        <th>Type</th>
+        <th>Price</th>
+        <th>Source</th>
+        <th>Status</th>
+        <th>Views</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in properties %}
+      {% set status_label = 'pending approval' if p.status == 'reserved' else p.status %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>{{ p.property_name }}</td>
+        <td>{{ p.area_name }}</td>
+        <td>{{ p.property_type }}</td>
+        <td>₹{{ "{:,.0f}".format(p.price or 0) }}</td>
+        <td>{{ 'Admin' if p.creation_source == 'admin' else 'User Submission' }}</td>
+        <td>{{ status_label|title }}</td>
+        <td>{{ p.view_count or 0 }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center">No properties match the current filters.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
 """,
     "admin/property_form.html": """{% extends "admin/base.html" %}
 {% block title %}{{ 'Edit' if property else 'Add' }} Property{% endblock %}

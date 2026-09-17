@@ -369,7 +369,16 @@ body.admin-theme .alert {
   border-radius: var(--admin-radius-lg);
   background: #ffffff;
   box-shadow: var(--admin-shadow);
-  overflow: hidden;
+  /* Horizontal scroll so Actions stay reachable; do not use overflow:hidden */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.admin-table-wrap > .table {
+  margin-bottom: 0;
+  min-width: 720px;
 }
 
 body.admin-theme .table {

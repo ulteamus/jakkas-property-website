@@ -754,12 +754,24 @@ def delete_image(pid, image_id):
     return row
 
 
-def areas_list():
+def areas_list(all_statuses=False):
+    """Distinct area names for filters/forms.
+
+    When all_statuses=True (admin inventory), include every property status
+    so reserved/sold/rented localities still appear in the area dropdown.
+    """
     _ensure_schema()
-    rows = query_all(
-        "SELECT DISTINCT area_name FROM properties WHERE status='available' ORDER BY area_name"
-    )
-    return [r["area_name"] for r in rows]
+    if all_statuses:
+        rows = query_all(
+            """SELECT DISTINCT area_name FROM properties
+               WHERE area_name IS NOT NULL AND TRIM(area_name) != ''
+               ORDER BY area_name"""
+        )
+    else:
+        rows = query_all(
+            "SELECT DISTINCT area_name FROM properties WHERE status='available' ORDER BY area_name"
+        )
+    return [r["area_name"] for r in rows if r.get("area_name")]
 
 
 def categories_summary():

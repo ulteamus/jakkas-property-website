@@ -91,13 +91,13 @@ About layout + mobile/tablet polish (authorized surfaces only)
 
 ### Phase 4: Admin table, inventory filter, print
 
-- [ ] Task 8: Horizontal scroll for Sell Properties (and inventory) action columns
-- [ ] Task 9: Property Inventory location/area filter (e.g. Adajan, Vesu)
-- [ ] Task 10: Property Inventory Print View for filtered set
+- [x] Task 8: Horizontal scroll for Sell Properties (and inventory) action columns
+- [x] Task 9: Property Inventory location/area filter (e.g. Adajan, Vesu)
+- [x] Task 10: Property Inventory Print View for filtered set
 
 ### Checkpoint: Admin inventory
-- [ ] Actions reachable on narrow + desktop widths
-- [ ] Filter + print match filtered rows
+- [x] Actions reachable on narrow + desktop widths *(CSS overflow-x:auto on `.admin-table-wrap`; human smoke after deploy)*
+- [x] Filter + print match filtered rows
 
 ### Phase 5: About + responsive polish
 
@@ -296,12 +296,14 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Fix CSS so Sell Properties (and Property Inventory) action columns are not clipped. Replace/narrow `.admin-table-wrap { overflow: hidden }` so `table-responsive` / `overflow-x: auto` works on desktop as well as the existing mobile media-query rules.
 
 **Acceptance criteria:**
-- [ ] All action buttons reachable via horizontal scroll without being cut off
-- [ ] Card border-radius still acceptable (clip content only where intentional)
+- [x] All action buttons reachable via horizontal scroll without being cut off
+- [x] Card border-radius still acceptable (clip content only where intentional)
 
 **Verification:**
 - [ ] `/admin/sell-properties` at ~1024px and mobile widths
 - [ ] `/admin/properties` same check
+
+**Implementation (2026-09-17):** `.admin-table-wrap` uses `overflow-x: auto` (desktop + mobile); table `min-width: 720px`.
 
 **Dependencies:** None
 
@@ -319,13 +321,15 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Add location/area filter (e.g. Adajan, Vesu) to `/admin/properties`, mirroring Sell Properties area select. Extend `prop_model.search` / route query args; area options from distinct `area_name` (not only `status=available` if inventory needs reserved too — prefer all statuses in admin scope).
 
 **Acceptance criteria:**
-- [ ] Selecting an area filters inventory list
-- [ ] “All areas” clears filter
-- [ ] Works with existing status chips + pagination
+- [x] Selecting an area filters inventory list
+- [x] “All areas” clears filter
+- [x] Works with existing status chips + pagination
 
 **Verification:**
 - [ ] Filter Adajan → only matching rows
 - [ ] Status=reserved + area combo works
+
+**Implementation (2026-09-17):** `?area=` on `/admin/properties`; options = known Surat list ∪ `areas_list(all_statuses=True)`.
 
 **Dependencies:** None (∥ Task 8)
 
@@ -343,13 +347,15 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Add Print View button on Property Inventory that opens a print-friendly template of the **current filtered** set (status + area + page or “all matching” — prefer all matching filtered rows up to a sane cap, document cap in UI). Reuse patterns from `sell_properties_print.html` / `print_sell_properties`.
 
 **Acceptance criteria:**
-- [ ] Print View respects active filters
-- [ ] Browser print stylesheet usable for inventory report
-- [ ] Does not expose needless PII beyond inventory fields already on admin list
+- [x] Print View respects active filters
+- [x] Browser print stylesheet usable for inventory report
+- [x] Does not expose needless PII beyond inventory fields already on admin list
 
 **Verification:**
 - [ ] Filter area → Print View → rows match
 - [ ] Print preview readable
+
+**Implementation (2026-09-17):** `/admin/properties/print` + `properties_print.html`; cap 1000 matching rows.
 
 **Dependencies:** Task 9 (filter query args)
 
