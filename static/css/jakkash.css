@@ -1583,6 +1583,16 @@ body.drawer-open {
 .detail-info-tabs .jk-tab-panel {
   min-height: 7.5rem;
 }
+.detail-team-cta {
+  border: 1px solid #e8eaef;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+.sell-step-nav #sellBackBtn,
+.sell-step-nav #sellNextBtn,
+.sell-step-nav #sellSubmitBtn {
+  min-width: 8.5rem;
+}
 @media (prefers-reduced-motion: reduce) {
   .jk-tab {
     transition: none;

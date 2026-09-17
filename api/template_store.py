@@ -2213,7 +2213,8 @@ TEMPLATES = {
           </div>
           <div class="col-12 col-md-6">
             <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
-            <input class="form-control" id="expectedPriceInput" type="number" name="price" value="{{ p.price if p.price is not none else '' }}" placeholder="Enter expected price" min="1" step="1" required>
+            <input class="form-control" id="expectedPriceInput" type="number" name="price" value="{{ p.price if p.price is not none else '' }}" placeholder="Enter expected price" min="1" step="1" required data-price-lock="user-only" autocomplete="off">
+            <div class="form-text">Exact amount only — not predicted or adjusted automatically.</div>
           </div>
           <div class="col-12">
             <label class="form-label" for="propertyAddressInput">Property Address *</label>
@@ -4312,31 +4313,11 @@ document.getElementById('contactNameInput')?.focus();
 
       <div class="jk-tab-slider detail-info-tabs mb-3" data-jk-tabs="detail">
         <div class="jk-tab-bar" role="tablist" aria-label="Property information">
-          <button type="button" class="jk-tab is-active" role="tab" id="detailTabOwner" aria-controls="detailPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
-          <button type="button" class="jk-tab" role="tab" id="detailTabContact" aria-controls="detailPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
-          <button type="button" class="jk-tab" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
+          <button type="button" class="jk-tab is-active" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="true" data-jk-tab="property">Property Details</button>
           <button type="button" class="jk-tab" role="tab" id="detailTabIntent" aria-controls="detailPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
         </div>
         <div class="jk-tab-panels">
-          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelOwner" aria-labelledby="detailTabOwner" data-jk-tab-panel="owner">
-            <p class="text-muted small mb-3">Owner identity is handled privately. Reach our brokerage team to discuss this listing.</p>
-            <div class="d-grid gap-2">
-              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-                <i class="bi bi-whatsapp"></i> WhatsApp Broker
-              </a>
-              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-            </div>
-          </div>
-          <div class="jk-tab-panel" role="tabpanel" id="detailPanelContact" aria-labelledby="detailTabContact" data-jk-tab-panel="contact" hidden>
-            <p class="text-muted small mb-3">Prefer a quick call or chat? Use the brokerage lines below — no owner phone or email is shown publicly.</p>
-            <div class="d-grid gap-2">
-              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-                <i class="bi bi-whatsapp"></i> WhatsApp Broker
-              </a>
-            </div>
-          </div>
-          <div class="jk-tab-panel" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property" hidden>
+          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property">
             <ul class="list-unstyled detail-meta-list mb-3">
               <li><strong>Property ID:</strong> #{{ property.id }}</li>
               <li><strong>Property Name:</strong> {{ property.property_name }}</li>
@@ -4369,14 +4350,22 @@ document.getElementById('contactNameInput')?.focus();
         </div>
       </div>
 
-      <div class="d-grid gap-2">
-        <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
-          <i class="bi bi-send"></i> Send Inquiry
-        </a>
-        <a class="btn btn-jk-outline btn-request-visit" href="#visitPanel">
-          <i class="bi bi-calendar-check"></i> Request Site Visit
-        </a>
-        <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
+      <div class="detail-team-cta content-card p-3 mb-3">
+        <p class="fw-semibold mb-1">Interested in this property?</p>
+        <p class="text-muted small mb-3">Contact the Jakkash team — seller details stay private.</p>
+        <div class="d-grid gap-2">
+          <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+            <i class="bi bi-whatsapp"></i> WhatsApp Our Team
+          </a>
+          <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Our Team</a>
+          <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
+            <i class="bi bi-send"></i> Send Inquiry
+          </a>
+          <a class="btn btn-jk-outline btn-request-visit" href="#visitPanel">
+            <i class="bi bi-calendar-check"></i> Request Site Visit
+          </a>
+          <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
+        </div>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
@@ -5078,14 +5067,27 @@ document.getElementById('contactNameInput')?.focus();
 
     <div class="jk-tab-slider" data-jk-tabs="sell">
       <div class="jk-tab-bar" role="tablist" aria-label="Sell form sections">
-        <button type="button" class="jk-tab is-active" role="tab" id="sellTabOwner" aria-controls="sellPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
-        <button type="button" class="jk-tab" role="tab" id="sellTabContact" aria-controls="sellPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
-        <button type="button" class="jk-tab" role="tab" id="sellTabProperty" aria-controls="sellPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
-        <button type="button" class="jk-tab" role="tab" id="sellTabIntent" aria-controls="sellPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
+        <button type="button" class="jk-tab is-active" role="tab" id="sellTabIntent" aria-controls="sellPanelIntent" aria-selected="true" data-jk-tab="intent">1. Listing Intent</button>
+        <button type="button" class="jk-tab" role="tab" id="sellTabOwner" aria-controls="sellPanelOwner" aria-selected="false" data-jk-tab="owner">2. Owner</button>
+        <button type="button" class="jk-tab" role="tab" id="sellTabContact" aria-controls="sellPanelContact" aria-selected="false" data-jk-tab="contact">3. Contact</button>
+        <button type="button" class="jk-tab" role="tab" id="sellTabProperty" aria-controls="sellPanelProperty" aria-selected="false" data-jk-tab="property">4. Property Details</button>
       </div>
 
       <div class="jk-tab-panels">
-        <div class="jk-tab-panel is-active" role="tabpanel" id="sellPanelOwner" aria-labelledby="sellTabOwner" data-jk-tab-panel="owner">
+        <div class="jk-tab-panel is-active" role="tabpanel" id="sellPanelIntent" aria-labelledby="sellTabIntent" data-jk-tab-panel="intent">
+          <h5 class="mb-3">Listing Intent</h5>
+          <div class="mb-2">
+            <label class="form-label fw-semibold">Listing Intent *</label>
+            <input type="hidden" id="listingIntentInput" name="listing_intent" value="sell">
+            <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
+              <button type="button" class="sell-option-chip btn-orange is-active" data-listing-intent="sell">Sell Property</button>
+              <button type="button" class="sell-option-chip" data-listing-intent="rent">Rent Property</button>
+            </div>
+            <p class="form-text mb-0 mt-2">Choose whether this listing is for sale or for rent, then continue to the next step.</p>
+          </div>
+        </div>
+
+        <div class="jk-tab-panel" role="tabpanel" id="sellPanelOwner" aria-labelledby="sellTabOwner" data-jk-tab-panel="owner" hidden>
           <h5 class="mb-3" id="contactSectionTitle">Owner Details (Mandatory)</h5>
           <div class="row g-3 sell-contact-row">
             <div class="col-12">
@@ -5106,22 +5108,22 @@ document.getElementById('contactNameInput')?.focus();
         </div>
 
         <div class="jk-tab-panel" role="tabpanel" id="sellPanelContact" aria-labelledby="sellTabContact" data-jk-tab-panel="contact" hidden>
-          <h5 class="mb-3">Contact Details</h5>
+          <h5 class="mb-3" id="contactDetailsTitle">Owner Contact Details</h5>
           <div class="row g-3 sell-contact-row">
             <div class="col-12 col-md-6 sell-contact-field">
-              <label class="form-label" for="ownerMobileInput">Mobile Number *</label>
+              <label class="form-label" for="ownerMobileInput" id="ownerMobileLabel">Mobile Number *</label>
               <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" minlength="10" maxlength="15" required>
             </div>
             <div class="col-12 col-md-6 sell-contact-field">
-              <label class="form-label" for="ownerAltMobileInput">Alternate Mobile</label>
+              <label class="form-label" for="ownerAltMobileInput" id="ownerAltMobileLabel">Alternate Mobile</label>
               <input class="form-control" id="ownerAltMobileInput" name="owner_alt_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="Alternate mobile (optional)" maxlength="15">
             </div>
             <div class="col-12 col-md-6 sell-contact-field">
-              <label class="form-label" for="ownerEmailInput">Email Address</label>
+              <label class="form-label" for="ownerEmailInput" id="ownerEmailLabel">Email Address</label>
               <input type="email" class="form-control" id="ownerEmailInput" name="owner_email" placeholder="Email address (optional)">
             </div>
             <div class="col-12 sell-contact-field">
-              <label class="form-label" for="ownerAddressInput">Full Residential Address *</label>
+              <label class="form-label" for="ownerAddressInput" id="ownerAddressLabel">Full Residential Address *</label>
               <textarea class="form-control" id="ownerAddressInput" name="owner_address" rows="2" placeholder="Full residential address *" required></textarea>
             </div>
           </div>
@@ -5204,7 +5206,8 @@ document.getElementById('contactNameInput')?.focus();
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
-              <input class="form-control" id="expectedPriceInput" type="number" name="price" placeholder="Enter expected price" min="1" step="1" required>
+              <input class="form-control" id="expectedPriceInput" type="number" name="price" placeholder="Enter expected price" min="1" step="1" required data-price-lock="user-only" autocomplete="off">
+              <div class="form-text">Enter the exact amount you expect. This value is not predicted or adjusted automatically.</div>
             </div>
             <div class="col-12">
               <label class="form-label" for="propertyAddressInput">Property Address *</label>
@@ -5242,24 +5245,13 @@ document.getElementById('contactNameInput')?.focus();
             </div>
           </div>
         </div>
-
-        <div class="jk-tab-panel" role="tabpanel" id="sellPanelIntent" aria-labelledby="sellTabIntent" data-jk-tab-panel="intent" hidden>
-          <h5 class="mb-3">Listing Intent</h5>
-          <div class="mb-2">
-            <label class="form-label fw-semibold">Listing Intent *</label>
-            <input type="hidden" id="listingIntentInput" name="listing_intent" value="sell">
-            <div class="sell-option-chips sell-intent-chips" role="group" aria-label="Listing intent">
-              <button type="button" class="sell-option-chip btn-orange is-active" data-listing-intent="sell">Sell Property</button>
-              <button type="button" class="sell-option-chip" data-listing-intent="rent">Rent Property</button>
-            </div>
-            <p class="form-text mb-0 mt-2">Choose whether this listing is for sale or for rent. You can still edit other tabs before submitting.</p>
-          </div>
-        </div>
       </div>
     </div>
 
-    <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-4">
-      <button class="btn btn-jk-accent btn-lg w-100 w-sm-auto" type="submit" id="sellSubmitBtn">Submit For Selling</button>
+    <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 mt-4 sell-step-nav">
+      <button class="btn btn-outline-secondary btn-lg w-100 w-sm-auto d-none" type="button" id="sellBackBtn">Back</button>
+      <button class="btn btn-jk-primary btn-lg w-100 w-sm-auto" type="button" id="sellNextBtn">Next</button>
+      <button class="btn btn-jk-accent btn-lg w-100 w-sm-auto d-none" type="submit" id="sellSubmitBtn">Submit For Selling</button>
       <a href="{{ url_for('public.listings') }}" class="btn btn-outline-secondary btn-lg w-100 w-sm-auto">Browse Listings</a>
     </div>
   </form>

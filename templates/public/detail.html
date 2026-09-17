@@ -57,31 +57,11 @@
 
       <div class="jk-tab-slider detail-info-tabs mb-3" data-jk-tabs="detail">
         <div class="jk-tab-bar" role="tablist" aria-label="Property information">
-          <button type="button" class="jk-tab is-active" role="tab" id="detailTabOwner" aria-controls="detailPanelOwner" aria-selected="true" data-jk-tab="owner">Owner</button>
-          <button type="button" class="jk-tab" role="tab" id="detailTabContact" aria-controls="detailPanelContact" aria-selected="false" data-jk-tab="contact">Contact</button>
-          <button type="button" class="jk-tab" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="false" data-jk-tab="property">Property Details</button>
+          <button type="button" class="jk-tab is-active" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="true" data-jk-tab="property">Property Details</button>
           <button type="button" class="jk-tab" role="tab" id="detailTabIntent" aria-controls="detailPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
         </div>
         <div class="jk-tab-panels">
-          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelOwner" aria-labelledby="detailTabOwner" data-jk-tab-panel="owner">
-            <p class="text-muted small mb-3">Owner identity is handled privately. Reach our brokerage team to discuss this listing.</p>
-            <div class="d-grid gap-2">
-              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-                <i class="bi bi-whatsapp"></i> WhatsApp Broker
-              </a>
-              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-            </div>
-          </div>
-          <div class="jk-tab-panel" role="tabpanel" id="detailPanelContact" aria-labelledby="detailTabContact" data-jk-tab-panel="contact" hidden>
-            <p class="text-muted small mb-3">Prefer a quick call or chat? Use the brokerage lines below — no owner phone or email is shown publicly.</p>
-            <div class="d-grid gap-2">
-              <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-              <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-                <i class="bi bi-whatsapp"></i> WhatsApp Broker
-              </a>
-            </div>
-          </div>
-          <div class="jk-tab-panel" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property" hidden>
+          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property">
             <ul class="list-unstyled detail-meta-list mb-3">
               <li><strong>Property ID:</strong> #{{ property.id }}</li>
               <li><strong>Property Name:</strong> {{ property.property_name }}</li>
@@ -114,14 +94,22 @@
         </div>
       </div>
 
-      <div class="d-grid gap-2">
-        <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
-          <i class="bi bi-send"></i> Send Inquiry
-        </a>
-        <a class="btn btn-jk-outline btn-request-visit" href="#visitPanel">
-          <i class="bi bi-calendar-check"></i> Request Site Visit
-        </a>
-        <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
+      <div class="detail-team-cta content-card p-3 mb-3">
+        <p class="fw-semibold mb-1">Interested in this property?</p>
+        <p class="text-muted small mb-3">Contact the Jakkash team — seller details stay private.</p>
+        <div class="d-grid gap-2">
+          <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+            <i class="bi bi-whatsapp"></i> WhatsApp Our Team
+          </a>
+          <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Our Team</a>
+          <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
+            <i class="bi bi-send"></i> Send Inquiry
+          </a>
+          <a class="btn btn-jk-outline btn-request-visit" href="#visitPanel">
+            <i class="bi bi-calendar-check"></i> Request Site Visit
+          </a>
+          <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
+        </div>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>

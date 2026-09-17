@@ -35,29 +35,32 @@
 
 ## Phase 2 — Sell flow, price, public privacy
 
-- [ ] **Task 4 (M):** Sell wizard order + Next / Submit-only-at-end
+- [x] **Task 4 (M):** Sell wizard order + Next / Submit-only-at-end
   - AC: 1 Intent → 2 Owner → 3 Contact (dynamic) → 4 Property → Submit only at end; Next on earlier steps
   - Verify: mobile+desktop walkthrough; POST still creates reserved + submission
   - Files: `templates/public/sell_property.html`, `static/js/sell_property.js`, maybe CSS → `vercel_bundle.py`
   - Deps: prefer after Storage checkpoint
+  - **Done:** Strict order Intent→Owner→Contact→Property; Next/Back; Submit only on final step; contact labels retitle by Owner/Broker/Developer.
 
-- [ ] **Task 5 (S):** Expected price lock (no predict/alter/deduct)
+- [x] **Task 5 (S):** Expected price lock (no predict/alter/deduct)
   - AC: typed INR == stored price; no AI/predict hooks on sell (or admin form price field)
   - Verify: known price round-trip; grep sell/admin form JS
   - Files: `static/js/sell_property.js`, maybe `admin_property_form.js` / templates
   - Deps: none (∥ Task 4)
+  - **Done:** No predict hooks on sell/admin form; user-price lock + exact `price` on POST; helper text on sell + admin property form.
 
-- [ ] **Task 6 (S):** Public detail — hide Owner & Contact tabs; clean team CTA
+- [x] **Task 6 (S):** Public detail — hide Owner & Contact tabs; clean team CTA
   - AC: no Owner/Contact tabs; no seller PII; brokerage CTA remains
   - Verify: `/property/<slug>` + view-source
   - Files: `templates/public/detail.html`, `static/js/detail.js`, CSS → bundle
   - Deps: none (∥ Task 4/5)
+  - **Done:** Owner/Contact tabs removed; Property Details + Listing Intent remain; single team CTA (WhatsApp/Call/Inquiry/Visit/Share).
 
 ### Checkpoint — Public sell + detail
-- [ ] Step order + Submit gating OK
-- [ ] Price unchanged by scripts
-- [ ] Privacy tabs gone
-- [ ] Bundle run after template/static edits
+- [x] Step order + Submit gating OK
+- [x] Price unchanged by scripts
+- [x] Privacy tabs gone
+- [x] Bundle run after template/static edits *(python scripts/vercel_bundle.py)*
 
 ## Phase 3 — My Listings approval sync
 

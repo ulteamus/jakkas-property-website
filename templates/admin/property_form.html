@@ -209,7 +209,8 @@
           </div>
           <div class="col-12 col-md-6">
             <label class="form-label" for="expectedPriceInput">Expected Price (INR) *</label>
-            <input class="form-control" id="expectedPriceInput" type="number" name="price" value="{{ p.price if p.price is not none else '' }}" placeholder="Enter expected price" min="1" step="1" required>
+            <input class="form-control" id="expectedPriceInput" type="number" name="price" value="{{ p.price if p.price is not none else '' }}" placeholder="Enter expected price" min="1" step="1" required data-price-lock="user-only" autocomplete="off">
+            <div class="form-text">Exact amount only — not predicted or adjusted automatically.</div>
           </div>
           <div class="col-12">
             <label class="form-label" for="propertyAddressInput">Property Address *</label>

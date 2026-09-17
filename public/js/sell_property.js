@@ -13,16 +13,29 @@
   const submitterTypeInput = document.getElementById('submitterTypeInput');
   const sellerTypeInput = document.getElementById('sellerTypeInput');
   const contactSectionTitle = document.getElementById('contactSectionTitle');
+  const contactDetailsTitle = document.getElementById('contactDetailsTitle');
   const contactNameLabel = document.getElementById('contactNameLabel');
   const contactNameInput = document.getElementById('contactNameInput');
+  const ownerMobileLabel = document.getElementById('ownerMobileLabel');
+  const ownerAltMobileLabel = document.getElementById('ownerAltMobileLabel');
+  const ownerEmailLabel = document.getElementById('ownerEmailLabel');
+  const ownerAddressLabel = document.getElementById('ownerAddressLabel');
+  const ownerAddressInput = document.getElementById('ownerAddressInput');
   const areaValueInput = document.getElementById('areaValueInput');
   const areaValueLabel = document.getElementById('areaValueLabel');
   const areaUnitInput = document.getElementById('areaUnitInput');
   const areaSqFtInput = document.getElementById('areaSqFtInput');
   const areaConvertedHint = document.getElementById('areaConvertedHint');
   const expectedInput = document.getElementById('expectedPriceInput');
+  const nextBtn = document.getElementById('sellNextBtn');
+  const backBtn = document.getElementById('sellBackBtn');
+  const submitBtn = document.getElementById('sellSubmitBtn');
 
   if (!form) return;
+
+  const STEP_ORDER = ['intent', 'owner', 'contact', 'property'];
+  let currentStep = 'intent';
+  let maxReachedIndex = 0;
 
   const HIDE_BHK = new Set(['plot', 'land', 'shop', 'office']);
   const SHOW_BHK = new Set(['apartment', 'flat', 'bungalow', 'house', 'villa']);
@@ -46,18 +59,36 @@
   const submitterLabels = {
     owner: {
       section: 'Owner Details (Mandatory)',
+      contactTitle: 'Owner Contact Details',
       label: 'Owner Name *',
       placeholder: 'Owner Name *',
+      mobile: 'Owner Mobile Number *',
+      altMobile: 'Alternate Mobile',
+      email: 'Email Address',
+      address: 'Full Residential Address *',
+      addressPlaceholder: 'Full residential address *',
     },
     broker: {
       section: 'Broker Details (Mandatory)',
+      contactTitle: 'Broker Contact Details',
       label: 'Broker Name *',
       placeholder: 'Broker Name *',
+      mobile: 'Broker Mobile Number *',
+      altMobile: 'Alternate Mobile',
+      email: 'Broker Email Address',
+      address: 'Office / Business Address *',
+      addressPlaceholder: 'Office / business address *',
     },
     developer: {
       section: 'Developer Details (Mandatory)',
+      contactTitle: 'Developer Contact Details',
       label: 'Developer Name *',
       placeholder: 'Developer Name *',
+      mobile: 'Developer Mobile Number *',
+      altMobile: 'Alternate Mobile',
+      email: 'Developer Email Address',
+      address: 'Company / Site Address *',
+      addressPlaceholder: 'Company / site address *',
     },
   };
 
@@ -84,8 +115,14 @@
     const type = (submitterTypeInput?.value || 'owner').toLowerCase();
     const config = submitterLabels[type] || submitterLabels.owner;
     if (contactSectionTitle) contactSectionTitle.textContent = config.section;
+    if (contactDetailsTitle) contactDetailsTitle.textContent = config.contactTitle;
     if (contactNameLabel) contactNameLabel.textContent = config.label;
     if (contactNameInput) contactNameInput.placeholder = config.placeholder;
+    if (ownerMobileLabel) ownerMobileLabel.textContent = config.mobile;
+    if (ownerAltMobileLabel) ownerAltMobileLabel.textContent = config.altMobile;
+    if (ownerEmailLabel) ownerEmailLabel.textContent = config.email;
+    if (ownerAddressLabel) ownerAddressLabel.textContent = config.address;
+    if (ownerAddressInput) ownerAddressInput.placeholder = config.addressPlaceholder;
     if (sellerTypeInput) sellerTypeInput.value = type;
     setActiveChip('[data-submitter-type]', type, 'data-submitter-type');
   }
@@ -97,7 +134,6 @@
 
   function syncBhkVisibility() {
     const type = getPropertyType();
-    const hide = HIDE_BHK.has(type) || (type && !SHOW_BHK.has(type) && HIDE_BHK.has(type));
     const show = !type || SHOW_BHK.has(type);
     const shouldShow = show && !HIDE_BHK.has(type);
     if (bhkWrap) {
@@ -160,6 +196,26 @@
     setActiveChip('[data-area-unit]', unit, 'data-area-unit');
   }
 
+  /* Expected price: user-entered INR only — never predict, autofill, or deduct. */
+  function lockExpectedPriceIntegrity() {
+    if (!expectedInput) return;
+    expectedInput.addEventListener('input', () => {
+      expectedInput.dataset.userPrice = expectedInput.value;
+    });
+    expectedInput.addEventListener('change', () => {
+      expectedInput.dataset.userPrice = expectedInput.value;
+    });
+  }
+
+  function readUserExpectedPrice() {
+    if (!expectedInput) return '';
+    const typed = expectedInput.value;
+    if (expectedInput.dataset.userPrice != null && expectedInput.dataset.userPrice !== typed) {
+      expectedInput.value = expectedInput.dataset.userPrice;
+    }
+    return expectedInput.value;
+  }
+
   document.querySelectorAll('[data-listing-intent]').forEach((chip) => {
     chip.addEventListener('click', () => {
       if (listingIntentInput) listingIntentInput.value = chip.dataset.listingIntent || 'sell';
@@ -190,44 +246,188 @@
 
   areaValueInput?.addEventListener('input', updateAreaSqFt);
 
+  const tabRoot = form.querySelector('[data-jk-tabs="sell"]');
+  const tabButtons = tabRoot ? Array.from(tabRoot.querySelectorAll('[data-jk-tab]')) : [];
+  const tabPanels = tabRoot ? Array.from(tabRoot.querySelectorAll('[data-jk-tab-panel]')) : [];
+
+  function stepIndex(name) {
+    return STEP_ORDER.indexOf(name);
+  }
+
+  function activateSellTab(name, opts) {
+    if (!tabRoot || !name || stepIndex(name) < 0) return;
+    currentStep = name;
+    const idx = stepIndex(name);
+    if (idx > maxReachedIndex) maxReachedIndex = idx;
+
+    tabButtons.forEach((btn) => {
+      const on = btn.getAttribute('data-jk-tab') === name;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && opts && opts.scrollTab) {
+        btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+      }
+    });
+    tabPanels.forEach((panel) => {
+      const on = panel.getAttribute('data-jk-tab-panel') === name;
+      panel.classList.toggle('is-active', on);
+      if (on) panel.removeAttribute('hidden');
+      else panel.setAttribute('hidden', '');
+    });
+    syncStepNav();
+  }
+
+  function syncStepNav() {
+    const idx = stepIndex(currentStep);
+    const isLast = idx === STEP_ORDER.length - 1;
+    if (backBtn) backBtn.classList.toggle('d-none', idx <= 0);
+    if (nextBtn) nextBtn.classList.toggle('d-none', isLast);
+    if (submitBtn) submitBtn.classList.toggle('d-none', !isLast);
+  }
+
+  function focusFirstInvalid(panel) {
+    if (!panel) return;
+    const el = panel.querySelector(':invalid');
+    if (el && typeof el.focus === 'function') el.focus({ preventScroll: false });
+  }
+
+  function validateStep(name) {
+    const panel = tabRoot?.querySelector(`[data-jk-tab-panel="${name}"]`);
+    if (!panel) return true;
+
+    if (name === 'intent') {
+      const intent = (listingIntentInput?.value || '').toLowerCase();
+      if (intent !== 'sell' && intent !== 'rent') {
+        alert('Please choose Sell or Rent.');
+        return false;
+      }
+      return true;
+    }
+
+    if (name === 'owner') {
+      const type = (submitterTypeInput?.value || '').toLowerCase();
+      if (!['owner', 'broker', 'developer'].includes(type)) {
+        alert('Please select a seller type.');
+        return false;
+      }
+      if (!contactNameInput?.value?.trim()) {
+        contactNameInput?.focus();
+        alert('Please enter the name.');
+        return false;
+      }
+      return true;
+    }
+
+    if (name === 'contact') {
+      const requiredFields = panel.querySelectorAll('[required]');
+      for (const field of requiredFields) {
+        if (!field.checkValidity()) {
+          field.reportValidity();
+          focusFirstInvalid(panel);
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (name === 'property') {
+      updateAreaSqFt();
+      if (!getPropertyType()) {
+        alert('Please select a property type.');
+        return false;
+      }
+      const requiredFields = panel.querySelectorAll('[required]');
+      for (const field of requiredFields) {
+        if (!field.checkValidity()) {
+          field.reportValidity();
+          focusFirstInvalid(panel);
+          return false;
+        }
+      }
+      if (!areaSqFtInput?.value || Number(areaSqFtInput.value) <= 0) {
+        areaValueInput?.focus();
+        alert('Please enter a valid property area.');
+        return false;
+      }
+      const priceVal = readUserExpectedPrice();
+      if (!priceVal || Number(priceVal) <= 0) {
+        expectedInput?.focus();
+        alert('Please enter your expected price.');
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  }
+
+  nextBtn?.addEventListener('click', () => {
+    if (!validateStep(currentStep)) return;
+    const idx = stepIndex(currentStep);
+    if (idx < 0 || idx >= STEP_ORDER.length - 1) return;
+    activateSellTab(STEP_ORDER[idx + 1], { scrollTab: true });
+  });
+
+  backBtn?.addEventListener('click', () => {
+    const idx = stepIndex(currentStep);
+    if (idx <= 0) return;
+    activateSellTab(STEP_ORDER[idx - 1], { scrollTab: true });
+  });
+
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const name = btn.getAttribute('data-jk-tab');
+      const targetIdx = stepIndex(name);
+      const curIdx = stepIndex(currentStep);
+      if (targetIdx < 0) return;
+      if (targetIdx <= curIdx || targetIdx <= maxReachedIndex) {
+        activateSellTab(name, { scrollTab: true });
+        return;
+      }
+      if (targetIdx === curIdx + 1) {
+        if (!validateStep(currentStep)) return;
+        activateSellTab(name, { scrollTab: true });
+        return;
+      }
+      alert('Please use Next to continue through each step in order.');
+    });
+  });
+
+  form.addEventListener(
+    'invalid',
+    (e) => {
+      const panel = e.target && e.target.closest ? e.target.closest('[data-jk-tab-panel]') : null;
+      if (!panel) return;
+      activateSellTab(panel.getAttribute('data-jk-tab-panel'), { scrollTab: true });
+    },
+    true
+  );
+
   form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (currentStep !== 'property') {
+      activateSellTab('property', { scrollTab: true });
+      return;
+    }
+    if (!validateStep('property')) return;
+
     updateAreaSqFt();
     syncSubmitterFields();
+    readUserExpectedPrice();
 
-    if (!getPropertyType()) {
-      e.preventDefault();
-      alert('Please select a property type.');
-      return;
-    }
-
-    if (!areaSqFtInput?.value || Number(areaSqFtInput.value) <= 0) {
-      e.preventDefault();
-      areaValueInput?.focus();
-      alert('Please enter a valid property area.');
-      return;
-    }
-
-    if (!expectedInput?.value || Number(expectedInput.value) <= 0) {
-      e.preventDefault();
-      expectedInput?.focus();
-      alert('Please enter your expected price.');
-      return;
-    }
-
-    e.preventDefault();
-    const submitBtn = form.querySelector('[type="submit"]');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-    }
+    if (submitBtn) submitBtn.disabled = true;
     try {
       const fd = new FormData(form);
+      /* Ensure posted price matches exact user input (no script mutation). */
+      if (expectedInput) {
+        fd.set('price', String(expectedInput.value || '').trim());
+      }
       const res = await fetch(form.action || window.location.pathname, {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
-      // Treat any 2xx (response.ok) including 200/201 as success.
       let payload = null;
       try {
         payload = await res.json();
@@ -278,7 +478,6 @@
           confirmBox.classList.remove('d-none');
           form.classList.add('d-none');
           confirmBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // Also land on My Listings after a short beat so both surfaces show thumbs.
           setTimeout(() => {
             window.location.href = '/my-listings';
           }, 2200);
@@ -299,49 +498,12 @@
     }
   });
 
+  lockExpectedPriceIntegrity();
   syncListingIntent();
   syncSubmitterFields();
   syncPropertyType();
   updateAreaSqFt();
-
-  /* Horizontal tab slider */
-  const tabRoot = form.querySelector('[data-jk-tabs="sell"]');
-  const tabButtons = tabRoot ? Array.from(tabRoot.querySelectorAll('[data-jk-tab]')) : [];
-  const tabPanels = tabRoot ? Array.from(tabRoot.querySelectorAll('[data-jk-tab-panel]')) : [];
-
-  function activateSellTab(name, opts) {
-    if (!tabRoot || !name) return;
-    tabButtons.forEach((btn) => {
-      const on = btn.getAttribute('data-jk-tab') === name;
-      btn.classList.toggle('is-active', on);
-      btn.setAttribute('aria-selected', on ? 'true' : 'false');
-      if (on && opts && opts.scrollTab) {
-        btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
-      }
-    });
-    tabPanels.forEach((panel) => {
-      const on = panel.getAttribute('data-jk-tab-panel') === name;
-      panel.classList.toggle('is-active', on);
-      if (on) panel.removeAttribute('hidden');
-      else panel.setAttribute('hidden', '');
-    });
-  }
-
-  tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      activateSellTab(btn.getAttribute('data-jk-tab'), { scrollTab: true });
-    });
-  });
-
-  form.addEventListener(
-    'invalid',
-    (e) => {
-      const panel = e.target && e.target.closest ? e.target.closest('[data-jk-tab-panel]') : null;
-      if (!panel) return;
-      activateSellTab(panel.getAttribute('data-jk-tab-panel'), { scrollTab: true });
-    },
-    true
-  );
+  activateSellTab('intent');
 
   if (window.MediaFileManager) {
     MediaFileManager.bind(

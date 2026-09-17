@@ -71,15 +71,15 @@ About layout + mobile/tablet polish (authorized surfaces only)
 
 ### Phase 2: Sell flow, price integrity, public privacy
 
-- [ ] Task 4: Reorder sell wizard + Next/Submit-only-at-end
-- [ ] Task 5: Lock expected price (remove any predict/alter/deduct paths on sell + form parity)
-- [ ] Task 6: Hide Owner & Contact tabs on public property detail; clean brokerage CTA
+- [x] Task 4: Reorder sell wizard + Next/Submit-only-at-end
+- [x] Task 5: Lock expected price (remove any predict/alter/deduct paths on sell + form parity)
+- [x] Task 6: Hide Owner & Contact tabs on public property detail; clean brokerage CTA
 
 ### Checkpoint: Public sell + detail
-- [ ] Step order matches spec; Submit only on final step
-- [ ] Submitted price equals typed value
-- [ ] Public detail has no Owner/Contact tabs; no seller PII
-- [ ] `vercel_bundle.py` after template/static edits
+- [x] Step order matches spec; Submit only on final step
+- [x] Submitted price equals typed value
+- [x] Public detail has no Owner/Contact tabs; no seller PII
+- [x] `vercel_bundle.py` after template/static edits
 
 ### Phase 3: My Listings approval sync
 
@@ -192,10 +192,10 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Reorder tabs/panels to: Listing Intent → Owner → Contact (labels/fields already dynamic via seller type) → Property Details. Add Next/Back controls; keep Submit only on final step (or only enabled on final step). Update `sell_property.js` tab activation and validation to validate per-step before Next.
 
 **Acceptance criteria:**
-- [ ] Strict order matches client audio (1→5)
-- [ ] Intermediate steps: Next (and Back), not Submit
-- [ ] Final step: Submit For Selling; POST contract unchanged
-- [ ] Owner/Broker/Developer still retitle contact fields
+- [x] Strict order matches client audio (1→5)
+- [x] Intermediate steps: Next (and Back), not Submit
+- [x] Final step: Submit For Selling; POST contract unchanged
+- [x] Owner/Broker/Developer still retitle contact fields
 
 **Verification:**
 - [ ] Manual walkthrough mobile + desktop
@@ -218,12 +218,12 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Audit sell (+ admin property form price field) for any script that predicts, autofills, or deducts expected price. Remove/disable wiring to `/api/predict-price` or ML helpers on these forms. Ensure submitted `price` equals `#expectedPriceInput` value with no client mutation before POST.
 
 **Acceptance criteria:**
-- [ ] No automatic change to expected price on sell form
-- [ ] Typed value equals DB `properties.price` / submission `price` after submit
+- [x] No automatic change to expected price on sell form
+- [x] Typed value equals DB `properties.price` / submission `price` after submit
 
 **Verification:**
-- [ ] Enter known price → submit → admin/My Listings show same number
-- [ ] Grep confirm no predict hooks on sell/admin property form JS
+- [ ] Enter known price → submit → admin/My Listings show same number *(manual)*
+- [x] Grep confirm no predict hooks on sell/admin property form JS
 
 **Dependencies:** None (∥ Task 4)
 
@@ -241,9 +241,9 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** On `templates/public/detail.html`, remove Owner and Contact tab buttons/panels. Keep Property Details (and listing intent/price presentation). Provide one clean CTA group to contact the brokerage team (existing WhatsApp/Call/Inquiry — consolidate so it doesn’t feel like seller contact).
 
 **Acceptance criteria:**
-- [ ] No Owner or Contact tabs in public detail UI
-- [ ] No owner name/phone/email in public detail markup
-- [ ] Clear CTA to contact Jakkash team remains
+- [x] No Owner or Contact tabs in public detail UI
+- [x] No owner name/phone/email in public detail markup
+- [x] Clear CTA to contact Jakkash team remains
 
 **Verification:**
 - [ ] `/property/<slug>` desktop + mobile
