@@ -486,6 +486,17 @@ def property_form(pid=None):
                             "property_name": data.get("property_name"),
                         },
                     )
+                    try:
+                        submission_model.sync_submission_from_property_status(
+                            pid,
+                            data.get("status"),
+                            reviewed_by=current_user.id,
+                        )
+                    except Exception:
+                        current_app.logger.exception(
+                            "Failed syncing owner_submission status for property %s",
+                            pid,
+                        )
             except Exception:
                 pass
             flash("Property updated.", "success")

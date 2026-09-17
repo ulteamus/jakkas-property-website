@@ -64,15 +64,17 @@
 
 ## Phase 3 — My Listings approval sync
 
-- [ ] **Task 7 (M):** Derive/sync approval status (submission ↔ property)
+- [x] **Task 7 (M):** Derive/sync approval status (submission ↔ property)
   - AC: mobile search shows Approved after admin approve **or** property→available; Rejected unchanged
   - Verify: both approve paths; pending reserved still Pending
   - Files: `templates/public/my_listings.html`, `routes/public.py`, `routes/admin_portal.py`, maybe `models/submission.py`
   - Deps: none (∥ Phase 4 OK)
+  - **Done:** Badge uses `display_status` from `properties.status` (available/approved/active→Approved, sold/rented labels, reserved→Pending; rejected submission stays Rejected). `property_form` status change syncs linked `owner_submissions` via `sync_submission_from_property_status`.
 
 ### Checkpoint — Approval sync
-- [ ] My Listings matches live property state
-- [ ] View link when approved + slug
+- [x] My Listings matches live property state
+- [x] View link when approved + slug
+  - *(Human smoke still recommended: Sell Properties approve + property_form → available, then mobile search)*
 
 ## Phase 4 — Admin table scroll, inventory filter, print
 

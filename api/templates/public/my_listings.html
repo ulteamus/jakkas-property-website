@@ -43,8 +43,8 @@
             <div class="small text-muted">{{ s.location_area or s.city }} · {{ s.property_type }}</div>
           </td>
           <td>
-            {% set st = (s.status or 'pending')|lower %}
-            <span class="badge {% if st == 'approved' %}text-bg-success{% elif st == 'rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
+            {% set st = (s.display_status or s.status or 'pending')|lower %}
+            <span class="badge {% if st == 'approved' %}text-bg-success{% elif st == 'rejected' %}text-bg-danger{% elif st in ['sold', 'rented'] %}text-bg-secondary{% else %}text-bg-warning{% endif %}">
               {{ st|title }}
             </span>
           </td>

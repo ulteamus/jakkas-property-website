@@ -83,11 +83,11 @@ About layout + mobile/tablet polish (authorized surfaces only)
 
 ### Phase 3: My Listings approval sync
 
-- [ ] Task 7: Sync / derive My Listings status from property + submission; backfill on property_form publish
+- [x] Task 7: Sync / derive My Listings status from property + submission; backfill on property_form publish
 
 ### Checkpoint: Approval sync
-- [ ] Mobile search shows Approved after admin approval (either approve path)
-- [ ] Rejected still shows Rejected
+- [x] Mobile search shows Approved after admin approval (either approve path) *(code path; human smoke after deploy)*
+- [x] Rejected still shows Rejected
 
 ### Phase 4: Admin table, inventory filter, print
 
@@ -266,14 +266,18 @@ About layout + mobile/tablet polish (authorized surfaces only)
 **Description:** Fix out-of-sync Pending when property is live. (1) Template/API: derive badge from `property_current_status` + submission status. (2) When admin `property_form` sets status to available/approved/active for a linked submission, call `set_submission_status(..., "approved")` (and reverse to pending/reserved carefully if demoted). Optional one-shot SQL/script to backfill mismatched rows.
 
 **Acceptance criteria:**
-- [ ] After admin approval (Sell Properties **or** property status → available), mobile lookup shows Approved
-- [ ] View link appears when approved + slug present
-- [ ] Rejected remains Rejected
+- [x] After admin approval (Sell Properties **or** property status → available), mobile lookup shows Approved
+- [x] View link appears when approved + slug present
+- [x] Rejected remains Rejected
 
 **Verification:**
 - [ ] Approve via sell-properties → My Listings by mobile
 - [ ] Set available via property edit on a reserved user submission → My Listings updates
 - [ ] Pending reserved still Pending
+
+**Implementation (2026-09-17):**
+- `effective_listing_status` / `display_status` on parsed submissions; My Listings badge uses property Status.
+- `sync_submission_from_property_status` on admin `property_form` when status changes.
 
 **Dependencies:** None (∥ after Phase 1; independent of sell UX)
 

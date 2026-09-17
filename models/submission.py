@@ -168,6 +168,58 @@ def format_contact_name(row):
     return f"[{label}] {name}"
 
 
+# Property.status is source of truth for My Listings badges.
+_LIVE_PROPERTY_STATUSES = frozenset({"available", "approved", "active"})
+_SOLD_PROPERTY_STATUSES = frozenset({"sold"})
+_RENTED_PROPERTY_STATUSES = frozenset({"rented"})
+
+
+def effective_listing_status(row):
+    """Derive public My Listings badge from linked property status.
+
+    Property status wins for live/sold/rented. Explicit submission rejection
+    still shows Rejected when the property is not live (reject path sets reserved).
+    """
+    if not row:
+        return "pending"
+    prop_status = (row.get("property_current_status") or "").strip().lower()
+    sub_status = (row.get("status") or "pending").strip().lower()
+    if prop_status in _LIVE_PROPERTY_STATUSES:
+        return "approved"
+    if prop_status in _SOLD_PROPERTY_STATUSES:
+        return "sold"
+    if prop_status in _RENTED_PROPERTY_STATUSES:
+        return "rented"
+    if sub_status == "rejected":
+        return "rejected"
+    return "pending"
+
+
+def sync_submission_from_property_status(property_id, property_status, reviewed_by=None):
+    """Keep owner_submissions.status aligned when admin edits property Status.
+
+    Display still uses property status via effective_listing_status; this reduces
+    drift for admin Sell Properties filters.
+    """
+    if not property_id:
+        return False
+    submission = latest_for_property_ids([property_id]).get(int(property_id))
+    if not submission:
+        return False
+    prop_status = (property_status or "").strip().lower()
+    current = (submission.get("status") or "").strip().lower()
+    target = None
+    if prop_status in _LIVE_PROPERTY_STATUSES or prop_status in _SOLD_PROPERTY_STATUSES or prop_status in _RENTED_PROPERTY_STATUSES:
+        target = "approved"
+    elif prop_status in {"reserved", "pending"} and current == "approved":
+        # Demote only prior approvals; leave explicit rejections alone.
+        target = "pending"
+    if not target or target == current:
+        return False
+    set_submission_status(submission["id"], target, reviewed_by=reviewed_by)
+    return True
+
+
 def _parse_submission(row):
     if not row:
         return None
@@ -182,6 +234,7 @@ def _parse_submission(row):
     unit = (row.get("unit_number") or row.get("apartment_number") or row.get("bungalow_number") or "").strip()
     row["unit_number"] = unit or None
     row["display_owner_name"] = format_contact_name(row)
+    row["display_status"] = effective_listing_status(row)
     return row
 
 
