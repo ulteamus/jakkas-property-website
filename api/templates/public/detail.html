@@ -3,9 +3,11 @@
 {% block head_meta %}
 {% set cover = None %}
 {% if media.images and media.images|length %}
-  {% set cover = url_for('uploads', filename=media.images[0].file_path, _external=True) %}
+  {% set cover = media_url(media.images[0].file_path, external=True) %}
 {% elif property.primary_image %}
-  {% set cover = url_for('uploads', filename=property.primary_image, _external=True) %}
+  {% set cover = media_url(property.primary_image, external=True) %}
+{% else %}
+  {% set cover = url_for('static', filename='img/default-property.jpg', _external=True) %}
 {% endif %}
 <meta property="og:type" content="website">
 <meta property="og:title" content="{{ property.property_name }} | {{ company_name }}">
@@ -17,78 +19,102 @@
 {% if cover %}<meta name="twitter:image" content="{{ cover }}">{% endif %}
 {% endblock %}
 {% block content %}
-<div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}">
+<div class="container py-5 detail-page jk-flow" data-property-id="{{ property.id }}" data-property-area="{{ property.area_name }}, Surat">
   <div class="row g-4">
     <div class="col-lg-7 reveal-on-scroll">
       {% set imgs = media.images %}
+      {% set img_fallback = "this.onerror=null;this.src='/static/img/default-property.jpg';" %}
       {% if imgs %}
-      <img id="mainImg" class="gallery-main mb-2" src="{{ url_for('uploads', filename=imgs[0].file_path) }}" alt="">
+      <img id="mainImg" class="gallery-main mb-2" src="{{ media_url(imgs[0].file_path) }}" alt="" onerror="{{ img_fallback }}">
       <div class="d-flex gap-2 flex-wrap">
         {% for img in imgs %}
-        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ url_for('uploads', filename=img.file_path) }}" data-full="{{ url_for('uploads', filename=img.file_path) }}">
+        <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ media_url(img.file_path) }}" data-full="{{ media_url(img.file_path) }}" onerror="{{ img_fallback }}">
         {% endfor %}
       </div>
       {% elif property.primary_image %}
-      <img class="gallery-main" src="{{ url_for('uploads', filename=property.primary_image) }}" alt="">
+      <img class="gallery-main" src="{{ media_url(property.primary_image) }}" alt="" onerror="{{ img_fallback }}">
       {% else %}
-      <div class="gallery-main bg-secondary d-flex align-items-center justify-content-center"><i class="bi bi-building text-white display-1"></i></div>
+      <img class="gallery-main" src="/static/img/default-property.jpg" alt="" onerror="{{ img_fallback }}">
       {% endif %}
 
       {% if media.videos %}
       <h5 class="mt-4">Videos</h5>
       {% for v in media.videos %}
-      <video class="w-100 rounded mb-2" controls src="{{ url_for('uploads', filename=v.file_path) }}"></video>
+      <video class="w-100 rounded mb-2" controls src="{{ media_url(v.file_path) }}"></video>
       {% endfor %}
       {% endif %}
     </div>
     <div class="col-lg-5 reveal-on-scroll">
       <div class="d-flex flex-wrap gap-2 mb-2">
         <span class="badge badge-type">{{ property.display_type or property.property_type }}</span>
-        <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent{% else %}badge-buy{% endif %}">
-          {{ property.listing_intent|upper }}
+        <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent bg-info{% else %}badge-buy bg-success{% endif %}">
+          {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}
         </span>
       </div>
       <h1 class="h3 mt-2">{{ property.property_name }}</h1>
       <p class="text-muted mb-2"><i class="bi bi-geo-alt"></i> {{ property.area_name }}, Surat</p>
       <p class="price fs-3 fw-bold">₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</p>
-      <ul class="list-unstyled detail-meta-list">
-        <li><strong>Property ID:</strong> #{{ property.id }}</li>
-        <li><strong>Property Name:</strong> {{ property.property_name }}</li>
-        <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
-        <li><strong>Property Status:</strong> {{ property.listing_intent|upper }}</li>
-        {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
-        <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
-        <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
-      </ul>
-      {% if property.amenities %}
-      <div class="mb-3">
-        <h6 class="mb-2">Amenities</h6>
-        {% for a in property.amenities %}
-        <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
-        {% endfor %}
+
+      <div class="jk-tab-slider detail-info-tabs mb-3" data-jk-tabs="detail">
+        <div class="jk-tab-bar" role="tablist" aria-label="Property information">
+          <button type="button" class="jk-tab is-active" role="tab" id="detailTabProperty" aria-controls="detailPanelProperty" aria-selected="true" data-jk-tab="property">Property Details</button>
+          <button type="button" class="jk-tab" role="tab" id="detailTabIntent" aria-controls="detailPanelIntent" aria-selected="false" data-jk-tab="intent">Listing Intent</button>
+        </div>
+        <div class="jk-tab-panels">
+          <div class="jk-tab-panel is-active" role="tabpanel" id="detailPanelProperty" aria-labelledby="detailTabProperty" data-jk-tab-panel="property">
+            <ul class="list-unstyled detail-meta-list mb-3">
+              <li><strong>Property ID:</strong> #{{ property.id }}</li>
+              <li><strong>Property Name:</strong> {{ property.property_name }}</li>
+              <li><strong>Property Type:</strong> {{ property.display_type or property.property_type }}</li>
+              {% if property.bhk %}<li><strong>BHK:</strong> {{ property.bhk }}</li>{% endif %}
+              <li><strong>Area:</strong> {{ property.sq_ft|int }} sq.ft</li>
+              <li><strong>Locality:</strong> {{ property.area_name }}, Surat</li>
+            </ul>
+            {% if property.amenities %}
+            <div class="mb-3">
+              <h6 class="mb-2">Amenities</h6>
+              {% for a in property.amenities %}
+              <span class="badge bg-light text-dark border me-1 mb-1">{{ a }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <p class="mb-0">{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
+          </div>
+          <div class="jk-tab-panel" role="tabpanel" id="detailPanelIntent" aria-labelledby="detailTabIntent" data-jk-tab-panel="intent" hidden>
+            <p class="mb-2">
+              <span class="badge badge-status {% if property.listing_intent == 'rent' %}badge-rent bg-info{% else %}badge-buy bg-success{% endif %}">
+                {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}
+              </span>
+            </p>
+            <ul class="list-unstyled detail-meta-list mb-0">
+              <li><strong>Listing Intent:</strong> {{ 'For Rent' if property.listing_intent == 'rent' else 'For Sale' }}</li>
+              <li><strong>Asking Price:</strong> ₹{{ "{:,.0f}".format(property.price) }}{% if property.listing_type == 'rent' %}/mo{% endif %}</li>
+            </ul>
+          </div>
+        </div>
       </div>
-      {% endif %}
-      <p>{{ property.description or "Property description will be shared by our team on inquiry." }}</p>
-      <div class="d-grid gap-2">
-        <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
-          <i class="bi bi-whatsapp"></i> WhatsApp Broker
-        </a>
-        <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Broker</a>
-        <button class="btn btn-jk-accent btn-send-inquiry" type="button" data-action="send-inquiry" data-bs-toggle="collapse" data-bs-target="#inquiryPanel">
-          <i class="bi bi-send"></i> Send Inquiry
-        </button>
-        <button class="btn btn-jk-outline btn-request-visit" type="button" data-bs-toggle="collapse" data-bs-target="#visitPanel" aria-controls="visitPanel">
-          <i class="bi bi-calendar-check"></i> Request Site Visit
-        </button>
-        <a class="btn btn-outline-secondary btn-save" href="{{ url_for('public.saved') }}" data-id="{{ property.id }}" role="button">
-          <i class="bi bi-heart"></i> Save Property
-        </a>
-        <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
+
+      <div class="detail-team-cta content-card p-3 mb-3">
+        <p class="fw-semibold mb-1">Interested in this property?</p>
+        <p class="text-muted small mb-3">Contact the Jakkash team — seller details stay private.</p>
+        <div class="d-grid gap-2">
+          <a href="{{ wa_link }}" target="_blank" class="btn btn-success btn-whatsapp" data-wa="{{ wa_link }}">
+            <i class="bi bi-whatsapp"></i> WhatsApp Our Team
+          </a>
+          <a href="tel:{{ company_phone_raw }}" class="btn btn-jk-primary btn-call"><i class="bi bi-telephone"></i> Call Our Team</a>
+          <a class="btn btn-jk-accent btn-send-inquiry" href="#inquiryPanel">
+            <i class="bi bi-send"></i> Send Inquiry
+          </a>
+          <a class="btn btn-jk-outline btn-request-visit" href="#visitPanel">
+            <i class="bi bi-calendar-check"></i> Request Site Visit
+          </a>
+          <button class="btn btn-outline-secondary btn-share" type="button" data-action="share-property"><i class="bi bi-share"></i> Share Property</button>
+        </div>
       </div>
       {% if media.documents %}
       <h6 class="mt-4">Documents</h6>
       {% for d in media.documents %}
-      <a href="{{ url_for('uploads', filename=d.file_path) }}" target="_blank" class="d-block"><i class="bi bi-file-pdf"></i> {{ d.doc_name }}</a>
+      <a href="{{ media_url(d.file_path) }}" target="_blank" class="d-block"><i class="bi bi-file-pdf"></i> {{ d.doc_name }}</a>
       {% endfor %}
       {% endif %}
     </div>
@@ -127,6 +153,25 @@
     <div class="row g-4">{% for p in similar %}{% include "public/_property_card.html" %}{% endfor %}</div>
   </section>
   {% endif %}
+</div>
+
+<div class="modal fade" id="shareFallbackModal" tabindex="-1" aria-labelledby="shareFallbackTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shareFallbackTitle">Share Property</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <img id="shareFallbackImage" src="" alt="" class="img-fluid rounded mb-3 d-none" style="max-height:180px;object-fit:cover;width:100%;">
+        <p class="fw-semibold mb-1" id="shareFallbackName"></p>
+        <input type="text" class="form-control" id="shareFallbackUrl" readonly>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-jk-accent" id="shareFallbackCopy">Copy Link</button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block extra_js %}<script src="{{ url_for('static', filename='js/detail.js') }}"></script>{% endblock %}

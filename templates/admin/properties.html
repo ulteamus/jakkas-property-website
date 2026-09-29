@@ -67,6 +67,16 @@
           {% if p.status == 'reserved' and submission_map.get(p.id) %}
           <a href="{{ url_for('admin.sell_properties', status='pending') }}#submission-{{ submission_map.get(p.id).id }}" class="btn btn-sm btn-outline-secondary">Review</a>
           {% endif %}
+          {% if p.status in ['rented', 'available', 'approved', 'active'] %}
+          <form method="POST" action="{{ url_for('admin.property_lease_status', pid=p.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ 'available' if p.status == 'rented' else 'rented' }}">
+            <button class="btn btn-sm btn-outline-secondary">{{ 'Mark Available' if p.status == 'rented' else 'Mark Rented' }}</button>
+          </form>
+          {% endif %}
+          {% if current_user.has_permission('manage_billing') %}
+          <a href="{{ url_for('admin.billing_new', property_id=p.id) }}" class="btn btn-sm btn-outline-secondary">Create Bill</a>
+          {% endif %}
           <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ p.id }}">
             Delete
           </button>

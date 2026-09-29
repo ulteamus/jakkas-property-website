@@ -52,6 +52,7 @@ PERMISSION_KEYS = [
     "manage_customer_visits",
     "view_activity_logs",
     "manage_utilities",
+    "manage_billing",
 ]
 
 ROLE_PRESETS = {

@@ -379,6 +379,69 @@ TEMPLATES = {
 {% endif %}
 {% endblock %}
 """,
+    "admin/amenities.html": """{% extends "admin/base.html" %}
+{% block title %}Amenities{% endblock %}
+{% block page_heading %}Amenities{% endblock %}
+{% block page_subheading %}Manage the amenity checklist shown on the admin property form and public sell form.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Add Amenity</h5>
+  </div>
+  <form method="POST" class="row g-2 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-6">
+      <label class="form-label" for="amenityLabel">Label</label>
+      <input class="form-control" id="amenityLabel" name="label" maxlength="60" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="amenitySort">Sort order</label>
+      <input type="number" class="form-control" id="amenitySort" name="sort_order" min="0" step="1">
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-jk-accent w-100">Add Amenity</button>
+    </div>
+  </form>
+</section>
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Sort</th>
+        <th>Status</th>
+        <th style="min-width: 260px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in amenities %}
+      <tr>
+        <td colspan="2">
+          <form method="POST" action="{{ url_for('admin.amenity_edit', amenity_id=a.id) }}" class="d-flex gap-2" id="amenityEdit{{ a.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="form-control form-control-sm" name="label" value="{{ a.label }}" maxlength="60" required aria-label="Label">
+            <input type="number" class="form-control form-control-sm" name="sort_order" value="{{ a.sort_order }}" min="0" step="1" style="max-width: 100px;" aria-label="Sort order">
+          </form>
+        </td>
+        <td><span class="admin-status-pill status-{{ 'available' if a.is_active else 'rejected' }}">{{ 'Active' if a.is_active else 'Disabled' }}</span></td>
+        <td class="text-nowrap">
+          <button class="btn btn-sm btn-outline-primary" form="amenityEdit{{ a.id }}">Save</button>
+          <form method="POST" action="{{ url_for('admin.amenity_toggle', amenity_id=a.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-secondary">{{ 'Disable' if a.is_active else 'Enable' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-center text-muted py-4">No amenities yet. The default list is used until the amenities table exists.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+""",
     "admin/analytics.html": """{% extends "admin/base.html" %}
 {% block title %}Analytics{% endblock %}
 {% block page_heading %}Demand Analytics{% endblock %}
@@ -510,6 +573,24 @@ TEMPLATES = {
           <span>Customer Visits</span>
         </a>
         {% endif %}
+        {% if current_user.has_permission('manage_billing') %}
+        <a href="{{ url_for('admin.billing_list') }}" class="admin-nav-link {% if endpoint and endpoint.startswith('admin.billing') %}active{% endif %}">
+          <i class="bi bi-receipt"></i>
+          <span>Billing</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_leads') %}
+        <a href="{{ url_for('admin.promotions') }}" class="admin-nav-link {% if endpoint and endpoint.startswith('admin.promotion') %}active{% endif %}">
+          <i class="bi bi-whatsapp"></i>
+          <span>Promotions</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_settings') %}
+        <a href="{{ url_for('admin.amenities') }}" class="admin-nav-link {% if endpoint and endpoint.startswith('admin.amenit') %}active{% endif %}">
+          <i class="bi bi-check2-square"></i>
+          <span>Amenities</span>
+        </a>
+        {% endif %}
         {% if current_user.has_permission('manage_reviews') %}
         <a href="{{ url_for('admin.reviews') }}" class="admin-nav-link {% if endpoint == 'admin.reviews' %}active{% endif %}">
           <i class="bi bi-chat-left-text"></i>
@@ -587,6 +668,345 @@ TEMPLATES = {
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 {% block extra_js %}{% endblock %}
+</body>
+</html>
+""",
+    "admin/billing_detail.html": """{% extends "admin/base.html" %}
+{% block title %}Receipt {{ receipt.receipt_no }}{% endblock %}
+{% block page_heading %}Receipt {{ receipt.receipt_no or receipt.id }}{% endblock %}
+{% block page_subheading %}{{ receipt.client_name }}{% if receipt.property_name %} · {{ receipt.property_name }}{% endif %}{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.billing_list') }}" class="btn btn-outline-secondary btn-sm">Back to Billing</a>
+<a href="{{ url_for('admin.billing_print', receipt_id=receipt.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print</a>
+<a href="{{ url_for('admin.billing_pdf', receipt_id=receipt.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+{% endblock %}
+{% block content %}
+{% set pill = {'paid': 'available', 'partial': 'pending', 'unpaid': 'rented', 'void': 'rejected'} %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Summary <span class="admin-status-pill status-{{ pill.get(receipt.status, 'pending') }}">{{ receipt.status|title }}</span></h5>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="small text-muted">Client</div>
+      <div class="fw-semibold">{{ receipt.client_name }}</div>
+      <div>{{ receipt.client_mobile or '' }} {{ receipt.client_email or '' }}</div>
+      <div class="small">{{ receipt.client_address or '' }}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted">Property</div>
+      <div class="fw-semibold">{{ receipt.property_name or '-' }}</div>
+      <div class="small">{{ receipt.property_address or '' }}</div>
+      <div>{{ 'Rent' if receipt.deal_type == 'rent' else 'Sale' }} · ₹{{ "{:,.2f}".format(receipt.deal_amount) }}</div>
+    </div>
+  </div>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm align-middle mb-0">
+      <tbody>
+        <tr><td>Brokerage</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.brokerage_amount) }}</td></tr>
+        {% if receipt.gst_enabled %}
+        <tr><td>GST @ {{ receipt.gst_rate }}%</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.gst_amount) }}</td></tr>
+        {% endif %}
+        <tr class="fw-semibold"><td>Total</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.total_amount) }}</td></tr>
+        <tr><td>Paid</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.paid_total) }}</td></tr>
+        <tr class="fw-semibold"><td>Pending</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.pending) }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% if receipt.status == 'void' %}
+  <p class="small text-danger mt-2 mb-0">Voided{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
+  {% endif %}
+  {% if receipt.notes %}<p class="small text-muted mt-2 mb-0">{{ receipt.notes }}</p>{% endif %}
+</section>
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Payments</h5>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in receipt.payments %}
+        <tr>
+          <td>{{ (p.payment_date|string)[:10] }}</td>
+          <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
+          <td>{{ p.method|replace('_', ' ')|title }}</td>
+          <td>{{ p.reference or '' }}</td>
+          <td>{{ p.note or '' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">No payments recorded yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if receipt.status != 'void' and receipt.pending > 0 %}
+  <form method="POST" action="{{ url_for('admin.billing_add_payment', receipt_id=receipt.id) }}" class="row g-2 align-items-end mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-2">
+      <label class="form-label" for="payAmount">Amount (₹)</label>
+      <input type="number" class="form-control" id="payAmount" name="amount" min="0.01" max="{{ receipt.pending }}" step="0.01" required>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payDate">Date</label>
+      <input type="date" class="form-control" id="payDate" name="payment_date" value="{{ today }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payMethod">Method</label>
+      <select class="form-select" id="payMethod" name="method">
+        {% for m in payment_methods %}
+        <option value="{{ m }}">{{ m|replace('_', ' ')|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payRef">Reference</label>
+      <input class="form-control" id="payRef" name="reference" maxlength="120">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payNote">Note</label>
+      <input class="form-control" id="payNote" name="note" maxlength="500">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-jk-accent w-100">Record Payment</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+{% if receipt.status != 'void' %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Void Receipt</h5>
+  </div>
+  <form method="POST" action="{{ url_for('admin.billing_void', receipt_id=receipt.id) }}" class="row g-2 align-items-end" onsubmit="return confirm('Void this receipt? This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-9">
+      <label class="form-label" for="voidReason">Reason</label>
+      <input class="form-control" id="voidReason" name="reason" maxlength="300">
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-outline-danger w-100">Void Receipt</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
+""",
+    "admin/billing_form.html": """{% extends "admin/base.html" %}
+{% block title %}New Receipt{% endblock %}
+{% block page_heading %}New Brokerage Receipt{% endblock %}
+{% block page_subheading %}{% if prop %}For {{ prop.property_name }} (#{{ prop.id }}).{% else %}Standalone receipt.{% endif %} Brokerage is prefilled at 2% of sale price or one month's rent and can be edited.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.billing_list') }}" class="btn btn-outline-secondary btn-sm">Back to Billing</a>
+{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <form method="POST" class="row g-3" id="billingForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if prop %}<input type="hidden" name="property_id" value="{{ prop.id }}">{% endif %}
+    <div class="col-md-6">
+      <label class="form-label" for="billPropertyName">Property</label>
+      <input class="form-control" id="billPropertyName" name="property_name" value="{{ form.property_name or '' }}" maxlength="200">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="billPropertyAddress">Property address</label>
+      <input class="form-control" id="billPropertyAddress" name="property_address" value="{{ form.property_address or '' }}" maxlength="400">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientName">Client name</label>
+      <input class="form-control" id="billClientName" name="client_name" value="{{ form.client_name or '' }}" maxlength="160" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientMobile">Client mobile</label>
+      <input class="form-control" id="billClientMobile" name="client_mobile" value="{{ form.client_mobile or '' }}" maxlength="20">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientEmail">Client email</label>
+      <input type="email" class="form-control" id="billClientEmail" name="client_email" value="{{ form.client_email or '' }}" maxlength="160">
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="billClientAddress">Client address</label>
+      <textarea class="form-control" id="billClientAddress" name="client_address" rows="2" maxlength="400">{{ form.client_address or '' }}</textarea>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="billDealType">Deal type</label>
+      <select class="form-select" id="billDealType" name="deal_type">
+        <option value="sale" {% if (form.deal_type or 'sale') == 'sale' %}selected{% endif %}>Sale</option>
+        <option value="rent" {% if form.deal_type == 'rent' %}selected{% endif %}>Rent</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="billDealAmount">Sale price / monthly rent (₹)</label>
+      <input type="number" class="form-control" id="billDealAmount" name="deal_amount" value="{{ form.deal_amount or '' }}" min="0" step="0.01" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="billBrokerage">Brokerage (₹)</label>
+      <input type="number" class="form-control" id="billBrokerage" name="brokerage_amount" value="{{ form.brokerage_amount or '' }}" min="0" step="0.01">
+      <div class="form-text">Leave blank to use the default.</div>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="billGst" name="gst_enabled" value="1" {% if form.gst_enabled %}checked{% endif %}>
+        <label class="form-check-label" for="billGst">Add GST (18%)</label>
+      </div>
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="billNotes">Notes</label>
+      <textarea class="form-control" id="billNotes" name="notes" rows="2" maxlength="1000">{{ form.notes or '' }}</textarea>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-jk-accent">Create Receipt</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
+""",
+    "admin/billing_list.html": """{% extends "admin/base.html" %}
+{% block title %}Billing{% endblock %}
+{% block page_heading %}Billing &amp; Receipts{% endblock %}
+{% block page_subheading %}Brokerage receipts, payments received and pending balances.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.billing_new') }}" class="btn btn-jk-accent btn-sm"><i class="bi bi-plus-circle me-1"></i>New Receipt</a>
+{% endblock %}
+{% block content %}
+{% set pill = {'paid': 'available', 'partial': 'pending', 'unpaid': 'rented', 'void': 'rejected'} %}
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Receipt filters">
+  <a href="{{ url_for('admin.billing_list') }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
+  {% for status in ['unpaid', 'partial', 'paid', 'void'] %}
+  <a href="{{ url_for('admin.billing_list', status=status) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|title }}</a>
+  {% endfor %}
+</div>
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Receipt</th>
+        <th>Date</th>
+        <th>Client</th>
+        <th>Property</th>
+        <th>Total</th>
+        <th>Paid</th>
+        <th>Pending</th>
+        <th>Status</th>
+        <th style="min-width: 200px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in receipts %}
+      <tr>
+        <td class="fw-semibold">{{ r.receipt_no or r.id }}</td>
+        <td>{{ (r.created_at|string)[:10] }}</td>
+        <td>{{ r.client_name }}</td>
+        <td>{{ r.property_name or '-' }}</td>
+        <td>₹{{ "{:,.2f}".format(r.total_amount) }}</td>
+        <td>₹{{ "{:,.2f}".format(r.paid_total) }}</td>
+        <td>₹{{ "{:,.2f}".format(r.pending) }}</td>
+        <td><span class="admin-status-pill status-{{ pill.get(r.status, 'pending') }}">{{ r.status|title }}</span></td>
+        <td class="text-nowrap">
+          <a href="{{ url_for('admin.billing_detail', receipt_id=r.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+          <a href="{{ url_for('admin.billing_print', receipt_id=r.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">Print</a>
+          <a href="{{ url_for('admin.billing_pdf', receipt_id=r.id) }}" class="btn btn-sm btn-outline-secondary">PDF</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">No receipts found for this filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+""",
+    "admin/billing_print.html": """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt {{ receipt.receipt_no }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body class="p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4 class="mb-0">Brokerage Receipt</h4>
+    <button class="btn btn-dark btn-sm" onclick="window.print()">Print</button>
+  </div>
+  <div class="d-flex justify-content-between mb-3">
+    <div>
+      <div class="fw-bold">{{ company_name }}</div>
+      <div class="small">{{ company_address }}</div>
+      <div class="small">{{ company_phone }}</div>
+    </div>
+    <div class="text-end">
+      <div class="fw-bold">Receipt {{ receipt.receipt_no or receipt.id }}</div>
+      <div class="small">Date: {{ (receipt.created_at|string)[:10] }}</div>
+      <div class="small">Status: {{ receipt.status|title }}</div>
+    </div>
+  </div>
+  <table class="table table-sm table-bordered align-middle">
+    <tbody>
+      <tr><th style="width: 30%;">Client</th><td>{{ receipt.client_name }}</td></tr>
+      <tr><th>Mobile / Email</th><td>{{ receipt.client_mobile or '-' }} / {{ receipt.client_email or '-' }}</td></tr>
+      <tr><th>Client address</th><td>{{ receipt.client_address or '-' }}</td></tr>
+      <tr><th>Property</th><td>{{ receipt.property_name or '-' }}</td></tr>
+      <tr><th>Property address</th><td>{{ receipt.property_address or '-' }}</td></tr>
+      <tr><th>Deal</th><td>{{ 'Rent' if receipt.deal_type == 'rent' else 'Sale' }} · ₹{{ "{:,.2f}".format(receipt.deal_amount) }}</td></tr>
+    </tbody>
+  </table>
+  <table class="table table-sm table-bordered align-middle">
+    <tbody>
+      <tr><td>Brokerage</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.brokerage_amount) }}</td></tr>
+      {% if receipt.gst_enabled %}
+      <tr><td>GST @ {{ receipt.gst_rate }}%</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.gst_amount) }}</td></tr>
+      {% endif %}
+      <tr class="fw-bold"><td>Total</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.total_amount) }}</td></tr>
+      <tr><td>Paid</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.paid_total) }}</td></tr>
+      <tr class="fw-bold"><td>Pending</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.pending) }}</td></tr>
+    </tbody>
+  </table>
+  {% if receipt.payments %}
+  <table class="table table-sm table-bordered align-middle">
+    <thead class="table-light">
+      <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+    </thead>
+    <tbody>
+      {% for p in receipt.payments %}
+      <tr>
+        <td>{{ (p.payment_date|string)[:10] }}</td>
+        <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
+        <td>{{ p.method|replace('_', ' ')|title }}</td>
+        <td>{{ p.reference or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if receipt.status == 'void' %}
+  <p class="fw-bold text-danger">VOID{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
+  {% endif %}
+  {% if receipt.notes %}<p class="small">Notes: {{ receipt.notes }}</p>{% endif %}
+  <div class="d-flex justify-content-between mt-5 small">
+    <div>Client signature</div>
+    <div>Authorised signatory</div>
+  </div>
 </body>
 </html>
 """,
@@ -845,7 +1265,7 @@ TEMPLATES = {
       <span class="kpi-icon"><i class="bi bi-buildings"></i></span>
     </div>
     <h3 class="kpi-value">{{ stats.total_properties }}</h3>
-    <p class="kpi-meta">Available: {{ stats.available_properties }} | Sold: {{ stats.sold_properties }}</p>
+    <p class="kpi-meta">Available: {{ stats.available_properties }} | Sold: {{ stats.sold_properties }} | Rented: {{ stats.rented_properties or 0 }}</p>
   </article>
 
   <article class="admin-kpi-card kpi-highlight">
@@ -1881,6 +2301,122 @@ TEMPLATES = {
 </body>
 </html>
 """,
+    "admin/promotions.html": """{% extends "admin/base.html" %}
+{% block title %}Promotions{% endblock %}
+{% block page_heading %}WhatsApp Promotions{% endblock %}
+{% block page_subheading %}Promote listings older than {{ stale_days }} days to leads and inquiries. Each send opens WhatsApp with a prefilled message and is logged; contacts are skipped for {{ cooldown_days }} days after a send.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Choose Property</h5>
+  </div>
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-9">
+      <label class="form-label" for="promoProperty">Listings live for {{ stale_days }}+ days</label>
+      <select class="form-select" id="promoProperty" name="property_id" required>
+        <option value="">Select a property</option>
+        {% for p in stale_properties %}
+        <option value="{{ p.id }}" {% if selected and selected.id == p.id %}selected{% endif %}>
+          #{{ p.id }} · {{ p.property_name }} · {{ p.area_name }} · ₹{{ "{:,.0f}".format(p.price or 0) }} · since {{ (p.created_at|string)[:10] }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-jk-accent w-100">Load Audience</button>
+    </div>
+  </form>
+  {% if not stale_properties %}
+  <p class="small text-muted mt-2 mb-0">No public listings older than {{ stale_days }} days.</p>
+  {% endif %}
+</section>
+
+{% if selected %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Audience for {{ selected.property_name }}</h5>
+  </div>
+  <p class="small text-muted">
+    {{ contacts|length }} eligible · skipped {{ skipped.get('cooldown', 0) }} in cooldown, {{ skipped.get('opted_out', 0) }} opted out, {{ skipped.get('invalid', 0) }} invalid numbers.
+  </p>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Source</th>
+          <th style="min-width: 220px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in contacts %}
+        <tr>
+          <td>{{ c.name or '-' }}</td>
+          <td>+{{ c.phone }}</td>
+          <td>{{ c.source_type|title }}</td>
+          <td class="text-nowrap">
+            <form method="POST" action="{{ url_for('admin.promotion_send') }}" target="_blank" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="phone" value="{{ c.phone }}">
+              <input type="hidden" name="name" value="{{ c.name or '' }}">
+              <input type="hidden" name="source_type" value="{{ c.source_type }}">
+              <input type="hidden" name="source_id" value="{{ c.source_id or '' }}">
+              <input type="hidden" name="property_id" value="{{ selected.id }}">
+              <button class="btn btn-sm btn-outline-primary"><i class="bi bi-whatsapp me-1"></i>Send</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.promotion_opt_out') }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="phone" value="{{ c.phone }}">
+              <input type="hidden" name="property_id" value="{{ selected.id }}">
+              <button class="btn btn-sm btn-outline-danger">Opt Out</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">No eligible contacts right now.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Recent Sends</h5>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Contact</th>
+          <th>Phone</th>
+          <th>Property</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in recent_log %}
+        <tr>
+          <td>{{ (row.created_at|string)[:16] }}</td>
+          <td>{{ row.contact_name or '-' }}</td>
+          <td>+{{ row.phone }}</td>
+          <td>{{ row.property_name or row.property_id or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">No promotions sent yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+""",
     "admin/properties.html": """{% extends "admin/base.html" %}
 {% block title %}Properties{% endblock %}
 {% block page_heading %}Property Inventory{% endblock %}
@@ -1949,6 +2485,16 @@ TEMPLATES = {
           <a href="{{ url_for('admin.property_form', pid=p.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
           {% if p.status == 'reserved' and submission_map.get(p.id) %}
           <a href="{{ url_for('admin.sell_properties', status='pending') }}#submission-{{ submission_map.get(p.id).id }}" class="btn btn-sm btn-outline-secondary">Review</a>
+          {% endif %}
+          {% if p.status in ['rented', 'available', 'approved', 'active'] %}
+          <form method="POST" action="{{ url_for('admin.property_lease_status', pid=p.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ 'available' if p.status == 'rented' else 'rented' }}">
+            <button class="btn btn-sm btn-outline-secondary">{{ 'Mark Available' if p.status == 'rented' else 'Mark Rented' }}</button>
+          </form>
+          {% endif %}
+          {% if current_user.has_permission('manage_billing') %}
+          <a href="{{ url_for('admin.billing_new', property_id=p.id) }}" class="btn btn-sm btn-outline-secondary">Create Bill</a>
           {% endif %}
           <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ p.id }}">
             Delete
@@ -2092,9 +2638,6 @@ TEMPLATES = {
           {% for value, label in status_options %}
           <option value="{{ value }}" {% if status_val == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
-          {% if status_val == 'rented' %}
-          <option value="rented" selected>Rented</option>
-          {% endif %}
         </select>
       </div>
       <div class="col-12 col-md-3">
@@ -2228,6 +2771,7 @@ TEMPLATES = {
               <button type="button" class="sell-option-chip {% if ptype in ['apartment','flat'] %}is-active{% endif %}" data-property-type="apartment">Apartment / Flat</button>
               <button type="button" class="sell-option-chip {% if ptype == 'villa' %}is-active{% endif %}" data-property-type="villa">Villa</button>
               <button type="button" class="sell-option-chip {% if ptype == 'bungalow' %}is-active{% endif %}" data-property-type="bungalow">Bungalow</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'farmhouse' %}is-active{% endif %}" data-property-type="farmhouse">Farmhouse</button>
               <button type="button" class="sell-option-chip {% if ptype == 'plot' %}is-active{% endif %}" data-property-type="plot">Plot / Land</button>
               <button type="button" class="sell-option-chip {% if ptype == 'shop' %}is-active{% endif %}" data-property-type="shop">Shop</button>
               <button type="button" class="sell-option-chip {% if ptype == 'office' %}is-active{% endif %}" data-property-type="office">Office</button>
@@ -2812,7 +3356,7 @@ TEMPLATES = {
     <div class="col-md-4">
       <label class="form-label">Property Type *</label>
       <select class="form-select" name="property_type" required>
-        {% for t in ['flat', 'apartment', 'bungalow', 'villa', 'plot', 'commercial', 'shop', 'office'] %}
+        {% for t in ['flat', 'apartment', 'bungalow', 'villa', 'farmhouse', 'plot', 'commercial', 'shop', 'office'] %}
         <option value="{{ t }}" {% if submission.property_type == t %}selected{% endif %}>{{ t|title }}</option>
         {% endfor %}
       </select>
@@ -2849,6 +3393,23 @@ TEMPLATES = {
       <label class="form-label">Description</label>
       <textarea class="form-control" name="description" rows="3">{{ submission.description or '' }}</textarea>
     </div>
+    {% if amenity_options %}
+    {% set selected_amenities = submission.amenities if submission.amenities is iterable and submission.amenities is not string else [] %}
+    <div class="col-12">
+      <label class="form-label">Amenities</label>
+      <input type="hidden" name="amenities_present" value="1">
+      <div class="row g-2">
+        {% for amenity in amenity_options %}
+        <div class="col-6 col-md-4 col-lg-3">
+          <label class="amenity-check">
+            <input type="checkbox" name="amenities" value="{{ amenity }}" {% if amenity in selected_amenities %}checked{% endif %}>
+            <span>{{ amenity }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div class="col-12">
       <label class="form-label">Review Note</label>
       <input class="form-control" name="review_note" value="{{ submission.review_note or '' }}" maxlength="250">
@@ -4901,6 +5462,7 @@ document.getElementById('contactNameInput')?.focus();
           <option value="plot">Plot</option>
           <option value="commercial">Commercial</option>
           <option value="residential">Residential</option>
+          <option value="farmhouse">Farmhouse</option>
         </select>
       </div>
 
@@ -5295,6 +5857,7 @@ document.getElementById('contactNameInput')?.focus();
                 <button type="button" class="sell-option-chip" data-property-type="apartment">Apartment / Flat</button>
                 <button type="button" class="sell-option-chip" data-property-type="villa">Villa</button>
                 <button type="button" class="sell-option-chip" data-property-type="bungalow">Bungalow</button>
+                <button type="button" class="sell-option-chip" data-property-type="farmhouse">Farmhouse</button>
                 <button type="button" class="sell-option-chip" data-property-type="plot">Plot / Land</button>
                 <button type="button" class="sell-option-chip" data-property-type="shop">Shop</button>
                 <button type="button" class="sell-option-chip" data-property-type="office">Office</button>
@@ -5360,7 +5923,7 @@ document.getElementById('contactNameInput')?.focus();
 
           <h5 class="mt-4 mb-3">Amenities</h5>
           <div class="row g-2">
-            {% for amenity in ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply'] %}
+            {% for amenity in (amenity_options or ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply']) %}
             <div class="col-6 col-md-4 col-lg-3">
               <label class="amenity-check">
                 <input type="checkbox" name="amenities" value="{{ amenity }}">

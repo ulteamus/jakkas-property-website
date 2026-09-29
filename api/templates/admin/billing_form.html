@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+{% block title %}New Receipt{% endblock %}
+{% block page_heading %}New Brokerage Receipt{% endblock %}
+{% block page_subheading %}{% if prop %}For {{ prop.property_name }} (#{{ prop.id }}).{% else %}Standalone receipt.{% endif %} Brokerage is prefilled at 2% of sale price or one month's rent and can be edited.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.billing_list') }}" class="btn btn-outline-secondary btn-sm">Back to Billing</a>
+{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <form method="POST" class="row g-3" id="billingForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if prop %}<input type="hidden" name="property_id" value="{{ prop.id }}">{% endif %}
+    <div class="col-md-6">
+      <label class="form-label" for="billPropertyName">Property</label>
+      <input class="form-control" id="billPropertyName" name="property_name" value="{{ form.property_name or '' }}" maxlength="200">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="billPropertyAddress">Property address</label>
+      <input class="form-control" id="billPropertyAddress" name="property_address" value="{{ form.property_address or '' }}" maxlength="400">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientName">Client name</label>
+      <input class="form-control" id="billClientName" name="client_name" value="{{ form.client_name or '' }}" maxlength="160" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientMobile">Client mobile</label>
+      <input class="form-control" id="billClientMobile" name="client_mobile" value="{{ form.client_mobile or '' }}" maxlength="20">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientEmail">Client email</label>
+      <input type="email" class="form-control" id="billClientEmail" name="client_email" value="{{ form.client_email or '' }}" maxlength="160">
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="billClientAddress">Client address</label>
+      <textarea class="form-control" id="billClientAddress" name="client_address" rows="2" maxlength="400">{{ form.client_address or '' }}</textarea>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="billDealType">Deal type</label>
+      <select class="form-select" id="billDealType" name="deal_type">
+        <option value="sale" {% if (form.deal_type or 'sale') == 'sale' %}selected{% endif %}>Sale</option>
+        <option value="rent" {% if form.deal_type == 'rent' %}selected{% endif %}>Rent</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="billDealAmount">Sale price / monthly rent (₹)</label>
+      <input type="number" class="form-control" id="billDealAmount" name="deal_amount" value="{{ form.deal_amount or '' }}" min="0" step="0.01" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="billBrokerage">Brokerage (₹)</label>
+      <input type="number" class="form-control" id="billBrokerage" name="brokerage_amount" value="{{ form.brokerage_amount or '' }}" min="0" step="0.01">
+      <div class="form-text">Leave blank to use the default.</div>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="billGst" name="gst_enabled" value="1" {% if form.gst_enabled %}checked{% endif %}>
+        <label class="form-check-label" for="billGst">Add GST (18%)</label>
+      </div>
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="billNotes">Notes</label>
+      <textarea class="form-control" id="billNotes" name="notes" rows="2" maxlength="1000">{{ form.notes or '' }}</textarea>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-jk-accent">Create Receipt</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

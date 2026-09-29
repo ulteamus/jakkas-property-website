@@ -115,6 +115,7 @@
                 <button type="button" class="sell-option-chip" data-property-type="apartment">Apartment / Flat</button>
                 <button type="button" class="sell-option-chip" data-property-type="villa">Villa</button>
                 <button type="button" class="sell-option-chip" data-property-type="bungalow">Bungalow</button>
+                <button type="button" class="sell-option-chip" data-property-type="farmhouse">Farmhouse</button>
                 <button type="button" class="sell-option-chip" data-property-type="plot">Plot / Land</button>
                 <button type="button" class="sell-option-chip" data-property-type="shop">Shop</button>
                 <button type="button" class="sell-option-chip" data-property-type="office">Office</button>
@@ -180,7 +181,7 @@
 
           <h5 class="mt-4 mb-3">Amenities</h5>
           <div class="row g-2">
-            {% for amenity in ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply'] %}
+            {% for amenity in (amenity_options or ['Parking','Lift','Security','Power Backup','Garden','Gym','Swimming Pool','Club House','CCTV','Water Supply']) %}
             <div class="col-6 col-md-4 col-lg-3">
               <label class="amenity-check">
                 <input type="checkbox" name="amenities" value="{{ amenity }}">

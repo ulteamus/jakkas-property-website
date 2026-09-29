@@ -292,3 +292,63 @@ def generate_single_lead_pdf(lead, inquiries, notes, current_user):
     writer.rule()
     writer.text("Confidential - for internal JAKKASH use only.", size=8)
     return writer.finish()
+
+
+def _rs(value):
+    try:
+        return f"Rs. {float(value or 0):,.2f}"
+    except (TypeError, ValueError):
+        return f"Rs. {value}"
+
+
+def generate_receipt_pdf(receipt, company_name="", company_address="", company_phone=""):
+    """Brokerage receipt: header, client/property snapshot, amounts, payment history."""
+    lines = [
+        company_name,
+        company_address,
+        f"Phone: {company_phone}" if company_phone else "",
+        "",
+        f"Receipt No: {receipt.get('receipt_no') or receipt.get('id')}",
+        f"Date: {str(receipt.get('created_at') or '')[:10]}",
+        f"Status: {str(receipt.get('status') or '').title()}",
+        "",
+        f"Client: {receipt.get('client_name') or '-'}",
+        f"Mobile: {receipt.get('client_mobile') or '-'}",
+        f"Email: {receipt.get('client_email') or '-'}",
+        f"Address: {_clip(receipt.get('client_address') or '-', 80)}",
+        "",
+        f"Property: {_clip(receipt.get('property_name') or '-', 80)}",
+        f"Property Address: {_clip(receipt.get('property_address') or '-', 72)}",
+        f"Deal Type: {'Rent' if receipt.get('deal_type') == 'rent' else 'Sale'}",
+        f"Deal Amount: {_rs(receipt.get('deal_amount'))}",
+        "",
+        f"Brokerage: {_rs(receipt.get('brokerage_amount'))}",
+    ]
+    if receipt.get("gst_enabled"):
+        lines.append(f"GST @ {receipt.get('gst_rate')}%: {_rs(receipt.get('gst_amount'))}")
+    lines.extend(
+        [
+            f"Total: {_rs(receipt.get('total_amount'))}",
+            f"Paid: {_rs(receipt.get('paid_total'))}",
+            f"Pending: {_rs(receipt.get('pending'))}",
+        ]
+    )
+    payments = receipt.get("payments") or []
+    if payments:
+        lines.append("")
+        lines.append("Payments:")
+        for p in payments[:30]:
+            ref = f" ref {p.get('reference')}" if p.get("reference") else ""
+            lines.append(
+                f"  {str(p.get('payment_date') or '')[:10]}  {_rs(p.get('amount'))}  "
+                f"{str(p.get('method') or '').replace('_', ' ')}{ref}"
+            )
+    if receipt.get("status") == "void":
+        lines.append("")
+        lines.append(f"VOID: {receipt.get('void_reason') or 'No reason given'}")
+    if receipt.get("notes"):
+        lines.append("")
+        lines.append(f"Notes: {_clip(receipt.get('notes'), 80)}")
+    lines.append("")
+    lines.append(f"Generated: {_now_stamp()}")
+    return build_simple_pdf("Brokerage Receipt", lines)

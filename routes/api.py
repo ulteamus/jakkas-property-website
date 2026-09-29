@@ -279,9 +279,16 @@ def api_properties():
             property_id = safe_int(keyword, default=0, minimum=1) or None
             keyword = ""
 
-        listing_intent = safe_str(request.args.get("listing_intent"), max_len=20).lower()
-        if listing_intent == "sell":
+        listing_intent = safe_str(
+            request.args.get("listing_intent") or request.args.get("intent"), max_len=20
+        ).lower()
+        if listing_intent in {"sell", "sale"}:
             listing_intent = "buy"
+
+        requested_status = safe_str(request.args.get("status"), "available", max_len=40).lower()
+        public_status = (
+            requested_status if requested_status in prop_model.PUBLIC_LISTING_STATUSES else "available"
+        )
 
         limit = safe_int(request.args.get("limit"), default=100, minimum=1, maximum=120)
         props = prop_model.search(
@@ -310,7 +317,7 @@ def api_properties():
                 else None
             ),
             bhk=safe_int(request.args.get("bhk"), default=0, minimum=0) or None,
-            status=safe_str(request.args.get("status"), "available", max_len=40),
+            status=public_status,
             property_id=property_id,
             keyword=keyword,
             listing_intent=listing_intent or None,

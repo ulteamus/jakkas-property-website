@@ -13,7 +13,7 @@
       <span class="kpi-icon"><i class="bi bi-buildings"></i></span>
     </div>
     <h3 class="kpi-value">{{ stats.total_properties }}</h3>
-    <p class="kpi-meta">Available: {{ stats.available_properties }} | Sold: {{ stats.sold_properties }}</p>
+    <p class="kpi-meta">Available: {{ stats.available_properties }} | Sold: {{ stats.sold_properties }} | Rented: {{ stats.rented_properties or 0 }}</p>
   </article>
 
   <article class="admin-kpi-card kpi-highlight">

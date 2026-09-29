@@ -339,6 +339,91 @@ def init_db():
       meta_json TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS amenities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      label TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS billing_receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      receipt_no TEXT UNIQUE,
+      property_id INTEGER REFERENCES properties(id) ON DELETE SET NULL,
+      property_name TEXT,
+      property_address TEXT,
+      deal_type TEXT NOT NULL DEFAULT 'sale',
+      client_name TEXT NOT NULL,
+      client_mobile TEXT,
+      client_email TEXT,
+      client_address TEXT,
+      deal_amount NUMERIC DEFAULT 0,
+      brokerage_amount NUMERIC NOT NULL DEFAULT 0,
+      gst_enabled INTEGER DEFAULT 0,
+      gst_rate NUMERIC DEFAULT 18,
+      gst_amount NUMERIC DEFAULT 0,
+      total_amount NUMERIC NOT NULL DEFAULT 0,
+      status TEXT DEFAULT 'unpaid',
+      notes TEXT,
+      void_reason TEXT,
+      voided_at TEXT,
+      created_by_admin_id INTEGER,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS billing_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      receipt_id INTEGER NOT NULL REFERENCES billing_receipts(id) ON DELETE CASCADE,
+      amount NUMERIC NOT NULL CHECK (amount > 0),
+      payment_date TEXT,
+      method TEXT,
+      reference TEXT,
+      note TEXT,
+      recorded_by_admin_id INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS whatsapp_opt_ins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'opted_in',
+      source TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS whatsapp_promo_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      contact_name TEXT,
+      source_type TEXT,
+      source_id INTEGER,
+      property_id INTEGER REFERENCES properties(id) ON DELETE SET NULL,
+      channel TEXT DEFAULT 'wa_link',
+      message TEXT,
+      sent_by_admin_id INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_billing_receipts_property ON billing_receipts(property_id);
+    CREATE INDEX IF NOT EXISTS idx_billing_payments_receipt ON billing_payments(receipt_id);
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_promo_log_phone ON whatsapp_promo_log(phone, created_at);
+
+    INSERT OR IGNORE INTO amenities (slug, label, sort_order) VALUES
+      ('parking', 'Parking', 10),
+      ('lift', 'Lift', 20),
+      ('security', 'Security', 30),
+      ('power_backup', 'Power Backup', 40),
+      ('garden', 'Garden', 50),
+      ('gym', 'Gym', 60),
+      ('swimming_pool', 'Swimming Pool', 70),
+      ('club_house', 'Club House', 80),
+      ('cctv', 'CCTV', 90),
+      ('water_supply', 'Water Supply', 100);
     """)
 
     if cur.execute("SELECT COUNT(*) FROM properties").fetchone()[0] == 0:

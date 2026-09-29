@@ -10,8 +10,27 @@
     .brand { letter-spacing: 0.08em; font-weight: 700; color: #e67e22; }
     .sheet { max-width: 860px; margin: 0 auto; border: 1px solid #ddd; padding: 2rem 2.25rem; }
     .meta-table th { width: 220px; background: #faf7f4; }
-    .signature-box { min-height: 130px; border: 1px dashed #777; border-radius: 6px; padding: 10px; }
-    @media print { .no-print { display: none !important; } body { background: #fff; } .sheet { border: 0; padding: 0; } }
+    .signature-row { display: flex; gap: 2rem; margin-top: 1.5rem; }
+    .signature-col { flex: 1 1 0; min-width: 0; }
+    .signature-line {
+      height: 60px;
+      border-bottom: 1px solid #333;
+      margin-top: 0.35rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    .signature-line img { max-height: 56px; max-width: 100%; object-fit: contain; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .sheet { border: 0; padding: 0; }
+      .signature-row { page-break-inside: avoid; }
+    }
+    @media (max-width: 767.98px) {
+      .signature-row { flex-direction: column; gap: 1.25rem; }
+    }
   </style>
 </head>
 <body class="p-4 bg-light">
@@ -33,31 +52,54 @@
       <tr><th>Client Address</th><td>{{ visit.client_address }}</td></tr>
       <tr><th>Client Contact</th><td>{{ visit.client_contact }}</td></tr>
       <tr><th>Client Requirement</th><td>{{ visit.client_requirement }}</td></tr>
-      <tr><th>Visited Properties</th><td>{{ visit.property_names_display or visit.property_name or ('Property #' ~ visit.property_id) }}</td></tr>
       <tr><th>Executive Name</th><td>{{ visit.executive_name or '-' }}</td></tr>
       <tr><th>Executive Address</th><td>{{ visit.executive_address or '-' }}</td></tr>
       <tr><th>Executive Contact</th><td>{{ visit.executive_contact or '-' }}</td></tr>
     </table>
 
-    <div class="row g-4 mt-2">
-      <div class="col-md-6">
-        <h6>Customer Signature</h6>
-        <div class="signature-box">
+    <h6 class="mt-4 mb-2">Selected Properties</h6>
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Area</th>
+          <th>Block / Unit</th>
+          <th>Price / Rent</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if visit.selected_properties %}
+          {% for p in visit.selected_properties %}
+          <tr>
+            <td>{{ p.property_name }}</td>
+            <td>{{ p.area_name or '-' }}</td>
+            <td>{% if p.block_wing or p.unit_number %}{{ p.block_wing or '' }}{% if p.block_wing and p.unit_number %} / {% endif %}{{ p.unit_number or '' }}{% else %}-{% endif %}</td>
+            <td>₹{{ "{:,.0f}".format(p.price or 0) }}{% if (p.listing_intent or p.listing_type) == 'rent' %}/mo{% endif %}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="4">{{ visit.property_names_display or visit.property_name or ('Property #' ~ visit.property_id) }}</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="signature-row">
+      <div class="signature-col">
+        <strong>Customer Signature</strong>
+        <div class="signature-line">
           {% if visit.customer_signature_data %}
-          <img src="{{ visit.customer_signature_data }}" alt="Customer Signature" class="img-fluid" style="max-height: 110px;">
-          {% else %}
-          <div class="text-muted small">Signature placeholder</div>
+          <img src="{{ visit.customer_signature_data }}" alt="Customer Signature">
           {% endif %}
         </div>
         <div class="small text-muted mt-1">{{ visit.customer_signature_label or 'Customer signature pending' }}</div>
       </div>
-      <div class="col-md-6">
-        <h6>Executive Signature</h6>
-        <div class="signature-box">
+      <div class="signature-col">
+        <strong>Executive / Broker Signature</strong>
+        <div class="signature-line">
           {% if visit.executive_signature_data %}
-          <img src="{{ visit.executive_signature_data }}" alt="Executive Signature" class="img-fluid" style="max-height: 110px;">
-          {% else %}
-          <div class="text-muted small">Signature placeholder</div>
+          <img src="{{ visit.executive_signature_data }}" alt="Executive Signature">
           {% endif %}
         </div>
         <div class="small text-muted mt-1">{{ visit.executive_signature_label or 'Executive signature pending' }}</div>

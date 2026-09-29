@@ -104,11 +104,11 @@ def _connect(url: str):
     return psycopg2.connect(**connect_kwargs)
 
 
-def apply_schema(conn) -> dict[str, Any]:
-    if not SCHEMA_PATH.exists():
-        raise SystemExit(f"Schema file missing: {SCHEMA_PATH}")
-    sql = SCHEMA_PATH.read_text(encoding="utf-8")
-    out: dict[str, Any] = {"path": str(SCHEMA_PATH), "ok": False, "error": None}
+def apply_schema(conn, schema_path: Path = SCHEMA_PATH) -> dict[str, Any]:
+    if not schema_path.exists():
+        raise SystemExit(f"Schema file missing: {schema_path}")
+    sql = schema_path.read_text(encoding="utf-8")
+    out: dict[str, Any] = {"path": str(schema_path), "ok": False, "error": None}
     try:
         with conn.cursor() as cur:
             cur.execute(sql)
@@ -282,9 +282,27 @@ def main() -> int:
         type=Path,
         default=ROOT / "scripts" / "_last_cloud_migrate_report.json",
     )
+    parser.add_argument(
+        "--migration",
+        type=Path,
+        help="Apply only this SQL file (e.g. database/migrations/001_*.sql); skips bucket/admin/seed steps.",
+    )
     args = parser.parse_args()
 
     db_url = _require_cloud_db_url()
+    if args.migration:
+        migration_path = args.migration if args.migration.is_absolute() else ROOT / args.migration
+        print(f"DB: {_mask_url(db_url)}")
+        print(f"Migration: {migration_path}")
+        conn = _connect(db_url)
+        try:
+            result = apply_schema(conn, migration_path)
+        finally:
+            conn.close()
+        print(f"Migration apply: {'OK' if result.get('ok') else 'FAIL'}")
+        if result.get("error"):
+            print(f"  Error: {result['error']}")
+        return 0 if result.get("ok") else 1
     report: dict[str, Any] = {
         "ran_at": datetime.now(timezone.utc).isoformat(),
         "db_url_masked": _mask_url(db_url),

@@ -56,6 +56,24 @@
           <span>Customer Visits</span>
         </a>
         {% endif %}
+        {% if current_user.has_permission('manage_billing') %}
+        <a href="{{ url_for('admin.billing_list') }}" class="admin-nav-link {% if endpoint and endpoint.startswith('admin.billing') %}active{% endif %}">
+          <i class="bi bi-receipt"></i>
+          <span>Billing</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_leads') %}
+        <a href="{{ url_for('admin.promotions') }}" class="admin-nav-link {% if endpoint and endpoint.startswith('admin.promotion') %}active{% endif %}">
+          <i class="bi bi-whatsapp"></i>
+          <span>Promotions</span>
+        </a>
+        {% endif %}
+        {% if current_user.has_permission('manage_settings') %}
+        <a href="{{ url_for('admin.amenities') }}" class="admin-nav-link {% if endpoint and endpoint.startswith('admin.amenit') %}active{% endif %}">
+          <i class="bi bi-check2-square"></i>
+          <span>Amenities</span>
+        </a>
+        {% endif %}
         {% if current_user.has_permission('manage_reviews') %}
         <a href="{{ url_for('admin.reviews') }}" class="admin-nav-link {% if endpoint == 'admin.reviews' %}active{% endif %}">
           <i class="bi bi-chat-left-text"></i>

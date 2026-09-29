@@ -1,0 +1,132 @@
+{% extends "admin/base.html" %}
+{% block title %}Receipt {{ receipt.receipt_no }}{% endblock %}
+{% block page_heading %}Receipt {{ receipt.receipt_no or receipt.id }}{% endblock %}
+{% block page_subheading %}{{ receipt.client_name }}{% if receipt.property_name %} · {{ receipt.property_name }}{% endif %}{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.billing_list') }}" class="btn btn-outline-secondary btn-sm">Back to Billing</a>
+<a href="{{ url_for('admin.billing_print', receipt_id=receipt.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print</a>
+<a href="{{ url_for('admin.billing_pdf', receipt_id=receipt.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+{% endblock %}
+{% block content %}
+{% set pill = {'paid': 'available', 'partial': 'pending', 'unpaid': 'rented', 'void': 'rejected'} %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Summary <span class="admin-status-pill status-{{ pill.get(receipt.status, 'pending') }}">{{ receipt.status|title }}</span></h5>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="small text-muted">Client</div>
+      <div class="fw-semibold">{{ receipt.client_name }}</div>
+      <div>{{ receipt.client_mobile or '' }} {{ receipt.client_email or '' }}</div>
+      <div class="small">{{ receipt.client_address or '' }}</div>
+    </div>
+    <div class="col-md-6">
+      <div class="small text-muted">Property</div>
+      <div class="fw-semibold">{{ receipt.property_name or '-' }}</div>
+      <div class="small">{{ receipt.property_address or '' }}</div>
+      <div>{{ 'Rent' if receipt.deal_type == 'rent' else 'Sale' }} · ₹{{ "{:,.2f}".format(receipt.deal_amount) }}</div>
+    </div>
+  </div>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm align-middle mb-0">
+      <tbody>
+        <tr><td>Brokerage</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.brokerage_amount) }}</td></tr>
+        {% if receipt.gst_enabled %}
+        <tr><td>GST @ {{ receipt.gst_rate }}%</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.gst_amount) }}</td></tr>
+        {% endif %}
+        <tr class="fw-semibold"><td>Total</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.total_amount) }}</td></tr>
+        <tr><td>Paid</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.paid_total) }}</td></tr>
+        <tr class="fw-semibold"><td>Pending</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.pending) }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% if receipt.status == 'void' %}
+  <p class="small text-danger mt-2 mb-0">Voided{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
+  {% endif %}
+  {% if receipt.notes %}<p class="small text-muted mt-2 mb-0">{{ receipt.notes }}</p>{% endif %}
+</section>
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Payments</h5>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in receipt.payments %}
+        <tr>
+          <td>{{ (p.payment_date|string)[:10] }}</td>
+          <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
+          <td>{{ p.method|replace('_', ' ')|title }}</td>
+          <td>{{ p.reference or '' }}</td>
+          <td>{{ p.note or '' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">No payments recorded yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if receipt.status != 'void' and receipt.pending > 0 %}
+  <form method="POST" action="{{ url_for('admin.billing_add_payment', receipt_id=receipt.id) }}" class="row g-2 align-items-end mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-2">
+      <label class="form-label" for="payAmount">Amount (₹)</label>
+      <input type="number" class="form-control" id="payAmount" name="amount" min="0.01" max="{{ receipt.pending }}" step="0.01" required>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payDate">Date</label>
+      <input type="date" class="form-control" id="payDate" name="payment_date" value="{{ today }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payMethod">Method</label>
+      <select class="form-select" id="payMethod" name="method">
+        {% for m in payment_methods %}
+        <option value="{{ m }}">{{ m|replace('_', ' ')|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payRef">Reference</label>
+      <input class="form-control" id="payRef" name="reference" maxlength="120">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="payNote">Note</label>
+      <input class="form-control" id="payNote" name="note" maxlength="500">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-jk-accent w-100">Record Payment</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+{% if receipt.status != 'void' %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Void Receipt</h5>
+  </div>
+  <form method="POST" action="{{ url_for('admin.billing_void', receipt_id=receipt.id) }}" class="row g-2 align-items-end" onsubmit="return confirm('Void this receipt? This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-9">
+      <label class="form-label" for="voidReason">Reason</label>
+      <input class="form-control" id="voidReason" name="reason" maxlength="300">
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-outline-danger w-100">Void Receipt</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

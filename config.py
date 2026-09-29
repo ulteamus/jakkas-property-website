@@ -78,6 +78,7 @@ PROPERTY_TYPES = [
     "residential",
     "shop",
     "office",
+    "farmhouse",
 ]
 PUBLIC_PROPERTY_TYPES = [
     "apartment",
@@ -87,7 +88,10 @@ PUBLIC_PROPERTY_TYPES = [
     "plot",
     "commercial",
     "residential",
+    "farmhouse",
 ]
+PROMO_STALE_DAYS = int(os.getenv("PROMO_STALE_DAYS", "30") or 30)
+PROMO_COOLDOWN_DAYS = int(os.getenv("PROMO_COOLDOWN_DAYS", "7") or 7)
 LEAD_STATUSES = ["new", "contacted", "interested", "site_visit_scheduled", "closed"]
 LEAD_TIERS = ["cold", "warm", "hot"]
 

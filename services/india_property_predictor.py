@@ -17,6 +17,7 @@ SELL_TYPE_MAP = {
     "apartment": "Apartment",
     "villa": "Villa",
     "bungalow": "Bungalow",
+    "farmhouse": "Villa",
     "plot": "Plot",
     "commercial": "Shop",
     "residential": "Apartment",

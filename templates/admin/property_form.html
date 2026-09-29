@@ -32,9 +32,6 @@
           {% for value, label in status_options %}
           <option value="{{ value }}" {% if status_val == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
-          {% if status_val == 'rented' %}
-          <option value="rented" selected>Rented</option>
-          {% endif %}
         </select>
       </div>
       <div class="col-12 col-md-3">
@@ -168,6 +165,7 @@
               <button type="button" class="sell-option-chip {% if ptype in ['apartment','flat'] %}is-active{% endif %}" data-property-type="apartment">Apartment / Flat</button>
               <button type="button" class="sell-option-chip {% if ptype == 'villa' %}is-active{% endif %}" data-property-type="villa">Villa</button>
               <button type="button" class="sell-option-chip {% if ptype == 'bungalow' %}is-active{% endif %}" data-property-type="bungalow">Bungalow</button>
+              <button type="button" class="sell-option-chip {% if ptype == 'farmhouse' %}is-active{% endif %}" data-property-type="farmhouse">Farmhouse</button>
               <button type="button" class="sell-option-chip {% if ptype == 'plot' %}is-active{% endif %}" data-property-type="plot">Plot / Land</button>
               <button type="button" class="sell-option-chip {% if ptype == 'shop' %}is-active{% endif %}" data-property-type="shop">Shop</button>
               <button type="button" class="sell-option-chip {% if ptype == 'office' %}is-active{% endif %}" data-property-type="office">Office</button>

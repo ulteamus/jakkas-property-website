@@ -7,10 +7,13 @@ from flask_login import current_user, login_required
 from config import ALLOWED_DOC, ALLOWED_IMAGE, ALLOWED_VIDEO, LEAD_STATUSES, PROPERTY_TYPES
 from database import execute, query_all, query_one
 from models import activity_log as activity_model
+from models import amenity as amenity_model
 from models import analytics as analytics_model
+from models import billing as billing_model
 from models import customer_visit as visit_model
 from models import inquiry as inquiry_model
 from models import lead as lead_model
+from models import promotion as promo_model
 from models import property as prop_model
 from models import reviews as reviews_model
 from models import submission as submission_model
@@ -49,25 +52,13 @@ ADMIN_CITY_OPTIONS = [
     "Morbi",
 ]
 
-ADMIN_AMENITIES = [
-    "Parking",
-    "Lift",
-    "Security",
-    "Power Backup",
-    "Garden",
-    "Gym",
-    "Swimming Pool",
-    "Club House",
-    "CCTV",
-    "Water Supply",
-]
-
 # UI label → DB status (reserved = pending approval)
 ADMIN_STATUS_OPTIONS = [
     ("available", "Available"),
     ("reserved", "Pending"),
     ("approved", "Approved"),
     ("sold", "Sold"),
+    ("rented", "Rented"),
 ]
 
 
@@ -468,7 +459,7 @@ def property_form(pid=None):
             submission=submission,
             city_options=ADMIN_CITY_OPTIONS,
             surat_localities=india_property_predictor.list_surat_localities(),
-            amenity_options=ADMIN_AMENITIES,
+            amenity_options=amenity_model.labels_for_form((property_row or {}).get("amenities") or []),
             status_options=ADMIN_STATUS_OPTIONS,
         )
 
@@ -1213,7 +1204,10 @@ def edit_sell_property(sid):
         if missing:
             flash("Please fill all required fields.", "danger")
             return redirect(url_for("admin.edit_sell_property", sid=sid))
-        amenities = request.form.getlist("amenities")
+        if request.form.get("amenities_present"):
+            amenities = [a.strip() for a in request.form.getlist("amenities") if str(a).strip()]
+        else:
+            amenities = submission.get("amenities") or []
         payload = {
             "owner_name": request.form.get("owner_name"),
             "owner_mobile": request.form.get("owner_mobile"),
@@ -1245,6 +1239,12 @@ def edit_sell_property(sid):
                 prop_type = "flat"
             elif prop_type == "villa":
                 prop_type = "bungalow"
+            current_prop = prop_model.get_by_id(property_id) or {}
+            current_status = (current_prop.get("status") or "").lower()
+            if current_status in {"rented", "sold"}:
+                synced_status = current_status
+            else:
+                synced_status = "available" if submission.get("status") == "approved" else "reserved"
             prop_model.update(
                 property_id,
                 {
@@ -1257,8 +1257,8 @@ def edit_sell_property(sid):
                     "sq_ft": payload["area_sq_ft"],
                     "description": payload.get("description"),
                     "amenities": amenities,
-                    "status": "available" if submission.get("status") == "approved" else "reserved",
-                    "listing_type": "sale",
+                    "status": synced_status,
+                    "listing_type": current_prop.get("listing_type") or "sale",
                 },
             )
         _log_admin_action(
@@ -1271,7 +1271,11 @@ def edit_sell_property(sid):
         flash("Sell property submission updated.", "success")
         return redirect(url_for("admin.sell_properties", **_submission_redirect_args()))
     _enrich_submission_media(submission)
-    return render_template("admin/sell_property_edit.html", submission=submission)
+    return render_template(
+        "admin/sell_property_edit.html",
+        submission=submission,
+        amenity_options=amenity_model.labels_for_form(submission.get("amenities") or []),
+    )
 
 
 @admin_bp.route("/sell-properties/<int:sid>/delete", methods=["POST"])
@@ -2044,3 +2048,6 @@ def _ensure_submission_lead(submission):
             "property_id": property_id,
         }
     )
+
+
+from routes import admin_extras  # noqa: E402,F401

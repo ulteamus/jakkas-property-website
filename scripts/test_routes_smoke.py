@@ -25,6 +25,13 @@ CASES = [
     ("GET", "/admin/login", {200}, "Admin login"),
     ("GET", "/login", {404, 302, 301}, "Public /login (may be absent — expect 404)"),
     ("GET", "/api/properties", {200}, "API property list"),
+    ("GET", "/api/properties?type=farmhouse", {200}, "API farmhouse filter"),
+    ("GET", "/api/properties?listing_intent=rent", {200}, "API rent intent"),
+    ("GET", "/api/properties?status=rented", {200}, "API ignores non-public status"),
+    ("GET", "/properties?intent=sale&area=Adajan", {200}, "Listing intent + area"),
+    ("GET", "/admin/billing", {302}, "Billing requires login"),
+    ("GET", "/admin/amenities", {302}, "Amenities requires login"),
+    ("GET", "/admin/promotions", {302}, "Promotions requires login"),
 ]
 
 

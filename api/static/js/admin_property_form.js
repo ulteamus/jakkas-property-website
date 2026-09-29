@@ -24,12 +24,13 @@
   const areaConvertedHint = document.getElementById('areaConvertedHint');
 
   const HIDE_BHK = new Set(['plot', 'land', 'shop', 'office']);
-  const SHOW_BHK = new Set(['apartment', 'flat', 'bungalow', 'house', 'villa']);
+  const SHOW_BHK = new Set(['apartment', 'flat', 'bungalow', 'house', 'villa', 'farmhouse']);
 
   const unitLabels = {
     apartment: 'Flat / Unit Number',
     villa: 'Villa Number',
     bungalow: 'Bungalow Number',
+    farmhouse: 'Farmhouse Number',
     plot: 'Plot Number',
     shop: 'Shop Number',
     office: 'Office Number',

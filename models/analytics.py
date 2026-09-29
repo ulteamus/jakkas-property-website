@@ -84,6 +84,7 @@ def dashboard_stats():
         "total_properties": 0,
         "available_properties": 0,
         "sold_properties": 0,
+        "rented_properties": 0,
         "total_visitors": 0,
         "returning_visitors": 0,
         "property_views": 0,
@@ -100,6 +101,7 @@ def dashboard_stats():
                  (SELECT COUNT(*) FROM properties) AS total_properties,
                  (SELECT COUNT(*) FROM properties WHERE status='available') AS available_properties,
                  (SELECT COUNT(*) FROM properties WHERE status='sold') AS sold_properties,
+                 (SELECT COUNT(*) FROM properties WHERE status='rented') AS rented_properties,
                  (SELECT COUNT(*) FROM visitors) AS total_visitors,
                  (SELECT COUNT(*) FROM visitors WHERE visit_count>1) AS returning_visitors,
                  (SELECT COUNT(*) FROM property_views) AS property_views,
@@ -117,6 +119,7 @@ def dashboard_stats():
                      (SELECT COUNT(*) FROM properties) AS total_properties,
                      (SELECT COUNT(*) FROM properties WHERE status='available') AS available_properties,
                      (SELECT COUNT(*) FROM properties WHERE status='sold') AS sold_properties,
+                     (SELECT COUNT(*) FROM properties WHERE status='rented') AS rented_properties,
                      (SELECT COUNT(*) FROM inquiries) AS total_inquiries
                 """
             ) or {}
@@ -128,6 +131,7 @@ def dashboard_stats():
         "total_properties": int(row.get("total_properties") or 0),
         "available_properties": int(row.get("available_properties") or 0),
         "sold_properties": int(row.get("sold_properties") or 0),
+        "rented_properties": int(row.get("rented_properties") or 0),
         "total_visitors": total_visitors,
         "returning_visitors": int(row.get("returning_visitors") or 0),
         "property_views": int(row.get("property_views") or 0),

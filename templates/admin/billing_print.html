@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt {{ receipt.receipt_no }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body class="p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4 class="mb-0">Brokerage Receipt</h4>
+    <button class="btn btn-dark btn-sm" onclick="window.print()">Print</button>
+  </div>
+  <div class="d-flex justify-content-between mb-3">
+    <div>
+      <div class="fw-bold">{{ company_name }}</div>
+      <div class="small">{{ company_address }}</div>
+      <div class="small">{{ company_phone }}</div>
+    </div>
+    <div class="text-end">
+      <div class="fw-bold">Receipt {{ receipt.receipt_no or receipt.id }}</div>
+      <div class="small">Date: {{ (receipt.created_at|string)[:10] }}</div>
+      <div class="small">Status: {{ receipt.status|title }}</div>
+    </div>
+  </div>
+  <table class="table table-sm table-bordered align-middle">
+    <tbody>
+      <tr><th style="width: 30%;">Client</th><td>{{ receipt.client_name }}</td></tr>
+      <tr><th>Mobile / Email</th><td>{{ receipt.client_mobile or '-' }} / {{ receipt.client_email or '-' }}</td></tr>
+      <tr><th>Client address</th><td>{{ receipt.client_address or '-' }}</td></tr>
+      <tr><th>Property</th><td>{{ receipt.property_name or '-' }}</td></tr>
+      <tr><th>Property address</th><td>{{ receipt.property_address or '-' }}</td></tr>
+      <tr><th>Deal</th><td>{{ 'Rent' if receipt.deal_type == 'rent' else 'Sale' }} · ₹{{ "{:,.2f}".format(receipt.deal_amount) }}</td></tr>
+    </tbody>
+  </table>
+  <table class="table table-sm table-bordered align-middle">
+    <tbody>
+      <tr><td>Brokerage</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.brokerage_amount) }}</td></tr>
+      {% if receipt.gst_enabled %}
+      <tr><td>GST @ {{ receipt.gst_rate }}%</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.gst_amount) }}</td></tr>
+      {% endif %}
+      <tr class="fw-bold"><td>Total</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.total_amount) }}</td></tr>
+      <tr><td>Paid</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.paid_total) }}</td></tr>
+      <tr class="fw-bold"><td>Pending</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.pending) }}</td></tr>
+    </tbody>
+  </table>
+  {% if receipt.payments %}
+  <table class="table table-sm table-bordered align-middle">
+    <thead class="table-light">
+      <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+    </thead>
+    <tbody>
+      {% for p in receipt.payments %}
+      <tr>
+        <td>{{ (p.payment_date|string)[:10] }}</td>
+        <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
+        <td>{{ p.method|replace('_', ' ')|title }}</td>
+        <td>{{ p.reference or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if receipt.status == 'void' %}
+  <p class="fw-bold text-danger">VOID{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
+  {% endif %}
+  {% if receipt.notes %}<p class="small">Notes: {{ receipt.notes }}</p>{% endif %}
+  <div class="d-flex justify-content-between mt-5 small">
+    <div>Client signature</div>
+    <div>Authorised signatory</div>
+  </div>
+</body>
+</html>

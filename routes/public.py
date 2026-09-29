@@ -14,6 +14,7 @@ from flask import (
 
 from config import ALLOWED_IMAGE, ALLOWED_VIDEO
 from models import property as prop_model
+from models import amenity as amenity_model
 from models import analytics as analytics_model
 from models import inquiry as inquiry_model
 from models import submission as submission_model
@@ -180,12 +181,18 @@ def listings():
     city = (request.args.get("city") or "").strip() or None
     location = (request.args.get("location") or "").strip() or None
     area = (request.args.get("area") or "").strip() or None
+    listing_intent = (
+        (request.args.get("listing_intent") or request.args.get("intent") or "").strip().lower()
+    )
+    if listing_intent in {"sell", "sale"}:
+        listing_intent = "buy"
     listing_properties = prop_model.search(
         city=city,
         location=location,
         area=area,
         property_type=(request.args.get("type") or "").strip() or None,
         keyword=(request.args.get("q") or "").strip() or None,
+        listing_intent=listing_intent if listing_intent in {"buy", "rent"} else None,
         sort=sort,
         status="available",
         limit=120,
@@ -202,8 +209,7 @@ def listings():
 @public_bp.route("/property/<slug>")
 def property_detail(slug):
     prop = prop_model.get_by_slug(slug)
-    public_statuses = {"available", "approved", "active"}
-    if not prop or (prop.get("status") or "").lower() not in public_statuses:
+    if not prop or (prop.get("status") or "").lower() not in prop_model.PUBLIC_LISTING_STATUSES:
         return render_template("public/404.html"), 404
     try:
         analytics_model.record_property_view(prop["id"], session.get("visitor_id"), session.get("session_id"))
@@ -503,6 +509,7 @@ def sell_property():
             "Valsad",
             "Morbi",
         ],
+        amenity_options=amenity_model.list_active_labels(),
     )
 
 

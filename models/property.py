@@ -12,10 +12,11 @@ TYPE_ALIASES = {
     "villa": ["villa", "bungalow"],
     "bungalow": ["bungalow", "villa"],
     "commercial": ["commercial", "shop", "office"],
-    "residential": ["residential", "apartment", "flat", "villa", "bungalow", "plot"],
+    "residential": ["residential", "apartment", "flat", "villa", "bungalow", "plot", "farmhouse"],
     "shop": ["shop", "commercial"],
     "office": ["office", "commercial"],
     "plot": ["plot", "residential"],
+    "farmhouse": ["farmhouse"],
 }
 
 _schema_checked = False
@@ -262,6 +263,7 @@ def _display_type(property_type):
         "office": "Commercial",
         "commercial": "Commercial",
         "residential": "Residential",
+        "farmhouse": "Farmhouse",
     }
     return mapping.get(property_type.lower(), property_type.replace("_", " ").title())
 
@@ -366,6 +368,10 @@ def find_duplicate(property_name, address, area_name=None, price=None, exclude_i
 
 # Home + /properties + detail share this public status set.
 PUBLIC_LISTING_STATUSES = ("available", "approved", "active")
+
+
+def _public_status_sql(column="status"):
+    return f"{column} IN ({','.join(['%s'] * len(PUBLIC_LISTING_STATUSES))})"
 
 
 def _ci_like_sql(column: str) -> str:
@@ -769,7 +775,8 @@ def areas_list(all_statuses=False):
         )
     else:
         rows = query_all(
-            "SELECT DISTINCT area_name FROM properties WHERE status='available' ORDER BY area_name"
+            f"SELECT DISTINCT area_name FROM properties WHERE {_public_status_sql()} ORDER BY area_name",
+            PUBLIC_LISTING_STATUSES,
         )
     return [r["area_name"] for r in rows if r.get("area_name")]
 
@@ -777,9 +784,10 @@ def areas_list(all_statuses=False):
 def categories_summary():
     _ensure_schema()
     rows = query_all(
-        """SELECT property_type, COUNT(*) AS total
-           FROM properties WHERE status='available'
-           GROUP BY property_type ORDER BY total DESC"""
+        f"""SELECT property_type, COUNT(*) AS total
+           FROM properties WHERE {_public_status_sql()}
+           GROUP BY property_type ORDER BY total DESC""",
+        PUBLIC_LISTING_STATUSES,
     )
     category_counts = {
         "Apartment": 0,
@@ -820,7 +828,7 @@ def recent_by_intent(intent, limit=6):
 def viewed_by_session(session_id, limit=6):
     _ensure_schema()
     rows = query_all(
-        """SELECT p.* FROM properties p
+        f"""SELECT p.* FROM properties p
            JOIN (
              SELECT property_id, MAX(viewed_at) AS last_view
              FROM property_views
@@ -829,9 +837,9 @@ def viewed_by_session(session_id, limit=6):
              ORDER BY last_view DESC
              LIMIT %s
            ) recent ON recent.property_id = p.id
-           WHERE p.status='available'
+           WHERE {_public_status_sql("p.status")}
            ORDER BY recent.last_view DESC""",
-        (session_id, limit),
+        (session_id, limit, *PUBLIC_LISTING_STATUSES),
     )
     return [_parse(r) for r in rows]
 
@@ -839,8 +847,9 @@ def viewed_by_session(session_id, limit=6):
 def nearby_properties(lat, lng, radius_km=8, limit=8):
     _ensure_schema()
     rows = query_all(
-        """SELECT * FROM properties
-           WHERE status='available' AND latitude IS NOT NULL AND longitude IS NOT NULL"""
+        f"""SELECT * FROM properties
+           WHERE {_public_status_sql()} AND latitude IS NOT NULL AND longitude IS NOT NULL""",
+        PUBLIC_LISTING_STATUSES,
     )
     scored = []
     for row in rows:

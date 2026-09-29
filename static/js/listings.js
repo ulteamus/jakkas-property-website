@@ -34,7 +34,8 @@ function syncFormFromUrl() {
     if (!el || !qs.has(key)) return;
     el.value = qs.get(key);
   });
-  setIntent(qs.get('listing_intent') || '');
+  const rawIntent = (qs.get('listing_intent') || qs.get('intent') || '').toLowerCase();
+  setIntent(rawIntent === 'sale' || rawIntent === 'sell' ? 'buy' : rawIntent);
 }
 
 function syncUrlFromParams(params) {

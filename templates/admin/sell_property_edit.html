@@ -59,7 +59,7 @@
     <div class="col-md-4">
       <label class="form-label">Property Type *</label>
       <select class="form-select" name="property_type" required>
-        {% for t in ['flat', 'apartment', 'bungalow', 'villa', 'plot', 'commercial', 'shop', 'office'] %}
+        {% for t in ['flat', 'apartment', 'bungalow', 'villa', 'farmhouse', 'plot', 'commercial', 'shop', 'office'] %}
         <option value="{{ t }}" {% if submission.property_type == t %}selected{% endif %}>{{ t|title }}</option>
         {% endfor %}
       </select>
@@ -96,6 +96,23 @@
       <label class="form-label">Description</label>
       <textarea class="form-control" name="description" rows="3">{{ submission.description or '' }}</textarea>
     </div>
+    {% if amenity_options %}
+    {% set selected_amenities = submission.amenities if submission.amenities is iterable and submission.amenities is not string else [] %}
+    <div class="col-12">
+      <label class="form-label">Amenities</label>
+      <input type="hidden" name="amenities_present" value="1">
+      <div class="row g-2">
+        {% for amenity in amenity_options %}
+        <div class="col-6 col-md-4 col-lg-3">
+          <label class="amenity-check">
+            <input type="checkbox" name="amenities" value="{{ amenity }}" {% if amenity in selected_amenities %}checked{% endif %}>
+            <span>{{ amenity }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <div class="col-12">
       <label class="form-label">Review Note</label>
       <input class="form-control" name="review_note" value="{{ submission.review_note or '' }}" maxlength="250">

@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% block title %}Billing{% endblock %}
+{% block page_heading %}Billing &amp; Receipts{% endblock %}
+{% block page_subheading %}Brokerage receipts, payments received and pending balances.{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.billing_new') }}" class="btn btn-jk-accent btn-sm"><i class="bi bi-plus-circle me-1"></i>New Receipt</a>
+{% endblock %}
+{% block content %}
+{% set pill = {'paid': 'available', 'partial': 'pending', 'unpaid': 'rented', 'void': 'rejected'} %}
+<div class="admin-filter-bar mb-2 d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Receipt filters">
+  <a href="{{ url_for('admin.billing_list') }}" class="admin-filter-chip {% if selected_status == 'all' %}active{% endif %}">All</a>
+  {% for status in ['unpaid', 'partial', 'paid', 'void'] %}
+  <a href="{{ url_for('admin.billing_list', status=status) }}" class="admin-filter-chip {% if selected_status == status %}active{% endif %}">{{ status|title }}</a>
+  {% endfor %}
+</div>
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Receipt</th>
+        <th>Date</th>
+        <th>Client</th>
+        <th>Property</th>
+        <th>Total</th>
+        <th>Paid</th>
+        <th>Pending</th>
+        <th>Status</th>
+        <th style="min-width: 200px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in receipts %}
+      <tr>
+        <td class="fw-semibold">{{ r.receipt_no or r.id }}</td>
+        <td>{{ (r.created_at|string)[:10] }}</td>
+        <td>{{ r.client_name }}</td>
+        <td>{{ r.property_name or '-' }}</td>
+        <td>₹{{ "{:,.2f}".format(r.total_amount) }}</td>
+        <td>₹{{ "{:,.2f}".format(r.paid_total) }}</td>
+        <td>₹{{ "{:,.2f}".format(r.pending) }}</td>
+        <td><span class="admin-status-pill status-{{ pill.get(r.status, 'pending') }}">{{ r.status|title }}</span></td>
+        <td class="text-nowrap">
+          <a href="{{ url_for('admin.billing_detail', receipt_id=r.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+          <a href="{{ url_for('admin.billing_print', receipt_id=r.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">Print</a>
+          <a href="{{ url_for('admin.billing_pdf', receipt_id=r.id) }}" class="btn btn-sm btn-outline-secondary">PDF</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">No receipts found for this filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

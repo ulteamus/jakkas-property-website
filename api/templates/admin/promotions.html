@@ -1,0 +1,115 @@
+{% extends "admin/base.html" %}
+{% block title %}Promotions{% endblock %}
+{% block page_heading %}WhatsApp Promotions{% endblock %}
+{% block page_subheading %}Promote listings older than {{ stale_days }} days to leads and inquiries. Each send opens WhatsApp with a prefilled message and is logged; contacts are skipped for {{ cooldown_days }} days after a send.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Choose Property</h5>
+  </div>
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-9">
+      <label class="form-label" for="promoProperty">Listings live for {{ stale_days }}+ days</label>
+      <select class="form-select" id="promoProperty" name="property_id" required>
+        <option value="">Select a property</option>
+        {% for p in stale_properties %}
+        <option value="{{ p.id }}" {% if selected and selected.id == p.id %}selected{% endif %}>
+          #{{ p.id }} · {{ p.property_name }} · {{ p.area_name }} · ₹{{ "{:,.0f}".format(p.price or 0) }} · since {{ (p.created_at|string)[:10] }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-jk-accent w-100">Load Audience</button>
+    </div>
+  </form>
+  {% if not stale_properties %}
+  <p class="small text-muted mt-2 mb-0">No public listings older than {{ stale_days }} days.</p>
+  {% endif %}
+</section>
+
+{% if selected %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Audience for {{ selected.property_name }}</h5>
+  </div>
+  <p class="small text-muted">
+    {{ contacts|length }} eligible · skipped {{ skipped.get('cooldown', 0) }} in cooldown, {{ skipped.get('opted_out', 0) }} opted out, {{ skipped.get('invalid', 0) }} invalid numbers.
+  </p>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Source</th>
+          <th style="min-width: 220px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in contacts %}
+        <tr>
+          <td>{{ c.name or '-' }}</td>
+          <td>+{{ c.phone }}</td>
+          <td>{{ c.source_type|title }}</td>
+          <td class="text-nowrap">
+            <form method="POST" action="{{ url_for('admin.promotion_send') }}" target="_blank" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="phone" value="{{ c.phone }}">
+              <input type="hidden" name="name" value="{{ c.name or '' }}">
+              <input type="hidden" name="source_type" value="{{ c.source_type }}">
+              <input type="hidden" name="source_id" value="{{ c.source_id or '' }}">
+              <input type="hidden" name="property_id" value="{{ selected.id }}">
+              <button class="btn btn-sm btn-outline-primary"><i class="bi bi-whatsapp me-1"></i>Send</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.promotion_opt_out') }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="phone" value="{{ c.phone }}">
+              <input type="hidden" name="property_id" value="{{ selected.id }}">
+              <button class="btn btn-sm btn-outline-danger">Opt Out</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">No eligible contacts right now.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Recent Sends</h5>
+  </div>
+  <div class="admin-table-wrap table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Contact</th>
+          <th>Phone</th>
+          <th>Property</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in recent_log %}
+        <tr>
+          <td>{{ (row.created_at|string)[:16] }}</td>
+          <td>{{ row.contact_name or '-' }}</td>
+          <td>+{{ row.phone }}</td>
+          <td>{{ row.property_name or row.property_id or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">No promotions sent yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

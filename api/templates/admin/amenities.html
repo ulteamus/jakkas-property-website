@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+{% block title %}Amenities{% endblock %}
+{% block page_heading %}Amenities{% endblock %}
+{% block page_subheading %}Manage the amenity checklist shown on the admin property form and public sell form.{% endblock %}
+{% block content %}
+<section class="admin-section-card">
+  <div class="admin-section-heading">
+    <h5>Add Amenity</h5>
+  </div>
+  <form method="POST" class="row g-2 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-6">
+      <label class="form-label" for="amenityLabel">Label</label>
+      <input class="form-control" id="amenityLabel" name="label" maxlength="60" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="amenitySort">Sort order</label>
+      <input type="number" class="form-control" id="amenitySort" name="sort_order" min="0" step="1">
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-jk-accent w-100">Add Amenity</button>
+    </div>
+  </form>
+</section>
+<div class="admin-table-wrap table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Sort</th>
+        <th>Status</th>
+        <th style="min-width: 260px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in amenities %}
+      <tr>
+        <td colspan="2">
+          <form method="POST" action="{{ url_for('admin.amenity_edit', amenity_id=a.id) }}" class="d-flex gap-2" id="amenityEdit{{ a.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="form-control form-control-sm" name="label" value="{{ a.label }}" maxlength="60" required aria-label="Label">
+            <input type="number" class="form-control form-control-sm" name="sort_order" value="{{ a.sort_order }}" min="0" step="1" style="max-width: 100px;" aria-label="Sort order">
+          </form>
+        </td>
+        <td><span class="admin-status-pill status-{{ 'available' if a.is_active else 'rejected' }}">{{ 'Active' if a.is_active else 'Disabled' }}</span></td>
+        <td class="text-nowrap">
+          <button class="btn btn-sm btn-outline-primary" form="amenityEdit{{ a.id }}">Save</button>
+          <form method="POST" action="{{ url_for('admin.amenity_toggle', amenity_id=a.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-secondary">{{ 'Disable' if a.is_active else 'Enable' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-center text-muted py-4">No amenities yet. The default list is used until the amenities table exists.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
