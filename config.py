@@ -67,7 +67,6 @@ CLOUDINARY_ENABLED = bool(
 # ML models
 ML_DIR = BASE_DIR / "ml" / "models"
 LEAD_MODEL_PATH = ML_DIR / "lead_scorer.pkl"
-PRICE_MODEL_PATH = ML_DIR / "price_predictor.pkl"
 
 PROPERTY_TYPES = [
     "apartment",

@@ -13,6 +13,4 @@ pyotp==2.9.0
 # ML (optional on cold start — models lazy-loaded)
 joblib==1.4.2
 numpy==1.26.4
-pandas==2.2.2
 scikit-learn==1.5.1
-xgboost==2.1.1; python_version < "3.13"

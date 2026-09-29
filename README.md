@@ -13,7 +13,7 @@ Production-ready real estate platform for **Surat, Gujarat, India**.
 | Public Website | Home, listings, detail, map, about, services, testimonials, contact, AI chatbot, sell-property |
 | Admin Portal | Dashboard, properties, leads, inquiries, analytics |
 | Lead Management | Scoring, tiers (cold/warm/hot), notes, follow-ups |
-| AI / ML | Lead scoring, recommendations, price prediction, demand analytics |
+| AI / ML | Lead scoring, recommendations, demand analytics |
 | Surat Map | Leaflet + OpenStreetMap with category markers |
 | Media | Images, videos, PDF documents per property |
 
@@ -47,7 +47,6 @@ Set `MYSQL_PASSWORD` and `FLASK_SECRET_KEY`.
 py -3 -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-py -3 ml\train_models.py
 ```
 
 ### 4. Run
@@ -87,7 +86,6 @@ property-broker-chatbot/
 | `/api/inquiry` | POST | Submit inquiry + create lead |
 | `/api/whatsapp/interest` | POST | WhatsApp deep link |
 | `/api/saved` | GET/POST/DELETE | Saved properties |
-| `/api/predict-price` | POST | Price prediction |
 
 ## Security
 

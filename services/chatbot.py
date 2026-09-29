@@ -2,13 +2,12 @@ import re
 import uuid
 from database import execute
 from models import property_model
-from services import emi_calculator, price_predictor, recommendation
+from services import emi_calculator, recommendation
 
 
 INTENTS = [
     (r"\b(search|find|show|list)\b.*\b(propert|house|flat|apartment|villa)\b", "search"),
     (r"\b(recommend|suggestion|suggest)\b", "recommend"),
-    (r"\b(predict|estimate|price)\b", "predict"),
     (r"\b(emi|loan|mortgage)\b", "emi"),
     (r"\b(compare|comparison|vs)\b", "compare"),
     (r"\b(visit|schedule|book)\b.*\b(site|visit|tour)\b", "visit"),
@@ -47,7 +46,6 @@ def generate_reply(message, user_id=None, session_id=None):
             "Hello! I'm your Property Broker AI assistant. I can help you:\n"
             "• Search properties (e.g. 'Find 2BHK in Bangalore')\n"
             "• Get recommendations\n"
-            "• Predict property prices\n"
             "• Calculate EMI\n"
             "• Compare properties\n"
             "• Schedule site visits\n\n"
@@ -74,19 +72,6 @@ def generate_reply(message, user_id=None, session_id=None):
                 f"• {p['title']} — {p['city']}, ₹{p['price']:,.0f}"
             )
         reply = "\n".join(lines) if recs else "No recommendations available yet. Set your preferences in your profile."
-    elif intent == "predict":
-        nums = _extract_numbers(message)
-        area = nums[0] if nums else 1200
-        beds = int(nums[1]) if len(nums) > 1 else 2
-        result = price_predictor.predict_price(
-            area_sqft=area, bedrooms=beds, bathrooms=2,
-            city=city or "Bangalore", property_type="apartment",
-        )
-        reply = (
-            f"Estimated price for ~{area} sqft in {city or 'Bangalore'}:\n"
-            f"₹{result['predicted_price']:,.0f} "
-            f"(~₹{result['price_per_sqft']:,.0f}/sqft, method: {result['method']})"
-        )
     elif intent == "emi":
         nums = _extract_numbers(message)
         principal = nums[0] if nums else 5000000
@@ -121,7 +106,7 @@ def generate_reply(message, user_id=None, session_id=None):
         )
     else:
         reply = (
-            "I'm here to help with property search, recommendations, price prediction, "
+            "I'm here to help with property search, recommendations, "
             "EMI calculation, comparisons, and site visits. Try asking something like "
             "'Show apartments in Mumbai' or 'Calculate EMI for 50 lakhs'."
         )

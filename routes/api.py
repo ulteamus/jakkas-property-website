@@ -12,8 +12,7 @@ from models import lead as lead_model
 from models import inquiry as inquiry_model
 from models import analytics as analytics_model
 from models import reviews as reviews_model
-from services import recommendation, price_prediction, whatsapp as wa_service
-from services import india_property_predictor
+from services import recommendation, whatsapp as wa_service
 from services.lead_scoring import increment_lead_signal
 from utils.helpers import format_inr
 from utils.rate_limit import rate_limit
@@ -645,34 +644,6 @@ def api_recommendations():
             "trending": _serialize_properties(trending_rows),
         }
     )
-
-
-@api_bp.route("/predict-price", methods=["POST"])
-def api_predict():
-    data = request.get_json() or {}
-    locality = (data.get("area_name") or data.get("locality") or data.get("location_area") or "").strip()
-    city = (data.get("city") or "Surat").strip()
-    try:
-        if locality:
-            result = india_property_predictor.predict_price(
-                city=city,
-                locality=locality,
-                area_sqft=data.get("sq_ft") or data.get("area_sq_ft") or 1000,
-                bhk=data.get("bhk", 0),
-                property_type=data.get("property_type", "apartment"),
-            )
-        else:
-            result = price_prediction.predict(
-                data.get("area_name", "Surat"),
-                data.get("bhk", 0),
-                data.get("sq_ft", 1000),
-                data.get("property_type", "flat"),
-            )
-    except ValueError as exc:
-        return jsonify({"success": False, "error": str(exc)}), 400
-    except Exception:
-        return jsonify({"success": False, "error": "Unable to predict price right now."}), 500
-    return jsonify({"success": True, **result})
 
 
 @api_bp.route("/analytics/trending")

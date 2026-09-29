@@ -1447,13 +1447,6 @@ def analytics():
     )
 
 
-@admin_bp.route("/price-predictor", methods=["GET", "POST"])
-@permission_required("manage_settings")
-def price_predictor_page():
-    flash("Price AI is no longer available. Use the public Chatbot instead.", "info")
-    return redirect(url_for("public.chatbot"))
-
-
 def _parse_bool_form(form, key):
     return str(form.get(key, "")).strip().lower() in {"1", "true", "yes", "on"}
 
