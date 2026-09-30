@@ -30,6 +30,10 @@
       <label class="form-label" for="billClientEmail">Client email</label>
       <input type="email" class="form-control" id="billClientEmail" name="client_email" value="{{ form.client_email or '' }}" maxlength="160">
     </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientGstin">Client GSTIN <span class="text-muted small">(optional)</span></label>
+      <input type="text" class="form-control text-uppercase" id="billClientGstin" name="client_gstin" value="{{ form.client_gstin or '' }}" maxlength="15" placeholder="e.g. 24ABCDE1234F1Z5" autocomplete="off">
+    </div>
     <div class="col-12">
       <label class="form-label" for="billClientAddress">Client address</label>
       <textarea class="form-control" id="billClientAddress" name="client_address" rows="2" maxlength="400">{{ form.client_address or '' }}</textarea>

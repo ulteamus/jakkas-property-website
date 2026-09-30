@@ -328,6 +328,6 @@
 <p class="small text-muted mt-2">Map marker uses latitude/longitude from Admin Controls.</p>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
-<script src="{{ url_for('static', filename='js/admin_property_form.js') }}"></script>
+<script src="{{ url_for('static', filename='js/media_file_manager.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/admin_property_form.js', v=asset_version) }}"></script>
 {% endblock %}

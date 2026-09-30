@@ -77,6 +77,9 @@
           {% if current_user.has_permission('manage_billing') %}
           <a href="{{ url_for('admin.billing_new', property_id=p.id) }}" class="btn btn-sm btn-outline-secondary">Create Bill</a>
           {% endif %}
+          {% if current_user.has_permission('manage_leads') and p.status in ['available', 'approved', 'active'] %}
+          <a href="{{ url_for('admin.promotions', property_id=p.id) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-whatsapp"></i> Promote</a>
+          {% endif %}
           <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ p.id }}">
             Delete
           </button>

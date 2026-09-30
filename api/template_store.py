@@ -523,8 +523,8 @@ TEMPLATES = {
   <title>{% block title %}Admin{% endblock %} - {{ company_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css', v=asset_version) }}" rel="stylesheet">
 </head>
 <body class="admin-theme">
 {% set endpoint = request.endpoint or '' %}
@@ -650,6 +650,21 @@ TEMPLATES = {
       </div>
       <div class="admin-header-actions">
         {% block page_actions %}{% endblock %}
+        {% if current_user.is_authenticated and (current_user.has_permission('manage_submissions') or current_user.has_permission('manage_leads')) %}
+        <div class="dropdown" id="adminNotifications"
+             data-feed-url="{{ url_for('admin.notifications_feed') }}"
+             data-seen-url="{{ url_for('admin.notifications_seen') }}"
+             data-csrf="{{ csrf_token() }}">
+          <button type="button" class="btn btn-sm btn-outline-secondary position-relative" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+            <i class="bi bi-bell"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-notif-count>0</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end p-0" style="width: 320px; max-height: 420px; overflow-y: auto;">
+            <div class="px-3 py-2 border-bottom small fw-semibold">Notifications</div>
+            <div data-notif-list><div class="px-3 py-3 small text-muted">No notifications yet.</div></div>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </header>
 
@@ -667,6 +682,7 @@ TEMPLATES = {
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin_notifications.js', v=asset_version) }}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
@@ -692,6 +708,7 @@ TEMPLATES = {
       <div class="fw-semibold">{{ receipt.client_name }}</div>
       <div>{{ receipt.client_mobile or '' }} {{ receipt.client_email or '' }}</div>
       <div class="small">{{ receipt.client_address or '' }}</div>
+      {% if receipt.client_gstin %}<div class="small">GSTIN: {{ receipt.client_gstin }}</div>{% endif %}
     </div>
     <div class="col-md-6">
       <div class="small text-muted">Property</div>
@@ -836,6 +853,10 @@ TEMPLATES = {
       <label class="form-label" for="billClientEmail">Client email</label>
       <input type="email" class="form-control" id="billClientEmail" name="client_email" value="{{ form.client_email or '' }}" maxlength="160">
     </div>
+    <div class="col-md-4">
+      <label class="form-label" for="billClientGstin">Client GSTIN <span class="text-muted small">(optional)</span></label>
+      <input type="text" class="form-control text-uppercase" id="billClientGstin" name="client_gstin" value="{{ form.client_gstin or '' }}" maxlength="15" placeholder="e.g. 24ABCDE1234F1Z5" autocomplete="off">
+    </div>
     <div class="col-12">
       <label class="form-label" for="billClientAddress">Client address</label>
       <textarea class="form-control" id="billClientAddress" name="client_address" rows="2" maxlength="400">{{ form.client_address or '' }}</textarea>
@@ -935,44 +956,59 @@ TEMPLATES = {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Receipt {{ receipt.receipt_no }}</title>
+  <title>JAKKASH — Receipt {{ receipt.receipt_no or receipt.id }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
+    body { font-family: Georgia, "Times New Roman", serif; color: #1f1f24; }
+    .brand { letter-spacing: 0.08em; font-weight: 700; color: #e67e22; }
+    .sheet { max-width: 860px; margin: 0 auto; border: 1px solid #ddd; padding: 2rem 2.25rem; }
+    .meta-table th { width: 220px; background: #faf7f4; }
+    .signature-row { display: flex; gap: 2rem; margin-top: 1.5rem; }
+    .signature-col { flex: 1 1 0; min-width: 0; }
+    .signature-line { height: 60px; border-bottom: 1px solid #333; margin-top: 0.35rem; }
     @media print {
       .no-print { display: none !important; }
-      body { margin: 0; }
+      body { background: #fff; }
+      .sheet { border: 0; padding: 0; }
+      .signature-row { page-break-inside: avoid; }
+    }
+    @media (max-width: 767.98px) {
+      .signature-row { flex-direction: column; gap: 1.25rem; }
     }
   </style>
 </head>
-<body class="p-3">
-  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-    <h4 class="mb-0">Brokerage Receipt</h4>
-    <button class="btn btn-dark btn-sm" onclick="window.print()">Print</button>
-  </div>
-  <div class="d-flex justify-content-between mb-3">
-    <div>
-      <div class="fw-bold">{{ company_name }}</div>
-      <div class="small">{{ company_address }}</div>
-      <div class="small">{{ company_phone }}</div>
+<body class="p-4 bg-light">
+  <div class="sheet bg-white">
+    <div class="d-flex justify-content-between align-items-start mb-4 no-print">
+      <div>
+        <div class="brand">JAKKASH PROPERTY CONSULTANCY</div>
+        <div class="text-muted small">Brokerage Receipt</div>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="window.print()">Print / Save PDF</button>
     </div>
-    <div class="text-end">
-      <div class="fw-bold">Receipt {{ receipt.receipt_no or receipt.id }}</div>
-      <div class="small">Date: {{ (receipt.created_at|string)[:10] }}</div>
-      <div class="small">Status: {{ receipt.status|title }}</div>
-    </div>
-  </div>
-  <table class="table table-sm table-bordered align-middle">
-    <tbody>
-      <tr><th style="width: 30%;">Client</th><td>{{ receipt.client_name }}</td></tr>
-      <tr><th>Mobile / Email</th><td>{{ receipt.client_mobile or '-' }} / {{ receipt.client_email or '-' }}</td></tr>
-      <tr><th>Client address</th><td>{{ receipt.client_address or '-' }}</td></tr>
+    <header class="mb-4 border-bottom pb-3 d-flex justify-content-between align-items-end flex-wrap gap-2">
+      <div>
+        <div class="brand fs-4">JAKKASH PROPERTY CONSULTANCY</div>
+        <div class="text-muted">{{ company_address }}{% if company_phone %} · {{ company_phone }}{% endif %}</div>
+      </div>
+      <div class="text-end">
+        <div class="fw-bold">Receipt {{ receipt.receipt_no or receipt.id }}</div>
+        <div class="small text-muted">Date: {{ (receipt.created_at|string)[:10] }} · Status: {{ receipt.status|title }}</div>
+      </div>
+    </header>
+
+    <table class="table table-bordered meta-table">
+      <tr><th>Client Name</th><td>{{ receipt.client_name }}</td></tr>
+      <tr><th>Client Contact</th><td>{{ receipt.client_mobile or '-' }}{% if receipt.client_email %} / {{ receipt.client_email }}{% endif %}</td></tr>
+      <tr><th>Client Address</th><td>{{ receipt.client_address or '-' }}</td></tr>
+      {% if receipt.client_gstin %}<tr><th>Client GSTIN</th><td>{{ receipt.client_gstin }}</td></tr>{% endif %}
       <tr><th>Property</th><td>{{ receipt.property_name or '-' }}</td></tr>
-      <tr><th>Property address</th><td>{{ receipt.property_address or '-' }}</td></tr>
+      <tr><th>Property Address</th><td>{{ receipt.property_address or '-' }}</td></tr>
       <tr><th>Deal</th><td>{{ 'Rent' if receipt.deal_type == 'rent' else 'Sale' }} · ₹{{ "{:,.2f}".format(receipt.deal_amount) }}</td></tr>
-    </tbody>
-  </table>
-  <table class="table table-sm table-bordered align-middle">
-    <tbody>
+    </table>
+
+    <h6 class="mt-4 mb-2">Brokerage</h6>
+    <table class="table table-bordered table-sm">
       <tr><td>Brokerage</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.brokerage_amount) }}</td></tr>
       {% if receipt.gst_enabled %}
       <tr><td>GST @ {{ receipt.gst_rate }}%</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.gst_amount) }}</td></tr>
@@ -980,32 +1016,45 @@ TEMPLATES = {
       <tr class="fw-bold"><td>Total</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.total_amount) }}</td></tr>
       <tr><td>Paid</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.paid_total) }}</td></tr>
       <tr class="fw-bold"><td>Pending</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.pending) }}</td></tr>
-    </tbody>
-  </table>
-  {% if receipt.payments %}
-  <table class="table table-sm table-bordered align-middle">
-    <thead class="table-light">
-      <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
-    </thead>
-    <tbody>
-      {% for p in receipt.payments %}
-      <tr>
-        <td>{{ (p.payment_date|string)[:10] }}</td>
-        <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
-        <td>{{ p.method|replace('_', ' ')|title }}</td>
-        <td>{{ p.reference or '' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-  {% if receipt.status == 'void' %}
-  <p class="fw-bold text-danger">VOID{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
-  {% endif %}
-  {% if receipt.notes %}<p class="small">Notes: {{ receipt.notes }}</p>{% endif %}
-  <div class="d-flex justify-content-between mt-5 small">
-    <div>Client signature</div>
-    <div>Authorised signatory</div>
+    </table>
+
+    {% if receipt.payments %}
+    <h6 class="mt-4 mb-2">Payments</h6>
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+      </thead>
+      <tbody>
+        {% for p in receipt.payments %}
+        <tr>
+          <td>{{ (p.payment_date|string)[:10] }}</td>
+          <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
+          <td>{{ p.method|replace('_', ' ')|title }}</td>
+          <td>{{ p.reference or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if receipt.status == 'void' %}
+    <p class="fw-bold text-danger">VOID{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
+    {% endif %}
+    {% if receipt.notes %}<p class="small">Notes: {{ receipt.notes }}</p>{% endif %}
+
+    <div class="signature-row">
+      <div class="signature-col">
+        <strong>Client Signature</strong>
+        <div class="signature-line"></div>
+      </div>
+      <div class="signature-col">
+        <strong>Authorised Signatory</strong>
+        <div class="signature-line"></div>
+      </div>
+    </div>
+    <footer class="mt-4 pt-3 border-top small text-muted">
+      Generated for internal brokerage use · JAKKASH Property Consultancy
+    </footer>
   </div>
 </body>
 </html>
@@ -1644,8 +1693,8 @@ TEMPLATES = {
   <title>Forgot Password - {{ company_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css', v=asset_version) }}" rel="stylesheet">
 </head>
 <body class="admin-login-page">
   <div class="admin-login-shell">
@@ -1717,8 +1766,8 @@ TEMPLATES = {
   <title>Set New Password - {{ company_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css', v=asset_version) }}" rel="stylesheet">
 </head>
 <body class="admin-login-page">
   <div class="admin-login-shell">
@@ -1776,8 +1825,8 @@ TEMPLATES = {
   <title>Verify Reset OTP - {{ company_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css', v=asset_version) }}" rel="stylesheet">
 </head>
 <body class="admin-login-page">
   <div class="admin-login-shell">
@@ -2251,8 +2300,8 @@ TEMPLATES = {
   <title>Admin Login - {{ company_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css', v=asset_version) }}" rel="stylesheet">
 </head>
 <body class="admin-login-page">
   <div class="admin-login-shell">
@@ -2312,7 +2361,7 @@ TEMPLATES = {
   </div>
   <form method="GET" class="row g-2 align-items-end">
     <div class="col-md-9">
-      <label class="form-label" for="promoProperty">Listings live for {{ stale_days }}+ days</label>
+      <label class="form-label" for="promoProperty">Listings live for {{ stale_days }}+ days (or use Promote on any listing in Properties)</label>
       <select class="form-select" id="promoProperty" name="property_id" required>
         <option value="">Select a property</option>
         {% for p in stale_properties %}
@@ -2495,6 +2544,9 @@ TEMPLATES = {
           {% endif %}
           {% if current_user.has_permission('manage_billing') %}
           <a href="{{ url_for('admin.billing_new', property_id=p.id) }}" class="btn btn-sm btn-outline-secondary">Create Bill</a>
+          {% endif %}
+          {% if current_user.has_permission('manage_leads') and p.status in ['available', 'approved', 'active'] %}
+          <a href="{{ url_for('admin.promotions', property_id=p.id) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-whatsapp"></i> Promote</a>
           {% endif %}
           <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ p.id }}">
             Delete
@@ -2934,8 +2986,8 @@ TEMPLATES = {
 <p class="small text-muted mt-2">Map marker uses latitude/longitude from Admin Controls.</p>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
-<script src="{{ url_for('static', filename='js/admin_property_form.js') }}"></script>
+<script src="{{ url_for('static', filename='js/media_file_manager.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/admin_property_form.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "admin/reviews.html": """{% extends "admin/base.html" %}
@@ -3719,8 +3771,8 @@ TEMPLATES = {
   <title>Admin Verification - {{ company_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/admin.css', v=asset_version) }}" rel="stylesheet">
 </head>
 <body class="admin-login-page">
   <div class="admin-login-shell">
@@ -3909,7 +3961,7 @@ TEMPLATES = {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -3957,7 +4009,7 @@ TEMPLATES = {
     </div>
   </footer>
 
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js', v=asset_version) }}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
@@ -3988,7 +4040,7 @@ TEMPLATES = {
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chat.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "compare.html": """{% extends "base.html" %}
@@ -4008,7 +4060,7 @@ TEMPLATES = {
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/compare.js') }}"></script>
+<script src="{{ url_for('static', filename='js/compare.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "emi.html": """{% extends "base.html" %}
@@ -4041,7 +4093,7 @@ TEMPLATES = {
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/emi.js') }}"></script>
+<script src="{{ url_for('static', filename='js/emi.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "index.html": """{% extends "base.html" %}
@@ -4606,7 +4658,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/about.js') }}"></script>
+<script src="{{ url_for('static', filename='js/about.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "public/ai_chatbot.html": """{% extends "public/base.html" %}
@@ -4635,10 +4687,10 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jakkash.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/jovista-theme.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jakkash.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jovista-theme.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/responsive.css', v=asset_version) }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/mobile.css', v=asset_version) }}" rel="stylesheet">
   {% block head_meta %}{% endblock %}
   {% block extra_css %}{% endblock %}
 </head>
@@ -4793,9 +4845,9 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/mobile.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js', v=asset_version) }}"></script>
+  <script src="{{ url_for('static', filename='js/animations.js', v=asset_version) }}"></script>
+  <script src="{{ url_for('static', filename='js/mobile.js', v=asset_version) }}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
@@ -4878,7 +4930,7 @@ document.getElementById('visitForm')?.addEventListener('submit', async (e) => {
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "public/compare.html": """{% extends "public/base.html" %}
@@ -5146,13 +5198,13 @@ document.getElementById('contactNameInput')?.focus();
   </div>
 </div>
 {% endblock %}
-{% block extra_js %}<script src="{{ url_for('static', filename='js/detail.js') }}"></script>{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/detail.js', v=asset_version) }}"></script>{% endblock %}
 """,
     "public/home.html": """{% extends "public/base.html" %}
 {% from "public/_listing_media.html" import render_listing_media %}
 {% block title %}{{ company_name }} - Premium Properties in Surat{% endblock %}
 {% block extra_css %}
-<link href="{{ url_for('static', filename='css/property-hero.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/property-hero.css', v=asset_version) }}" rel="stylesheet">
 {% endblock %}
 {% block content %}
 <section class="property-hero" id="propertyHero" aria-label="Property showcase hero">
@@ -5232,14 +5284,14 @@ document.getElementById('contactNameInput')?.focus();
     <div class="row g-4 text-center">
       <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
-          <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span>
+          <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span><span class="jv-stat-suffix">+</span>
           <span class="jv-stat-label">Properties Listed</span>
         </div>
       </div>
       <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
-          <span class="jv-stat-value" data-counter="{{ home_stats.clients }}">{{ home_stats.clients }}</span>
-          <span class="jv-stat-label">Clients Served</span>
+          <span class="jv-stat-value" data-counter="{{ home_stats.clients }}">{{ home_stats.clients }}</span><span class="jv-stat-suffix">+</span>
+          <span class="jv-stat-label">Happy Clients</span>
         </div>
       </div>
       <div class="col-12 col-md-4 scroll-reveal">
@@ -5368,9 +5420,9 @@ document.getElementById('contactNameInput')?.focus();
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/property-hero.js') }}"></script>
-<script src="{{ url_for('static', filename='js/listing-media.js') }}"></script>
-<script src="{{ url_for('static', filename='js/home.js') }}"></script>
+<script src="{{ url_for('static', filename='js/property-hero.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/listing-media.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/home.js', v=asset_version) }}"></script>
 <script>document.addEventListener('DOMContentLoaded', () => initListingMedia(document.getElementById('jvDiscoverGrid')));</script>
 {% endblock %}
 """,
@@ -5383,8 +5435,8 @@ document.getElementById('contactNameInput')?.focus();
       <h1 class="section-title mb-1">Properties Listing</h1>
       <p class="text-muted mb-0">Browse approved properties with advanced filters and quick indexing search.</p>
     </div>
-    <button type="button" id="openFilters" class="btn btn-outline-dark listings-filter-toggle">
-      <i class="bi bi-list"></i> Filters
+    <button type="button" id="openFilters" class="btn btn-jk-accent listings-filter-toggle" aria-label="Open filters">
+      <i class="bi bi-sliders"></i> Filters <span id="activeFilterCount" class="badge rounded-pill bg-dark ms-1 d-none">0</span>
     </button>
   </div>
 
@@ -5397,6 +5449,7 @@ document.getElementById('contactNameInput')?.focus();
       <button type="button" class="listing-quick-chip" data-quick-type="apartment">Apartments</button>
       <button type="button" class="listing-quick-chip" data-quick-type="plot">Plots</button>
       <button type="button" class="listing-quick-chip" data-quick-type="commercial">Commercial</button>
+      <button type="button" class="listing-quick-chip" data-quick-type="farmhouse">Farmhouse</button>
     </div>
   </div>
 
@@ -5542,8 +5595,8 @@ document.getElementById('contactNameInput')?.focus();
 </aside>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/listing-media.js') }}"></script>
-<script src="{{ url_for('static', filename='js/listings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/listing-media.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/listings.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "public/map.html": """{% extends "public/base.html" %}
@@ -5558,7 +5611,7 @@ document.getElementById('contactNameInput')?.focus();
   <div id="propertyMap"></div>
 </div>
 {% endblock %}
-{% block extra_js %}<script src="{{ url_for('static', filename='js/map.js') }}"></script>{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/map.js', v=asset_version) }}"></script>{% endblock %}
 """,
     "public/my_listings.html": """{% extends "public/base.html" %}
 {% block title %}My Listings - {{ company_name }}{% endblock %}
@@ -5830,6 +5883,10 @@ document.getElementById('contactNameInput')?.focus();
             <div class="col-12 col-md-6 sell-contact-field">
               <label class="form-label" for="ownerMobileInput" id="ownerMobileLabel">Mobile Number *</label>
               <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" minlength="10" maxlength="15" required>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="callbackConsentInput" value="1">
+                <label class="form-check-label small text-muted" for="callbackConsentInput">I agree to be contacted by JAKKASH Property about my property on this number, even if I don't finish this form.</label>
+              </div>
             </div>
             <div class="col-12 col-md-6 sell-contact-field">
               <label class="form-label" for="ownerAltMobileInput" id="ownerAltMobileLabel">Alternate Mobile</label>
@@ -5979,8 +6036,8 @@ document.getElementById('contactNameInput')?.focus();
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sell_property.js') }}"></script>
+<script src="{{ url_for('static', filename='js/media_file_manager.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/sell_property.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "public/services.html": """{% extends "public/base.html" %}
@@ -6067,7 +6124,7 @@ document.getElementById('contactNameInput')?.focus();
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/reviews.js') }}"></script>
+<script src="{{ url_for('static', filename='js/reviews.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
     "register.html": """{% extends "base.html" %}
@@ -6213,7 +6270,7 @@ document.getElementById('contactNameInput')?.focus();
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search.js', v=asset_version) }}"></script>
 {% endblock %}
 """,
 }

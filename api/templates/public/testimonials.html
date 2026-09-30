@@ -63,5 +63,5 @@
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/reviews.js') }}"></script>
+<script src="{{ url_for('static', filename='js/reviews.js', v=asset_version) }}"></script>
 {% endblock %}

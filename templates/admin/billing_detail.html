@@ -19,6 +19,7 @@
       <div class="fw-semibold">{{ receipt.client_name }}</div>
       <div>{{ receipt.client_mobile or '' }} {{ receipt.client_email or '' }}</div>
       <div class="small">{{ receipt.client_address or '' }}</div>
+      {% if receipt.client_gstin %}<div class="small">GSTIN: {{ receipt.client_gstin }}</div>{% endif %}
     </div>
     <div class="col-md-6">
       <div class="small text-muted">Property</div>

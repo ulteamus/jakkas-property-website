@@ -9,7 +9,7 @@
   </div>
   <form method="GET" class="row g-2 align-items-end">
     <div class="col-md-9">
-      <label class="form-label" for="promoProperty">Listings live for {{ stale_days }}+ days</label>
+      <label class="form-label" for="promoProperty">Listings live for {{ stale_days }}+ days (or use Promote on any listing in Properties)</label>
       <select class="form-select" id="promoProperty" name="property_id" required>
         <option value="">Select a property</option>
         {% for p in stale_properties %}

@@ -151,17 +151,13 @@ def home_property_count():
 
 
 def home_kpi_counts():
-    """One round-trip for homepage KPI strip."""
-    row = query_one(
-        """SELECT
-             (SELECT COUNT(*) FROM properties WHERE status='available') AS properties,
-             (SELECT COUNT(*) FROM inquiries) AS clients
-        """
-    ) or {}
+    """Homepage KPI strip: configured marketing figures (no DB round-trip)."""
+    from config import STAT_HAPPY_CLIENTS, STAT_PROPERTIES_LISTED, STAT_YEARS_EXPERIENCE
+
     return {
-        "properties": int(row.get("properties") or 0),
-        "clients": int(row.get("clients") or 0),
-        "years": 10,
+        "properties": STAT_PROPERTIES_LISTED,
+        "clients": STAT_HAPPY_CLIENTS,
+        "years": STAT_YEARS_EXPERIENCE,
     }
 
 

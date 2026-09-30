@@ -7,8 +7,8 @@
       <h1 class="section-title mb-1">Properties Listing</h1>
       <p class="text-muted mb-0">Browse approved properties with advanced filters and quick indexing search.</p>
     </div>
-    <button type="button" id="openFilters" class="btn btn-outline-dark listings-filter-toggle">
-      <i class="bi bi-list"></i> Filters
+    <button type="button" id="openFilters" class="btn btn-jk-accent listings-filter-toggle" aria-label="Open filters">
+      <i class="bi bi-sliders"></i> Filters <span id="activeFilterCount" class="badge rounded-pill bg-dark ms-1 d-none">0</span>
     </button>
   </div>
 
@@ -21,6 +21,7 @@
       <button type="button" class="listing-quick-chip" data-quick-type="apartment">Apartments</button>
       <button type="button" class="listing-quick-chip" data-quick-type="plot">Plots</button>
       <button type="button" class="listing-quick-chip" data-quick-type="commercial">Commercial</button>
+      <button type="button" class="listing-quick-chip" data-quick-type="farmhouse">Farmhouse</button>
     </div>
   </div>
 
@@ -166,6 +167,6 @@
 </aside>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/listing-media.js') }}"></script>
-<script src="{{ url_for('static', filename='js/listings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/listing-media.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/listings.js', v=asset_version) }}"></script>
 {% endblock %}

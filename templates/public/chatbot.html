@@ -76,5 +76,5 @@
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js', v=asset_version) }}"></script>
 {% endblock %}

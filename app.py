@@ -29,6 +29,28 @@ from models.admin import Admin
 from utils.logger import setup_logging
 
 
+def _asset_version(static_root):
+    """Cache-busting token for /static links (Vercel caches /static as immutable for a year)."""
+    explicit = (os.getenv("ASSET_VERSION") or os.getenv("VERCEL_GIT_COMMIT_SHA") or "").strip()
+    if explicit:
+        return explicit[:7]
+    import hashlib
+
+    digest = hashlib.sha1()
+    for sub in ("js", "css"):
+        folder = static_root / sub
+        if not folder.is_dir():
+            continue
+        for path in sorted(folder.rglob("*")):
+            if path.is_file() and path.suffix in {".js", ".css"}:
+                try:
+                    digest.update(path.name.encode())
+                    digest.update(path.read_bytes())
+                except OSError:
+                    continue
+    return digest.hexdigest()[:7]
+
+
 def create_app():
     resolve_secret_key()
     logger = setup_logging()
@@ -92,11 +114,16 @@ def create_app():
     app.register_blueprint(api_bp)
     app.register_blueprint(admin_bp)
 
+    asset_version = _asset_version(Path(static_folder))
+    app.config["ASSET_VERSION"] = asset_version
+    app.jinja_env.globals["asset_version"] = asset_version
+
     @app.context_processor
     def inject_company():
         from models.property import public_image_url
 
         return {
+            "asset_version": asset_version,
             "company_name": COMPANY_NAME,
             "company_owner": COMPANY_OWNER,
             "company_address": COMPANY_ADDRESS,

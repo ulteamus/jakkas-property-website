@@ -42,6 +42,17 @@ def stale_properties(stale_days=PROMO_STALE_DAYS, limit=100, now=None):
     return [dict(r) for r in rows or []]
 
 
+def promotable_property(property_id):
+    """Any public listing can be promoted on demand (e.g. from the admin Properties list)."""
+    placeholders = ",".join(["%s"] * len(PUBLIC_LISTING_STATUSES))
+    rows = _safe_rows(
+        f"""SELECT id, property_name, slug, area_name, property_type, price, listing_type, bhk, created_at
+            FROM properties WHERE id=%s AND LOWER(COALESCE(status,'')) IN ({placeholders})""",
+        (int(property_id), *PUBLIC_LISTING_STATUSES),
+    )
+    return dict(rows[0]) if rows else None
+
+
 def _safe_rows(sql, params=()):
     try:
         return query_all(sql, params) or []
@@ -73,6 +84,12 @@ def audience(cooldown_days=PROMO_COOLDOWN_DAYS, limit=AUDIENCE_LIMIT, now=None):
         "SELECT id, name, mobile, created_at FROM inquiries ORDER BY created_at DESC LIMIT %s", (limit * 3,)
     ):
         candidates.append(("inquiry", row))
+    for row in _safe_rows(
+        "SELECT id, name, phone AS mobile, created_at FROM lead_captures WHERE consent=%s "
+        "ORDER BY created_at DESC LIMIT %s",
+        (True, limit * 3),
+    ):
+        candidates.append(("capture", row))
 
     blocked = opted_out_phones()
     cooling = recently_contacted_phones(cooldown_days, now)

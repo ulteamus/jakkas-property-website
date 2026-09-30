@@ -72,6 +72,10 @@
             <div class="col-12 col-md-6 sell-contact-field">
               <label class="form-label" for="ownerMobileInput" id="ownerMobileLabel">Mobile Number *</label>
               <input class="form-control" id="ownerMobileInput" name="owner_mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" minlength="10" maxlength="15" required>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="callbackConsentInput" value="1">
+                <label class="form-check-label small text-muted" for="callbackConsentInput">I agree to be contacted by JAKKASH Property about my property on this number, even if I don't finish this form.</label>
+              </div>
             </div>
             <div class="col-12 col-md-6 sell-contact-field">
               <label class="form-label" for="ownerAltMobileInput" id="ownerAltMobileLabel">Alternate Mobile</label>
@@ -221,6 +225,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/media_file_manager.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sell_property.js') }}"></script>
+<script src="{{ url_for('static', filename='js/media_file_manager.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/sell_property.js', v=asset_version) }}"></script>
 {% endblock %}

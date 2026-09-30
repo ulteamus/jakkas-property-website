@@ -15,5 +15,5 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/compare.js') }}"></script>
+<script src="{{ url_for('static', filename='js/compare.js', v=asset_version) }}"></script>
 {% endblock %}

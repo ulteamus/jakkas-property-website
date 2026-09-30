@@ -302,53 +302,70 @@ def _rs(value):
 
 
 def generate_receipt_pdf(receipt, company_name="", company_address="", company_phone=""):
-    """Brokerage receipt: header, client/property snapshot, amounts, payment history."""
-    lines = [
-        company_name,
-        company_address,
-        f"Phone: {company_phone}" if company_phone else "",
-        "",
-        f"Receipt No: {receipt.get('receipt_no') or receipt.get('id')}",
-        f"Date: {str(receipt.get('created_at') or '')[:10]}",
+    """Brokerage receipt laid out like the customer visit slip (brand header, labelled rows, signatures)."""
+    writer = _PdfWriter("Brokerage Receipt")
+    writer.heading("JAKKASH PROPERTY CONSULTANCY")
+    contact = " | ".join(bit for bit in (company_address, company_phone) if bit)
+    if contact:
+        writer.text(_clip(contact, 95), size=9)
+    writer.text(
+        f"Brokerage Receipt {receipt.get('receipt_no') or receipt.get('id')}   "
+        f"Date: {str(receipt.get('created_at') or '')[:10]}   "
         f"Status: {str(receipt.get('status') or '').title()}",
-        "",
-        f"Client: {receipt.get('client_name') or '-'}",
-        f"Mobile: {receipt.get('client_mobile') or '-'}",
-        f"Email: {receipt.get('client_email') or '-'}",
-        f"Address: {_clip(receipt.get('client_address') or '-', 80)}",
-        "",
-        f"Property: {_clip(receipt.get('property_name') or '-', 80)}",
-        f"Property Address: {_clip(receipt.get('property_address') or '-', 72)}",
-        f"Deal Type: {'Rent' if receipt.get('deal_type') == 'rent' else 'Sale'}",
-        f"Deal Amount: {_rs(receipt.get('deal_amount'))}",
-        "",
-        f"Brokerage: {_rs(receipt.get('brokerage_amount'))}",
-    ]
-    if receipt.get("gst_enabled"):
-        lines.append(f"GST @ {receipt.get('gst_rate')}%: {_rs(receipt.get('gst_amount'))}")
-    lines.extend(
-        [
-            f"Total: {_rs(receipt.get('total_amount'))}",
-            f"Paid: {_rs(receipt.get('paid_total'))}",
-            f"Pending: {_rs(receipt.get('pending'))}",
-        ]
+        size=10,
     )
+    writer.rule()
+
+    def row(label, value, width=70):
+        writer.text(f"{label:<20}: {_clip(value if value not in (None, '') else '-', width)}")
+
+    writer.text("CLIENT", size=11)
+    row("Client Name", receipt.get("client_name"))
+    contact_bits = " / ".join(b for b in (receipt.get("client_mobile"), receipt.get("client_email")) if b)
+    row("Client Contact", contact_bits)
+    row("Client Address", receipt.get("client_address"))
+    if receipt.get("client_gstin"):
+        row("Client GSTIN", receipt.get("client_gstin"))
+    writer.blank()
+
+    writer.text("PROPERTY", size=11)
+    row("Property", receipt.get("property_name"))
+    row("Property Address", receipt.get("property_address"))
+    row("Deal", f"{'Rent' if receipt.get('deal_type') == 'rent' else 'Sale'} - {_rs(receipt.get('deal_amount'))}")
+    writer.blank()
+
+    writer.text("BROKERAGE", size=11)
+    row("Brokerage", _rs(receipt.get("brokerage_amount")))
+    if receipt.get("gst_enabled"):
+        row(f"GST @ {receipt.get('gst_rate')}%", _rs(receipt.get("gst_amount")))
+    row("Total", _rs(receipt.get("total_amount")))
+    row("Paid", _rs(receipt.get("paid_total")))
+    row("Pending", _rs(receipt.get("pending")))
+
     payments = receipt.get("payments") or []
     if payments:
-        lines.append("")
-        lines.append("Payments:")
+        writer.blank()
+        writer.text("PAYMENTS", size=11)
         for p in payments[:30]:
             ref = f" ref {p.get('reference')}" if p.get("reference") else ""
-            lines.append(
-                f"  {str(p.get('payment_date') or '')[:10]}  {_rs(p.get('amount'))}  "
-                f"{str(p.get('method') or '').replace('_', ' ')}{ref}"
+            writer.text(
+                f"{str(p.get('payment_date') or '')[:10]}  {_rs(p.get('amount'))}  "
+                f"{str(p.get('method') or '').replace('_', ' ')}{ref}",
+                size=9,
             )
     if receipt.get("status") == "void":
-        lines.append("")
-        lines.append(f"VOID: {receipt.get('void_reason') or 'No reason given'}")
+        writer.blank()
+        writer.text(f"VOID: {_clip(receipt.get('void_reason') or 'No reason given', 85)}")
     if receipt.get("notes"):
-        lines.append("")
-        lines.append(f"Notes: {_clip(receipt.get('notes'), 80)}")
-    lines.append("")
-    lines.append(f"Generated: {_now_stamp()}")
-    return build_simple_pdf("Brokerage Receipt", lines)
+        writer.blank()
+        writer.text(f"Notes: {_clip(receipt.get('notes'), 85)}", size=9)
+
+    writer.blank()
+    writer.blank()
+    writer.blank()
+    writer.text(f"{'_' * 30}          {'_' * 30}", size=10)
+    writer.text(f"{'Client Signature':<42}Authorised Signatory", size=9)
+    writer.blank()
+    writer.rule()
+    writer.text(f"Generated for internal brokerage use - JAKKASH Property Consultancy - {_now_stamp()}", size=8)
+    return writer.finish()

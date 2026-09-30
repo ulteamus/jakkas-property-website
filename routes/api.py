@@ -474,6 +474,31 @@ def api_inquiry():
     return jsonify({"success": True, "message": "Inquiry submitted. We will contact you soon."})
 
 
+@api_bp.route("/lead-capture", methods=["POST"])
+@rate_limit("api_lead_capture", limit=5, window=300)
+def api_lead_capture():
+    """Save a visitor-typed phone only when the explicit consent checkbox was ticked (DPDP)."""
+    from models import notification as notification_model
+
+    data = request.get_json(silent=True) or request.form or {}
+    consent = data.get("consent")
+    consent = consent is True or str(consent).strip().lower() in {"1", "true", "on", "yes"}
+    try:
+        notification_model.record_lead_capture(
+            data.get("phone"),
+            consent,
+            name=data.get("name"),
+            visitor_id=session.get("visitor_id"),
+            session_id=session.get("session_id"),
+            source=safe_str(data.get("source"), max_len=30) or "sell_page",
+        )
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except Exception:
+        return jsonify({"success": False, "error": "Unable to save right now"}), 503
+    return jsonify({"success": True, "message": "Thanks! Our team may call you about your property."})
+
+
 @api_bp.route("/reviews", methods=["POST"])
 def api_create_review():
     data = request.get_json() or request.form

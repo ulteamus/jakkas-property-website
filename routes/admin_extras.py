@@ -2,12 +2,13 @@
 
 from datetime import date
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from config import COMPANY_ADDRESS, COMPANY_NAME, COMPANY_PHONE, PROMO_COOLDOWN_DAYS, PROMO_STALE_DAYS
 from models import amenity as amenity_model
 from models import billing as billing_model
+from models import notification as notification_model
 from models import promotion as promo_model
 from models import property as prop_model
 from models import submission as submission_model
@@ -270,12 +271,52 @@ def billing_pdf(receipt_id):
     return _pdf_bytes_download(f"receipt_{receipt.get('receipt_no') or receipt_id}.pdf", payload)
 
 
+def _can_see_notifications():
+    if not current_user.is_authenticated or not getattr(current_user, "is_admin", False):
+        return False
+    has_permission = getattr(current_user, "has_permission", None)
+    return callable(has_permission) and (has_permission("manage_submissions") or has_permission("manage_leads"))
+
+
+@admin_bp.route("/api/notifications")
+def notifications_feed():
+    if not current_user.is_authenticated:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    if not _can_see_notifications():
+        return jsonify({"success": False, "error": "Forbidden"}), 403
+    try:
+        data = notification_model.feed(current_user.id)
+    except Exception:
+        return jsonify({"success": True, "unread": 0, "items": [], "unavailable": True})
+    return jsonify({"success": True, **data})
+
+
+@admin_bp.route("/api/notifications/seen", methods=["POST"])
+def notifications_seen():
+    if not current_user.is_authenticated:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    if not _can_see_notifications():
+        return jsonify({"success": False, "error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    try:
+        last = notification_model.mark_seen(current_user.id, _int_or_none(payload.get("up_to_id")))
+    except Exception:
+        return jsonify({"success": False, "error": "Notifications unavailable"}), 503
+    return jsonify({"success": True, "last_seen_id": last})
+
+
 @admin_bp.route("/promotions")
 @permission_required("manage_leads")
 def promotions():
     stale = promo_model.stale_properties(PROMO_STALE_DAYS)
     property_id = _int_or_none(request.args.get("property_id"))
     selected = next((p for p in stale if int(p["id"]) == property_id), None) if property_id else None
+    if property_id and not selected:
+        selected = promo_model.promotable_property(property_id)
+        if selected:
+            stale = [selected] + stale
+        else:
+            flash("That property is not publicly listed, so it cannot be promoted.", "warning")
     contacts = []
     skipped = {}
     if selected:

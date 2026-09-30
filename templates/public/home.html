@@ -2,7 +2,7 @@
 {% from "public/_listing_media.html" import render_listing_media %}
 {% block title %}{{ company_name }} - Premium Properties in Surat{% endblock %}
 {% block extra_css %}
-<link href="{{ url_for('static', filename='css/property-hero.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/property-hero.css', v=asset_version) }}" rel="stylesheet">
 {% endblock %}
 {% block content %}
 <section class="property-hero" id="propertyHero" aria-label="Property showcase hero">
@@ -82,14 +82,14 @@
     <div class="row g-4 text-center">
       <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
-          <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span>
+          <span class="jv-stat-value" data-counter="{{ home_stats.properties }}">{{ home_stats.properties }}</span><span class="jv-stat-suffix">+</span>
           <span class="jv-stat-label">Properties Listed</span>
         </div>
       </div>
       <div class="col-12 col-md-4 scroll-reveal">
         <div class="jv-stat">
-          <span class="jv-stat-value" data-counter="{{ home_stats.clients }}">{{ home_stats.clients }}</span>
-          <span class="jv-stat-label">Clients Served</span>
+          <span class="jv-stat-value" data-counter="{{ home_stats.clients }}">{{ home_stats.clients }}</span><span class="jv-stat-suffix">+</span>
+          <span class="jv-stat-label">Happy Clients</span>
         </div>
       </div>
       <div class="col-12 col-md-4 scroll-reveal">
@@ -218,8 +218,8 @@
 </section>
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/property-hero.js') }}"></script>
-<script src="{{ url_for('static', filename='js/listing-media.js') }}"></script>
-<script src="{{ url_for('static', filename='js/home.js') }}"></script>
+<script src="{{ url_for('static', filename='js/property-hero.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/listing-media.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/home.js', v=asset_version) }}"></script>
 <script>document.addEventListener('DOMContentLoaded', () => initListingMedia(document.getElementById('jvDiscoverGrid')));</script>
 {% endblock %}

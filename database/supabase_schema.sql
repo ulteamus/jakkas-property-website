@@ -445,6 +445,7 @@ CREATE TABLE IF NOT EXISTS billing_receipts (
   client_mobile TEXT,
   client_email TEXT,
   client_address TEXT,
+  client_gstin TEXT,
   deal_amount NUMERIC(14,2) DEFAULT 0,
   brokerage_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
   gst_enabled BOOLEAN DEFAULT FALSE,
@@ -504,6 +505,44 @@ ALTER TABLE billing_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_opt_ins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_promo_log ENABLE ROW LEVEL SECURITY;
+
+-- Migration 002: admin bell notifications + consented lead captures
+CREATE TABLE IF NOT EXISTS admin_notifications (
+  id BIGSERIAL PRIMARY KEY,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT,
+  link TEXT,
+  ref_id BIGINT,
+  dedupe_key TEXT UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_notification_state (
+  admin_id BIGINT PRIMARY KEY REFERENCES admins(id) ON DELETE CASCADE,
+  last_seen_id BIGINT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS lead_captures (
+  id BIGSERIAL PRIMARY KEY,
+  phone TEXT NOT NULL,
+  name TEXT,
+  source TEXT NOT NULL DEFAULT 'sell_page',
+  consent BOOLEAN NOT NULL DEFAULT FALSE,
+  consent_text TEXT,
+  visitor_id TEXT,
+  session_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_created ON admin_notifications(created_at);
+CREATE INDEX IF NOT EXISTS idx_lead_captures_created ON lead_captures(created_at);
+CREATE INDEX IF NOT EXISTS idx_visitor_events_type_created ON visitor_events(event_type, created_at);
+
+ALTER TABLE admin_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_notification_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lead_captures ENABLE ROW LEVEL SECURITY;
 
 INSERT INTO amenities (slug, label, sort_order) VALUES
   ('parking', 'Parking', 10),

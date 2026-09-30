@@ -17,6 +17,7 @@ from models import property as prop_model
 from models import amenity as amenity_model
 from models import analytics as analytics_model
 from models import inquiry as inquiry_model
+from models import notification as notification_model
 from models import submission as submission_model
 from models import reviews as reviews_model
 from utils.helpers import save_upload
@@ -94,11 +95,7 @@ def home():
     featured_properties = _attach_listing_media(
         prop_model.search(limit=9, sort="newest", status="available")
     )
-    home_stats = {"properties": 0, "clients": 0, "years": 10}
-    try:
-        home_stats = analytics_model.home_kpi_counts()
-    except Exception:
-        pass
+    home_stats = analytics_model.home_kpi_counts()
     # Live reviews only — normalize to the exact keys home.html expects.
     try:
         raw_reviews = reviews_model.list_reviews(limit=6) or []
@@ -146,23 +143,17 @@ def home():
 
 @public_bp.route("/about")
 def about():
+    kpis = analytics_model.home_kpi_counts()
     about_stats = {
-        "properties_listed": 0,
-        "happy_clients": 0,
+        "properties_listed": kpis["properties"],
+        "happy_clients": kpis["clients"],
         "successful_deals": 0,
-        "years_experience": int(os.getenv("COMPANY_YEARS_EXPERIENCE", "10")),
+        "years_experience": kpis["years"],
     }
     try:
         dashboard = analytics_model.dashboard_stats()
-        reviews_count = len(reviews_model.list_reviews(limit=500))
-        about_stats["properties_listed"] = int(dashboard.get("total_properties") or 0)
         about_stats["successful_deals"] = int(
             dashboard.get("sold_properties") or dashboard.get("total_sold") or 0
-        )
-        about_stats["happy_clients"] = max(
-            int(dashboard.get("total_inquiries") or 0),
-            int(dashboard.get("total_leads") or 0),
-            reviews_count,
         )
     except Exception:
         pass
@@ -176,34 +167,8 @@ def services():
 
 @public_bp.route("/properties")
 def listings():
-    # Same public status set as home (`available` / `approved` / `active`).
-    sort = (request.args.get("sort") or "newest").strip() or "newest"
-    city = (request.args.get("city") or "").strip() or None
-    location = (request.args.get("location") or "").strip() or None
-    area = (request.args.get("area") or "").strip() or None
-    listing_intent = (
-        (request.args.get("listing_intent") or request.args.get("intent") or "").strip().lower()
-    )
-    if listing_intent in {"sell", "sale"}:
-        listing_intent = "buy"
-    listing_properties = prop_model.search(
-        city=city,
-        location=location,
-        area=area,
-        property_type=(request.args.get("type") or "").strip() or None,
-        keyword=(request.args.get("q") or "").strip() or None,
-        listing_intent=listing_intent if listing_intent in {"buy", "rent"} else None,
-        sort=sort,
-        status="available",
-        limit=120,
-    )
-    return render_template(
-        "public/listings.html",
-        areas=prop_model.areas_list(),
-        categories=prop_model.categories_summary(),
-        properties=listing_properties,
-        listing_count=len(listing_properties),
-    )
+    # Results are fetched client-side from /api/properties; only the area options are server-rendered.
+    return render_template("public/listings.html", areas=prop_model.areas_list())
 
 
 @public_bp.route("/property/<slug>")
@@ -461,6 +426,7 @@ def sell_property():
         except Exception:
             # Only error when the property row itself never landed.
             if created_property:
+                _notify_sell_submission(submission_id, created_property)
                 return _sell_success_response(
                     created_property,
                     submission_id,
@@ -468,6 +434,8 @@ def sell_property():
                     media_warning=locals().get("media_warning"),
                 )
             return _sell_error_response()
+
+        _notify_sell_submission(submission_id, created_property)
 
         # Inquiry is best-effort CRM bookkeeping — never override a successful submit.
         try:
@@ -492,6 +460,7 @@ def sell_property():
             media_warning=media_warning,
         )
 
+    _notify_sell_page_open()
     return render_template(
         "public/sell_property.html",
         surat_localities=india_property_predictor.list_surat_localities(),
@@ -511,6 +480,36 @@ def sell_property():
         ],
         amenity_options=amenity_model.list_active_labels(),
     )
+
+
+def _notify_sell_submission(submission_id, created_property) -> None:
+    try:
+        notification_model.notify_sell_submission(
+            submission_id or f"p{created_property.get('id')}",
+            owner_name=(request.form.get("owner_name") or "").strip()[:80],
+            area=(request.form.get("location_area") or request.form.get("city") or "").strip()[:80],
+            property_type=(request.form.get("property_type") or "").strip()[:40],
+        )
+    except Exception:
+        current_app.logger.warning("sell: notification create failed", exc_info=True)
+
+
+def _notify_sell_page_open() -> None:
+    """Throttled (1/visitor/hour) bell alert + analytics event; bots are ignored."""
+    visitor_id = session.get("visitor_id")
+    if not visitor_id or notification_model.is_probable_bot(
+        request.headers.get("User-Agent"), request.headers.get("Accept-Language")
+    ):
+        return
+    bucket = notification_model.hour_bucket()
+    if session.get("_sell_open_bucket") == bucket:
+        return
+    session["_sell_open_bucket"] = bucket
+    try:
+        if notification_model.notify_sell_page_open(visitor_id):
+            analytics_model.record_event(visitor_id, "sell_page_open", meta={"path": request.path})
+    except Exception:
+        current_app.logger.warning("sell: page-open notification failed", exc_info=True)
 
 
 def _wants_json() -> bool:

@@ -499,6 +499,32 @@
     }
   });
 
+  (function bindCallbackConsent() {
+    const consentInput = document.getElementById('callbackConsentInput');
+    const mobileInput = document.getElementById('ownerMobileInput');
+    if (!consentInput || !mobileInput) return;
+    let sentFor = '';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const maybeSend = () => {
+      const digits = (mobileInput.value || '').replace(/\D/g, '');
+      if (!consentInput.checked || digits.length < 10 || digits === sentFor) return;
+      sentFor = digits;
+      fetch('/api/lead-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          phone: mobileInput.value,
+          name: contactNameInput ? contactNameInput.value : '',
+          consent: true,
+          source: 'sell_page',
+        }),
+      }).catch(() => { sentFor = ''; });
+    };
+    consentInput.addEventListener('change', maybeSend);
+    mobileInput.addEventListener('blur', maybeSend);
+  })();
+
   lockExpectedPriceIntegrity();
   syncListingIntent();
   syncSubmitterFields();

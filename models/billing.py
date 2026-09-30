@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
@@ -92,6 +93,19 @@ def _clean(value, max_len=500):
     return (str(value).strip() if value is not None else "")[:max_len]
 
 
+GSTIN_RE = re.compile(r"^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
+
+
+def normalize_gstin(value):
+    """Optional client GSTIN: blank -> None, otherwise uppercase 15-char format or ValueError."""
+    text = re.sub(r"\s+", "", str(value or "")).upper()
+    if not text:
+        return None
+    if not GSTIN_RE.match(text):
+        raise ValueError("Client GSTIN must be a valid 15-character GSTIN (e.g. 24ABCDE1234F1Z5).")
+    return text
+
+
 def _hydrate(row):
     if not row:
         return None
@@ -114,14 +128,15 @@ def create_receipt(data, created_by_admin_id=None, property_row=None):
         brokerage_raw = suggested_brokerage(deal_type, deal_amount)
     gst_enabled = str(data.get("gst_enabled") or "").strip().lower() in {"1", "true", "on", "yes"}
     totals = compute_totals(brokerage_raw, gst_enabled, data.get("gst_rate") or DEFAULT_GST_RATE)
+    client_gstin = normalize_gstin(data.get("client_gstin"))
 
     prop = property_row or {}
     receipt_id = execute(
         """INSERT INTO billing_receipts
            (property_id, property_name, property_address, deal_type, client_name, client_mobile,
-            client_email, client_address, deal_amount, brokerage_amount, gst_enabled, gst_rate,
-            gst_amount, total_amount, status, notes, created_by_admin_id)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            client_email, client_address, client_gstin, deal_amount, brokerage_amount, gst_enabled,
+            gst_rate, gst_amount, total_amount, status, notes, created_by_admin_id)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (
             prop.get("id") or None,
             _clean(data.get("property_name") or prop.get("property_name"), 200) or None,
@@ -131,6 +146,7 @@ def create_receipt(data, created_by_admin_id=None, property_row=None):
             _clean(data.get("client_mobile"), 20) or None,
             _clean(data.get("client_email"), 160) or None,
             _clean(data.get("client_address"), 400) or None,
+            client_gstin,
             str(deal_amount),
             str(totals["brokerage_amount"]),
             totals["gst_enabled"],

@@ -3,44 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Receipt {{ receipt.receipt_no }}</title>
+  <title>JAKKASH — Receipt {{ receipt.receipt_no or receipt.id }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
+    body { font-family: Georgia, "Times New Roman", serif; color: #1f1f24; }
+    .brand { letter-spacing: 0.08em; font-weight: 700; color: #e67e22; }
+    .sheet { max-width: 860px; margin: 0 auto; border: 1px solid #ddd; padding: 2rem 2.25rem; }
+    .meta-table th { width: 220px; background: #faf7f4; }
+    .signature-row { display: flex; gap: 2rem; margin-top: 1.5rem; }
+    .signature-col { flex: 1 1 0; min-width: 0; }
+    .signature-line { height: 60px; border-bottom: 1px solid #333; margin-top: 0.35rem; }
     @media print {
       .no-print { display: none !important; }
-      body { margin: 0; }
+      body { background: #fff; }
+      .sheet { border: 0; padding: 0; }
+      .signature-row { page-break-inside: avoid; }
+    }
+    @media (max-width: 767.98px) {
+      .signature-row { flex-direction: column; gap: 1.25rem; }
     }
   </style>
 </head>
-<body class="p-3">
-  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-    <h4 class="mb-0">Brokerage Receipt</h4>
-    <button class="btn btn-dark btn-sm" onclick="window.print()">Print</button>
-  </div>
-  <div class="d-flex justify-content-between mb-3">
-    <div>
-      <div class="fw-bold">{{ company_name }}</div>
-      <div class="small">{{ company_address }}</div>
-      <div class="small">{{ company_phone }}</div>
+<body class="p-4 bg-light">
+  <div class="sheet bg-white">
+    <div class="d-flex justify-content-between align-items-start mb-4 no-print">
+      <div>
+        <div class="brand">JAKKASH PROPERTY CONSULTANCY</div>
+        <div class="text-muted small">Brokerage Receipt</div>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="window.print()">Print / Save PDF</button>
     </div>
-    <div class="text-end">
-      <div class="fw-bold">Receipt {{ receipt.receipt_no or receipt.id }}</div>
-      <div class="small">Date: {{ (receipt.created_at|string)[:10] }}</div>
-      <div class="small">Status: {{ receipt.status|title }}</div>
-    </div>
-  </div>
-  <table class="table table-sm table-bordered align-middle">
-    <tbody>
-      <tr><th style="width: 30%;">Client</th><td>{{ receipt.client_name }}</td></tr>
-      <tr><th>Mobile / Email</th><td>{{ receipt.client_mobile or '-' }} / {{ receipt.client_email or '-' }}</td></tr>
-      <tr><th>Client address</th><td>{{ receipt.client_address or '-' }}</td></tr>
+    <header class="mb-4 border-bottom pb-3 d-flex justify-content-between align-items-end flex-wrap gap-2">
+      <div>
+        <div class="brand fs-4">JAKKASH PROPERTY CONSULTANCY</div>
+        <div class="text-muted">{{ company_address }}{% if company_phone %} · {{ company_phone }}{% endif %}</div>
+      </div>
+      <div class="text-end">
+        <div class="fw-bold">Receipt {{ receipt.receipt_no or receipt.id }}</div>
+        <div class="small text-muted">Date: {{ (receipt.created_at|string)[:10] }} · Status: {{ receipt.status|title }}</div>
+      </div>
+    </header>
+
+    <table class="table table-bordered meta-table">
+      <tr><th>Client Name</th><td>{{ receipt.client_name }}</td></tr>
+      <tr><th>Client Contact</th><td>{{ receipt.client_mobile or '-' }}{% if receipt.client_email %} / {{ receipt.client_email }}{% endif %}</td></tr>
+      <tr><th>Client Address</th><td>{{ receipt.client_address or '-' }}</td></tr>
+      {% if receipt.client_gstin %}<tr><th>Client GSTIN</th><td>{{ receipt.client_gstin }}</td></tr>{% endif %}
       <tr><th>Property</th><td>{{ receipt.property_name or '-' }}</td></tr>
-      <tr><th>Property address</th><td>{{ receipt.property_address or '-' }}</td></tr>
+      <tr><th>Property Address</th><td>{{ receipt.property_address or '-' }}</td></tr>
       <tr><th>Deal</th><td>{{ 'Rent' if receipt.deal_type == 'rent' else 'Sale' }} · ₹{{ "{:,.2f}".format(receipt.deal_amount) }}</td></tr>
-    </tbody>
-  </table>
-  <table class="table table-sm table-bordered align-middle">
-    <tbody>
+    </table>
+
+    <h6 class="mt-4 mb-2">Brokerage</h6>
+    <table class="table table-bordered table-sm">
       <tr><td>Brokerage</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.brokerage_amount) }}</td></tr>
       {% if receipt.gst_enabled %}
       <tr><td>GST @ {{ receipt.gst_rate }}%</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.gst_amount) }}</td></tr>
@@ -48,32 +63,45 @@
       <tr class="fw-bold"><td>Total</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.total_amount) }}</td></tr>
       <tr><td>Paid</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.paid_total) }}</td></tr>
       <tr class="fw-bold"><td>Pending</td><td class="text-end">₹{{ "{:,.2f}".format(receipt.pending) }}</td></tr>
-    </tbody>
-  </table>
-  {% if receipt.payments %}
-  <table class="table table-sm table-bordered align-middle">
-    <thead class="table-light">
-      <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
-    </thead>
-    <tbody>
-      {% for p in receipt.payments %}
-      <tr>
-        <td>{{ (p.payment_date|string)[:10] }}</td>
-        <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
-        <td>{{ p.method|replace('_', ' ')|title }}</td>
-        <td>{{ p.reference or '' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-  {% if receipt.status == 'void' %}
-  <p class="fw-bold text-danger">VOID{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
-  {% endif %}
-  {% if receipt.notes %}<p class="small">Notes: {{ receipt.notes }}</p>{% endif %}
-  <div class="d-flex justify-content-between mt-5 small">
-    <div>Client signature</div>
-    <div>Authorised signatory</div>
+    </table>
+
+    {% if receipt.payments %}
+    <h6 class="mt-4 mb-2">Payments</h6>
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+      </thead>
+      <tbody>
+        {% for p in receipt.payments %}
+        <tr>
+          <td>{{ (p.payment_date|string)[:10] }}</td>
+          <td>₹{{ "{:,.2f}".format(p.amount) }}</td>
+          <td>{{ p.method|replace('_', ' ')|title }}</td>
+          <td>{{ p.reference or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if receipt.status == 'void' %}
+    <p class="fw-bold text-danger">VOID{% if receipt.void_reason %}: {{ receipt.void_reason }}{% endif %}</p>
+    {% endif %}
+    {% if receipt.notes %}<p class="small">Notes: {{ receipt.notes }}</p>{% endif %}
+
+    <div class="signature-row">
+      <div class="signature-col">
+        <strong>Client Signature</strong>
+        <div class="signature-line"></div>
+      </div>
+      <div class="signature-col">
+        <strong>Authorised Signatory</strong>
+        <div class="signature-line"></div>
+      </div>
+    </div>
+    <footer class="mt-4 pt-3 border-top small text-muted">
+      Generated for internal brokerage use · JAKKASH Property Consultancy
+    </footer>
   </div>
 </body>
 </html>

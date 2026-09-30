@@ -63,13 +63,26 @@ function syncQuickChips() {
     const chipIntent = chip.dataset.quickFilter;
     const chipType = chip.dataset.quickType;
     let active = false;
-    if (chipIntent !== undefined) {
+    if (chipIntent === '') {
+      active = !intent && !type;
+    } else if (chipIntent !== undefined) {
       active = chipIntent === intent;
     } else if (chipType) {
-      active = chipType === type && !intent;
+      active = chipType === type;
     }
     chip.classList.toggle('is-active', active);
   });
+}
+
+function syncActiveFilterCount(params) {
+  const badge = document.getElementById('activeFilterCount');
+  if (!badge) return;
+  let count = 0;
+  params.forEach((value, key) => {
+    if (key !== 'sort' && value) count += 1;
+  });
+  badge.textContent = String(count);
+  badge.classList.toggle('d-none', count === 0);
 }
 
 function cardHTML(p) {
@@ -133,6 +146,7 @@ async function load(options = {}) {
   }
   setIntent(params.get('listing_intent') || '');
   syncQuickChips();
+  syncActiveFilterCount(params);
   const r = await fetch('/api/properties?' + params);
   const d = await r.json();
   if (!d.properties.length) {
@@ -203,14 +217,15 @@ document.getElementById('openFiltersFromEmpty')?.addEventListener('click', openF
 
 document.querySelectorAll('.listing-quick-chip').forEach((chip) => {
   chip.addEventListener('click', () => {
-    if (chip.dataset.quickFilter !== undefined) {
-      setIntent(chip.dataset.quickFilter || '');
-      const typeEl = form.elements.namedItem('type');
-      if (typeEl) typeEl.value = '';
-    } else if (chip.dataset.quickType) {
-      const typeEl = form.elements.namedItem('type');
-      if (typeEl) typeEl.value = chip.dataset.quickType;
+    const typeEl = form.elements.namedItem('type');
+    if (chip.dataset.quickFilter === '') {
       setIntent('');
+      if (typeEl) typeEl.value = '';
+    } else if (chip.dataset.quickFilter !== undefined) {
+      const next = chip.dataset.quickFilter;
+      setIntent((intentInput?.value || '') === next ? '' : next);
+    } else if (chip.dataset.quickType && typeEl) {
+      typeEl.value = typeEl.value === chip.dataset.quickType ? '' : chip.dataset.quickType;
     }
     load();
   });

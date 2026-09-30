@@ -92,6 +92,11 @@ PUBLIC_PROPERTY_TYPES = [
 ]
 PROMO_STALE_DAYS = int(os.getenv("PROMO_STALE_DAYS", "30") or 30)
 PROMO_COOLDOWN_DAYS = int(os.getenv("PROMO_COOLDOWN_DAYS", "7") or 7)
+
+# Homepage/About headline stats (marketing figures, shown with a "+" suffix).
+STAT_YEARS_EXPERIENCE = int(os.getenv("STAT_YEARS_EXPERIENCE", "10") or 10)
+STAT_HAPPY_CLIENTS = int(os.getenv("STAT_HAPPY_CLIENTS", "500") or 500)
+STAT_PROPERTIES_LISTED = int(os.getenv("STAT_PROPERTIES_LISTED", "500") or 500)
 LEAD_STATUSES = ["new", "contacted", "interested", "site_visit_scheduled", "closed"]
 LEAD_TIERS = ["cold", "warm", "hot"]
 

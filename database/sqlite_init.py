@@ -360,6 +360,7 @@ def init_db():
       client_mobile TEXT,
       client_email TEXT,
       client_address TEXT,
+      client_gstin TEXT,
       deal_amount NUMERIC DEFAULT 0,
       brokerage_amount NUMERIC NOT NULL DEFAULT 0,
       gst_enabled INTEGER DEFAULT 0,
@@ -413,6 +414,38 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_billing_payments_receipt ON billing_payments(receipt_id);
     CREATE INDEX IF NOT EXISTS idx_whatsapp_promo_log_phone ON whatsapp_promo_log(phone, created_at);
 
+    CREATE TABLE IF NOT EXISTS admin_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      link TEXT,
+      ref_id INTEGER,
+      dedupe_key TEXT UNIQUE,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_notification_state (
+      admin_id INTEGER PRIMARY KEY,
+      last_seen_id INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS lead_captures (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      name TEXT,
+      source TEXT NOT NULL DEFAULT 'sell_page',
+      consent INTEGER NOT NULL DEFAULT 0,
+      consent_text TEXT,
+      visitor_id TEXT,
+      session_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_admin_notifications_created ON admin_notifications(created_at);
+    CREATE INDEX IF NOT EXISTS idx_visitor_events_type_created ON visitor_events(event_type, created_at);
+
     INSERT OR IGNORE INTO amenities (slug, label, sort_order) VALUES
       ('parking', 'Parking', 10),
       ('lift', 'Lift', 20),
@@ -425,6 +458,10 @@ def init_db():
       ('cctv', 'CCTV', 90),
       ('water_supply', 'Water Supply', 100);
     """)
+
+    receipt_cols = {row[1] for row in cur.execute("PRAGMA table_info(billing_receipts)").fetchall()}
+    if "client_gstin" not in receipt_cols:
+        cur.execute("ALTER TABLE billing_receipts ADD COLUMN client_gstin TEXT")
 
     if cur.execute("SELECT COUNT(*) FROM properties").fetchone()[0] == 0:
         _seed(cur)
