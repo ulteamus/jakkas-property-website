@@ -37,11 +37,15 @@ def _raises(fn, *args, **kwargs):
     return False
 
 
-def _any_public_property():
-    row = query_one(
-        "SELECT id FROM properties WHERE status IN ('available','approved','active') ORDER BY id LIMIT 1"
-    )
-    assert row, "Seed data needs at least one public property"
+def _any_public_property(listing_type=None):
+    sql = "SELECT id FROM properties WHERE status IN ('available','approved','active')"
+    params = []
+    if listing_type == "rent":
+        sql += " AND listing_type='rent'"
+    elif listing_type == "sale":
+        sql += " AND COALESCE(listing_type,'')<>'rent' AND COALESCE(listing_intent,'')<>'rent'"
+    row = query_one(sql + " ORDER BY id LIMIT 1", params)
+    assert row, f"Seed data needs at least one public {listing_type or ''} property"
     return prop_model.get_by_id(row["id"])
 
 
@@ -137,7 +141,18 @@ def test_amenities_crud_and_validation():
 def test_lease_toggle_hides_from_public():
     prop = None
     with APP.app_context():
-        prop = _any_public_property()
+        prop = prop_model.create(
+            {
+                "property_name": "Lease Toggle Temp Rent",
+                "property_type": "flat",
+                "area_name": "Adajan",
+                "price": 25000,
+                "sq_ft": 900,
+                "listing_intent": "rent",
+                "listing_type": "rent",
+                "status": "available",
+            }
+        )
     client = APP.test_client()
     resp = client.post("/admin/login", data={"username": "sam", "password": "admin123"})
     assert resp.status_code in (302, 303), resp.status_code
@@ -155,10 +170,12 @@ def test_lease_toggle_hides_from_public():
         assert client.post(f"/admin/properties/{prop['id']}/lease-status", data={"status": "sold"}).status_code == 302
         with APP.app_context():
             assert prop_model.get_by_id(prop["id"])["status"] == "rented"
-    finally:
         client.post(f"/admin/properties/{prop['id']}/lease-status", data={"status": "available"})
-    with APP.app_context():
-        assert prop_model.get_by_id(prop["id"])["status"] == "available"
+        with APP.app_context():
+            assert prop_model.get_by_id(prop["id"])["status"] == "available"
+    finally:
+        with APP.app_context():
+            prop_model.delete(prop["id"])
 
 
 def test_promo_eligibility_and_cooldown():

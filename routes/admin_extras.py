@@ -39,6 +39,12 @@ def property_lease_status(pid):
     if status not in LEASE_TOGGLE_STATUSES:
         flash("Invalid status.", "danger")
         return redirect(url_for("admin.properties"))
+    is_rent = (prop.get("listing_type") or "").lower() == "rent" or (
+        prop.get("listing_intent") or ""
+    ).lower() == "rent"
+    if status == "rented" and not is_rent:
+        flash("Only Rent listings can be marked Rented.", "warning")
+        return redirect(url_for("admin.properties"))
     prop_model.set_status(pid, status)
     try:
         submission_model.sync_submission_from_property_status(pid, status, reviewed_by=current_user.id)

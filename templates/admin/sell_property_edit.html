@@ -92,6 +92,13 @@
       <label class="form-label">Area</label>
       <input class="form-control" name="location_area" value="{{ submission.location_area or '' }}">
     </div>
+    <div class="col-md-4">
+      <label class="form-label">Listing Intent *</label>
+      <select class="form-select" name="listing_intent" required>
+        <option value="sell" {% if submission.listing_intent != 'rent' %}selected{% endif %}>Sell</option>
+        <option value="rent" {% if submission.listing_intent == 'rent' %}selected{% endif %}>Rent</option>
+      </select>
+    </div>
     <div class="col-12">
       <label class="form-label">Description</label>
       <textarea class="form-control" name="description" rows="3">{{ submission.description or '' }}</textarea>

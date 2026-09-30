@@ -270,10 +270,9 @@
               <span class="admin-media-badge">Primary</span>
               {% endif %}
               {% if img_id %}
-              <form method="POST" action="{{ url_for('admin.delete_property_image', pid=property.id, image_id=img_id) }}" class="admin-media-delete" onsubmit="return confirm('Remove this image?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove image">Remove</button>
-              </form>
+              <div class="admin-media-delete">
+                <button type="submit" form="imgDel{{ img_id }}" class="btn btn-sm btn-outline-danger" title="Remove image">Remove</button>
+              </div>
               {% endif %}
             </div>
           </div>
@@ -316,6 +315,16 @@
     <a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
   </div>
 </form>
+{% if property %}
+{% for img in existing_images %}
+{% set img_id = img.id if img.id is defined else none %}
+{% if img_id %}
+<form id="imgDel{{ img_id }}" method="POST" action="{{ url_for('admin.delete_property_image', pid=property.id, image_id=img_id) }}" onsubmit="return confirm('Remove this image?');" hidden>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+{% endfor %}
+{% endif %}
 <p class="small text-muted mt-2">Map marker uses latitude/longitude from Admin Controls.</p>
 {% endblock %}
 {% block extra_js %}

@@ -2486,7 +2486,7 @@ TEMPLATES = {
           {% if p.status == 'reserved' and submission_map.get(p.id) %}
           <a href="{{ url_for('admin.sell_properties', status='pending') }}#submission-{{ submission_map.get(p.id).id }}" class="btn btn-sm btn-outline-secondary">Review</a>
           {% endif %}
-          {% if p.status in ['rented', 'available', 'approved', 'active'] %}
+          {% if p.status == 'rented' or ((p.listing_type == 'rent' or p.listing_intent == 'rent') and p.status in ['available', 'approved', 'active']) %}
           <form method="POST" action="{{ url_for('admin.property_lease_status', pid=p.id) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="status" value="{{ 'available' if p.status == 'rented' else 'rented' }}">
@@ -2876,10 +2876,9 @@ TEMPLATES = {
               <span class="admin-media-badge">Primary</span>
               {% endif %}
               {% if img_id %}
-              <form method="POST" action="{{ url_for('admin.delete_property_image', pid=property.id, image_id=img_id) }}" class="admin-media-delete" onsubmit="return confirm('Remove this image?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove image">Remove</button>
-              </form>
+              <div class="admin-media-delete">
+                <button type="submit" form="imgDel{{ img_id }}" class="btn btn-sm btn-outline-danger" title="Remove image">Remove</button>
+              </div>
               {% endif %}
             </div>
           </div>
@@ -2922,6 +2921,16 @@ TEMPLATES = {
     <a href="{{ url_for('admin.properties') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
   </div>
 </form>
+{% if property %}
+{% for img in existing_images %}
+{% set img_id = img.id if img.id is defined else none %}
+{% if img_id %}
+<form id="imgDel{{ img_id }}" method="POST" action="{{ url_for('admin.delete_property_image', pid=property.id, image_id=img_id) }}" onsubmit="return confirm('Remove this image?');" hidden>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+{% endfor %}
+{% endif %}
 <p class="small text-muted mt-2">Map marker uses latitude/longitude from Admin Controls.</p>
 {% endblock %}
 {% block extra_js %}
@@ -3388,6 +3397,13 @@ TEMPLATES = {
     <div class="col-md-2">
       <label class="form-label">Area</label>
       <input class="form-control" name="location_area" value="{{ submission.location_area or '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Listing Intent *</label>
+      <select class="form-select" name="listing_intent" required>
+        <option value="sell" {% if submission.listing_intent != 'rent' %}selected{% endif %}>Sell</option>
+        <option value="rent" {% if submission.listing_intent == 'rent' %}selected{% endif %}>Rent</option>
+      </select>
     </div>
     <div class="col-12">
       <label class="form-label">Description</label>

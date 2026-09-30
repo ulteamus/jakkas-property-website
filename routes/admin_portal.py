@@ -1208,6 +1208,9 @@ def edit_sell_property(sid):
             amenities = [a.strip() for a in request.form.getlist("amenities") if str(a).strip()]
         else:
             amenities = submission.get("amenities") or []
+        listing_intent = submission_model._normalize_listing_intent(
+            request.form.get("listing_intent") or submission.get("listing_intent")
+        )
         payload = {
             "owner_name": request.form.get("owner_name"),
             "owner_mobile": request.form.get("owner_mobile"),
@@ -1216,7 +1219,7 @@ def edit_sell_property(sid):
             "owner_address": request.form.get("owner_address"),
             "property_title": request.form.get("property_title"),
             "property_type": request.form.get("property_type"),
-            "property_status": request.form.get("property_status") or "sell",
+            "property_status": listing_intent,
             "bhk": int(request.form.get("bhk") or 0),
             "bungalow_number": request.form.get("bungalow_number"),
             "area_sq_ft": float(str(request.form.get("area_sq_ft") or 0).replace(",", "")),
@@ -1226,7 +1229,7 @@ def edit_sell_property(sid):
             "location_area": request.form.get("location_area"),
             "description": request.form.get("description"),
             "amenities": amenities,
-            "listing_intent": request.form.get("listing_intent") or "buy",
+            "listing_intent": listing_intent,
             "review_note": request.form.get("review_note"),
         }
         submission_model.update_submission(sid, payload)
@@ -1258,7 +1261,8 @@ def edit_sell_property(sid):
                     "description": payload.get("description"),
                     "amenities": amenities,
                     "status": synced_status,
-                    "listing_type": current_prop.get("listing_type") or "sale",
+                    "listing_intent": listing_intent,
+                    "listing_type": "rent" if listing_intent == "rent" else "sale",
                 },
             )
         _log_admin_action(
@@ -1891,7 +1895,11 @@ def _form_property(form):
         "sold": "sold",
         "rented": "rented",
     }
-    status = status_map.get(status_raw, "available")
+    status = status_map.get(status_raw)
+    if status is None:
+        raise ValueError("Invalid status.")
+    if status == "rented" and listing_type != "rent":
+        raise ValueError("Rented status is only valid for Rent listings.")
 
     sq_ft_raw = (
         str(form.get("sq_ft") or "").strip().replace(",", "")

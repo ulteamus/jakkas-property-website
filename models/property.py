@@ -459,10 +459,14 @@ def search(area=None, property_type=None, min_price=None, max_price=None,
 
     if listing_intent:
         intent = listing_intent.lower()
+        is_rent_sql = (
+            "(LOWER(COALESCE(listing_type,''))='rent' "
+            "OR LOWER(COALESCE(listing_intent,''))='rent')"
+        )
         if intent == "rent":
-            sql += " AND listing_type='rent'"
+            sql += f" AND {is_rent_sql}"
         elif intent in {"buy", "sell", "sale"}:
-            sql += " AND listing_type!='rent'"
+            sql += f" AND NOT {is_rent_sql}"
 
     if keyword:
         sql += (
@@ -480,12 +484,7 @@ def search(area=None, property_type=None, min_price=None, max_price=None,
     }.get(sort, "created_at DESC")
     sql += f" ORDER BY {order} LIMIT %s OFFSET %s"
     params.extend([limit, offset])
-    rows = [_parse(r) for r in query_all(sql, params)]
-    forced_intent = (listing_intent or "").lower()
-    if forced_intent in {"buy", "sell", "rent"}:
-        for row in rows:
-            row["listing_intent"] = forced_intent
-    return rows
+    return [_parse(r) for r in query_all(sql, params)]
 
 
 def featured(limit=6):
@@ -559,7 +558,10 @@ def _default_owner_admin_id():
 
 
 def update(pid, data):
+    """Update a property. Keys missing from ``data`` keep their current values."""
     _ensure_schema()
+    current = get_by_id(pid) or {}
+    data = {**current, **data}
     property_type = _normalize_property_type(data["property_type"])
     amenities = json.dumps(data.get("amenities") or [])
     listing_intent = _normalize_listing_intent(
