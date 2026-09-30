@@ -28,6 +28,7 @@
 body.admin-theme {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   color: var(--admin-text);
   background:
@@ -50,6 +51,7 @@ body.admin-login-page h3 {
 
 body.admin-theme .admin-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
 }
 
@@ -1013,3 +1015,49 @@ body.admin-login-page {
   margin: 0;
 }
 
+
+/* Inventory row actions: inline on desktop, one "Actions" dropdown under 768px. */
+.admin-row-actions .admin-row-actions-toggle {
+  display: none;
+}
+@media (min-width: 768px) {
+  .admin-row-actions .dropdown-menu {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+@media (max-width: 767.98px) {
+  .admin-row-actions .admin-row-actions-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .admin-row-actions .dropdown-menu {
+    min-width: 12rem;
+    padding: 0.5rem;
+  }
+  .admin-row-actions .dropdown-menu.show {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .admin-row-actions .dropdown-menu .btn,
+  .admin-row-actions .dropdown-menu form {
+    display: block;
+    width: 100%;
+    margin: 0;
+  }
+  .admin-row-actions .dropdown-menu .btn {
+    text-align: left;
+  }
+}

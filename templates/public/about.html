@@ -141,8 +141,88 @@
   .about-stats-section .section-title {
     margin-bottom: clamp(1.1rem, 2.5vw, 1.6rem);
   }
+  .about-hero-proof {
+    margin: 0.85rem 0 0;
+    font-weight: 600;
+    color: #c66b2f;
+  }
+  .about-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+  }
+  .about-section {
+    padding-bottom: clamp(2rem, 4vw, 3rem);
+  }
+  .about-section .section-title {
+    margin-bottom: clamp(1.1rem, 2.5vw, 1.6rem);
+  }
+  .about-section .about-info-card h3 {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .about-section .about-info-card p {
+    line-height: 1.65;
+  }
+  .about-story-card p {
+    max-width: 70ch;
+    line-height: 1.7;
+  }
+  .about-service-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.6rem;
+    height: 100%;
+    padding: 1.25rem 0.85rem;
+    color: inherit;
+    text-decoration: none;
+  }
+  .about-service-link:hover,
+  .about-service-link:focus-visible {
+    color: inherit;
+  }
+  .about-service-link h3 {
+    margin: 0;
+    font-family: "Montserrat", sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .about-service-link p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #515666;
+  }
+  .about-areas .popular-search-chip {
+    text-decoration: none;
+  }
+  .about-cta-card {
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    text-align: center;
+  }
+  .about-cta-card h2 {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  }
+  .about-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+  }
+  .about-cta-address {
+    margin: 1rem auto 0;
+    max-width: 60ch;
+    color: #515666;
+  }
   @media (max-width: 991.98px) {
     #leadership .leadership-grid {
+      grid-template-columns: 1fr;
       gap: 1.15rem;
     }
     #leadership .founder-photo-wrap {
@@ -150,16 +230,19 @@
       max-width: 168px;
     }
     #leadership .leadership-copy {
-      max-width: 100%;
+      max-width: 60ch;
     }
   }
   @media (max-width: 767.98px) {
     #leadership .leadership-grid {
-      grid-template-columns: 1fr;
       gap: 1rem;
     }
     .about-hero-title {
       max-width: none;
+    }
+    .about-hero-actions .btn,
+    .about-cta-actions .btn {
+      flex: 1 1 100%;
     }
     #leadership .founder-photo-wrap {
       width: min(160px, 46vw);
@@ -179,9 +262,32 @@
           {{ company_name }} helps buyers, sellers, and renters close clearer deals —
           with verified listings, transparent advice, and end-to-end support.
         </p>
+        <p class="about-hero-proof">Serving Surat for {{ about_stats.years_experience }}+ years</p>
+        <div class="about-hero-actions">
+          <a class="btn btn-jk-accent" href="{{ url_for('public.listings') }}"><i class="bi bi-search me-1"></i>Browse Properties</a>
+          <a class="btn btn-jk-outline" href="{{ url_for('public.sell_property') }}"><i class="bi bi-plus-circle me-1"></i>Sell / List Your Property</a>
+        </div>
       </article>
     </div>
   </div>
+</section>
+
+<section class="container jk-flow about-page-shell about-section" id="our-story">
+  <h2 class="section-title section-title-center">Our Story</h2>
+  <article class="about-info-card about-story-card premium-hover-card reveal-on-scroll">
+    <div class="about-info-icon"><i class="bi bi-buildings"></i></div>
+    <div>
+      <p>
+        JAKKASH Property Consultancy was built to simplify buying, selling, and renting across Surat. For more than
+        {{ about_stats.years_experience }} years we have helped families, investors, and business owners find the right
+        home, shop, plot, or farmhouse with verified listings and professional guidance.
+      </p>
+      <p class="mb-0">
+        Our team handles every deal personally: we check each listing, arrange site visits, explain pricing openly,
+        and stay with you through paperwork and handover.
+      </p>
+    </div>
+  </article>
 </section>
 
 <section class="container jk-flow about-page-shell" id="leadership">
@@ -235,17 +341,6 @@
 
 <section class="container jk-flow about-page-shell about-values">
   <div class="row g-3 g-md-4">
-    <div class="col-12">
-      <article class="about-info-card premium-hover-card reveal-on-scroll">
-        <div class="about-info-icon"><i class="bi bi-buildings"></i></div>
-        <div>
-          <h3>About Company</h3>
-          <p class="mb-0">
-            JAKKASH Property Consultancy simplifies buying, selling, and renting across Surat with verified listings and professional guidance.
-          </p>
-        </div>
-      </article>
-    </div>
     <div class="col-md-6">
       <article class="about-info-card premium-hover-card reveal-on-scroll h-100">
         <div class="about-info-icon"><i class="bi bi-eye"></i></div>
@@ -266,6 +361,100 @@
     </div>
   </div>
 </section>
+
+<section class="container jk-flow about-page-shell about-section" id="why-choose">
+  <h2 class="section-title section-title-center">Why Choose JAKKASH</h2>
+  <div class="row g-3 g-md-4">
+    <div class="col-md-6">
+      <article class="about-info-card premium-hover-card reveal-on-scroll h-100">
+        <div class="about-info-icon"><i class="bi bi-patch-check"></i></div>
+        <div>
+          <h3>Verified Listings</h3>
+          <p class="mb-0">Every property is checked by our team before it goes live, so you only visit genuine options.</p>
+        </div>
+      </article>
+    </div>
+    <div class="col-md-6">
+      <article class="about-info-card premium-hover-card reveal-on-scroll h-100">
+        <div class="about-info-icon"><i class="bi bi-geo-alt"></i></div>
+        <div>
+          <h3>Local Area Knowledge</h3>
+          <p class="mb-0">We know Surat's neighbourhoods, from Vesu and Adajan to Pal, and can guide you on pricing and location.</p>
+        </div>
+      </article>
+    </div>
+    <div class="col-md-6">
+      <article class="about-info-card premium-hover-card reveal-on-scroll h-100">
+        <div class="about-info-icon"><i class="bi bi-receipt"></i></div>
+        <div>
+          <h3>Transparent Brokerage</h3>
+          <p class="mb-0">Brokerage is agreed upfront and every payment comes with a proper receipt. No hidden charges.</p>
+        </div>
+      </article>
+    </div>
+    <div class="col-md-6">
+      <article class="about-info-card premium-hover-card reveal-on-scroll h-100">
+        <div class="about-info-icon"><i class="bi bi-people"></i></div>
+        <div>
+          <h3>End-to-End Help</h3>
+          <p class="mb-0">Site visits, negotiation, paperwork, and home-loan support, handled by one team from first call to handover.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="container jk-flow about-page-shell about-section" id="what-we-do">
+  <h2 class="section-title section-title-center">What We Do</h2>
+  <div class="row g-3">
+    <div class="col-6 col-md-4 col-lg">
+      <a class="about-service-link premium-hover-card reveal-on-scroll" href="{{ url_for('public.listings', listing_intent='buy') }}">
+        <span class="about-info-icon"><i class="bi bi-house-door"></i></span>
+        <h3>Buy</h3>
+        <p>Homes, flats and plots for sale</p>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <a class="about-service-link premium-hover-card reveal-on-scroll" href="{{ url_for('public.sell_property') }}">
+        <span class="about-info-icon"><i class="bi bi-tag"></i></span>
+        <h3>Sell</h3>
+        <p>List your property with us</p>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <a class="about-service-link premium-hover-card reveal-on-scroll" href="{{ url_for('public.listings', listing_intent='rent') }}">
+        <span class="about-info-icon"><i class="bi bi-key"></i></span>
+        <h3>Rent</h3>
+        <p>Rental homes and offices</p>
+      </a>
+    </div>
+    <div class="col-6 col-md-6 col-lg">
+      <a class="about-service-link premium-hover-card reveal-on-scroll" href="{{ url_for('public.listings', type='commercial') }}">
+        <span class="about-info-icon"><i class="bi bi-shop"></i></span>
+        <h3>Commercial</h3>
+        <p>Shops, offices and showrooms</p>
+      </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg">
+      <a class="about-service-link premium-hover-card reveal-on-scroll" href="{{ url_for('public.listings', type='farmhouse') }}">
+        <span class="about-info-icon"><i class="bi bi-tree"></i></span>
+        <h3>Farmhouse</h3>
+        <p>Farmhouses around Surat</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+{% if areas %}
+<section class="container jk-flow about-page-shell about-section about-areas" id="areas">
+  <h2 class="section-title section-title-center">Areas We Cover</h2>
+  <div class="popular-search-list">
+    {% for area in areas %}
+    <a class="popular-search-chip" href="{{ url_for('public.listings', area=area) }}">{{ area }}</a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
 <section class="about-stats-section">
   <div class="container about-page-shell">
@@ -297,6 +486,19 @@
       </div>
     </div>
   </div>
+</section>
+
+<section class="container jk-flow about-page-shell about-section pt-4 pt-md-5" id="contact-cta">
+  <article class="about-cta-card premium-hover-card reveal-on-scroll">
+    <h2 class="mb-2">Looking to buy, sell or rent in Surat?</h2>
+    <p class="text-muted mb-0">Talk to our team today. We will help you find the right property.</p>
+    <div class="about-cta-actions">
+      <a class="btn btn-jk-accent" href="tel:{{ company_phone_raw }}"><i class="bi bi-telephone me-1"></i>Call {{ company_phone }}</a>
+      <a class="btn btn-success" href="https://wa.me/{{ company_whatsapp }}?text=Hello%20JAKKASH%20Property%20Consultancy." target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp me-1"></i>WhatsApp Us</a>
+      <a class="btn btn-jk-outline" href="https://www.google.com/maps/search/?api=1&amp;query={{ company_address|urlencode }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-geo-alt me-1"></i>Visit Our Office</a>
+    </div>
+    <p class="about-cta-address"><i class="bi bi-building me-1"></i>{{ company_address }}</p>
+  </article>
 </section>
 {% endblock %}
 {% block extra_js %}

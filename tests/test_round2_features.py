@@ -175,7 +175,24 @@ def test_home_stats_values():
     with APP.app_context():
         from models import analytics as analytics_model
 
-        assert analytics_model.home_kpi_counts() == {"properties": 500, "clients": 500, "years": 10}
+        assert analytics_model.home_kpi_counts() == {
+            "properties": 500,
+            "clients": 500,
+            "deals": 300,
+            "years": 10,
+        }
+
+
+def test_about_successful_deals_from_config():
+    import config
+
+    page = APP.test_client().get("/about").get_data(as_text=True)
+    assert config.STAT_SUCCESSFUL_DEALS == 300
+    assert f'data-counter="{config.STAT_SUCCESSFUL_DEALS}" data-suffix="+">0</p>' in page
+    assert "Successful Deals" in page
+    for section in ("Our Story", "Why Choose JAKKASH", "What We Do", "Leadership"):
+        assert section in page
+    assert "type=farmhouse" in page
 
 
 def test_bell_api_auth_and_seen():
@@ -208,6 +225,7 @@ TESTS = [
     test_lead_capture_requires_consent,
     test_farmhouse_filter_combines_with_intent,
     test_home_stats_values,
+    test_about_successful_deals_from_config,
     test_bell_api_auth_and_seen,
     test_static_links_are_versioned,
 ]

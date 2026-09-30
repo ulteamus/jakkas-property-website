@@ -138,6 +138,15 @@ h1, h2, h3, h4, h5, h6,
 .public-main-nav {
   row-gap: 0.25rem;
 }
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .public-main-nav .nav-link {
+    padding-inline: 0.5rem;
+  }
+  .header-actions .btn {
+    min-width: 0;
+    padding-inline: 0.7rem;
+  }
+}
 .property-hero__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1265,12 +1274,13 @@ body.drawer-open {
   box-shadow: inset 0 0 0 1px rgba(255, 132, 54, 0.62);
 }
 
-.reveal-on-scroll {
+/* Visible by default; only hidden for the reveal when JS has flagged <html class="js">. */
+html.js .reveal-on-scroll {
   opacity: 0;
   transform: translateY(22px);
   transition: opacity 0.55s ease, transform 0.55s ease;
 }
-.reveal-on-scroll.is-visible {
+html.js .reveal-on-scroll.is-visible {
   opacity: 1;
   transform: translateY(0);
 }

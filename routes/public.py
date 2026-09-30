@@ -147,17 +147,14 @@ def about():
     about_stats = {
         "properties_listed": kpis["properties"],
         "happy_clients": kpis["clients"],
-        "successful_deals": 0,
+        "successful_deals": kpis["deals"],
         "years_experience": kpis["years"],
     }
     try:
-        dashboard = analytics_model.dashboard_stats()
-        about_stats["successful_deals"] = int(
-            dashboard.get("sold_properties") or dashboard.get("total_sold") or 0
-        )
+        areas = [a for a in (prop_model.areas_list() or []) if a][:12]
     except Exception:
-        pass
-    return render_template("public/about.html", about_stats=about_stats)
+        areas = []
+    return render_template("public/about.html", about_stats=about_stats, areas=areas)
 
 
 @public_bp.route("/services")

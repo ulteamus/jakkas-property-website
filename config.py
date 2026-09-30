@@ -97,6 +97,7 @@ PROMO_COOLDOWN_DAYS = int(os.getenv("PROMO_COOLDOWN_DAYS", "7") or 7)
 STAT_YEARS_EXPERIENCE = int(os.getenv("STAT_YEARS_EXPERIENCE", "10") or 10)
 STAT_HAPPY_CLIENTS = int(os.getenv("STAT_HAPPY_CLIENTS", "500") or 500)
 STAT_PROPERTIES_LISTED = int(os.getenv("STAT_PROPERTIES_LISTED", "500") or 500)
+STAT_SUCCESSFUL_DEALS = int(os.getenv("STAT_SUCCESSFUL_DEALS", "300") or 300)
 LEAD_STATUSES = ["new", "contacted", "interested", "site_visit_scheduled", "closed"]
 LEAD_TIERS = ["cold", "warm", "hot"]
 

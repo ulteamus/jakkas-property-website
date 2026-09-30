@@ -152,11 +152,17 @@ def home_property_count():
 
 def home_kpi_counts():
     """Homepage KPI strip: configured marketing figures (no DB round-trip)."""
-    from config import STAT_HAPPY_CLIENTS, STAT_PROPERTIES_LISTED, STAT_YEARS_EXPERIENCE
+    from config import (
+        STAT_HAPPY_CLIENTS,
+        STAT_PROPERTIES_LISTED,
+        STAT_SUCCESSFUL_DEALS,
+        STAT_YEARS_EXPERIENCE,
+    )
 
     return {
         "properties": STAT_PROPERTIES_LISTED,
         "clients": STAT_HAPPY_CLIENTS,
+        "deals": STAT_SUCCESSFUL_DEALS,
         "years": STAT_YEARS_EXPERIENCE,
     }
 

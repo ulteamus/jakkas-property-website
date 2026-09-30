@@ -63,6 +63,11 @@
         <td><span class="admin-status-pill status-{{ p.status }}">{{ status_label|title }}</span></td>
         <td>{{ p.view_count }}</td>
         <td class="text-nowrap">
+          <div class="dropdown admin-row-actions">
+          <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle admin-row-actions-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
+            Actions
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
           <a href="{{ url_for('admin.property_form', pid=p.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
           {% if p.status == 'reserved' and submission_map.get(p.id) %}
           <a href="{{ url_for('admin.sell_properties', status='pending') }}#submission-{{ submission_map.get(p.id).id }}" class="btn btn-sm btn-outline-secondary">Review</a>
@@ -83,6 +88,8 @@
           <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ p.id }}">
             Delete
           </button>
+          </div>
+          </div>
           <div class="modal fade" id="deletePropertyModal{{ p.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
               <div class="modal-content">
